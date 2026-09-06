@@ -154,3 +154,43 @@
 .http-header .hh-val { color: var(--text-faint); opacity: 0.7; }
 .http-header.reorderable { background: color-mix(in srgb, var(--covert) 12%, transparent); }
 .http-header.reorderable .hh-name { color: var(--covert); font-weight: 650; }
+
+/* ---- Carrier Atlas -------------------------------------------------------- */
+.atlas-group-title { font-size: var(--fs-lg); margin: var(--sp-6) 0 var(--sp-3); }
+.atlas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--sp-4); }
+.atlas-card.concept { border-style: dashed; }
+.atlas-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.atlas-card-title { font-size: var(--fs-md); }
+.atlas-badges { display: flex; gap: 4px; flex-wrap: wrap; flex: none; }
+.atlas-kv { display: flex; gap: var(--sp-2); font-size: var(--fs-xs); margin-top: var(--sp-2); }
+.atlas-kv-label { color: var(--text-faint); font-weight: 650; flex: none; min-width: 8.5em; text-transform: uppercase; letter-spacing: 0.04em; }
+.atlas-kv-value { color: var(--text-dim); }
+.atlas-open { margin-top: var(--sp-3); }
+.atlas-conceptmark { display: block; margin-top: var(--sp-3); font-size: var(--fs-xs); color: var(--warn); }
+.atlas-cite { font-size: var(--fs-xs); margin-top: var(--sp-3); }
+.taxo-family { margin-top: var(--sp-4); }
+.taxo-fam-title { font-size: var(--fs-base); margin-bottom: var(--sp-2); }
+.fidelity-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); margin-top: var(--sp-3); }
+.fidelity-col { background: var(--surface-inset); border-radius: var(--r-sm); padding: var(--sp-2); border-top: 2px solid var(--border-strong); }
+.fidelity-col.fid-good { border-top-color: var(--ok); }
+.fidelity-col.fid-warn { border-top-color: var(--warn); }
+.fidelity-col.fid-neutral { border-top-color: var(--accent-2); }
+.fidelity-col-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); font-weight: 650; margin-bottom: 4px; }
+.fidelity-col ul { margin: 0; padding-left: 1em; }
+.fidelity-col li { font-size: var(--fs-xs); color: var(--text-dim); }
+@media (max-width: 560px) { .fidelity-card { grid-template-columns: 1fr; } }
+
+/* ---- Shared-Resource Matrix ----------------------------------------------- */
+.srm-table td, .srm-table th { vertical-align: middle; }
+.srm-level { color: var(--text-faint); font-size: var(--fs-xs); }
+.srm-cell { text-align: center; }
+.srm-rm-pair { display: inline-flex; gap: 4px; }
+.srm-rm { width: 28px; height: 28px; border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface-inset); color: var(--text-faint); font-family: var(--font-mono); font-weight: 700; cursor: pointer; }
+.srm-rm:hover { border-color: var(--accent); }
+.srm-rm.on { background: var(--accent); color: var(--text-invert); border-color: transparent; }
+.srm-channel-row td { background: color-mix(in srgb, var(--covert) 10%, transparent); }
+.srm-flag { color: var(--covert); font-weight: 700; font-size: var(--fs-xs); }
+.srm-finding { border-left: 3px solid var(--covert); padding: var(--sp-2) var(--sp-3); background: var(--surface-inset); border-radius: var(--r-sm); margin-top: var(--sp-2); }
+.srm-finding-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 4px; }
+.srm-finding-name { font-weight: 650; }
+.srm-finding p { font-size: var(--fs-sm); }

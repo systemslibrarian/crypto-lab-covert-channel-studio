@@ -1,0 +1,127 @@
+/**
+ * views/srmView.js — Kemmerer's Shared Resource Matrix as a playable exercise.
+ *
+ * Mark which subject can Reference (R) or Modify (M) each shared attribute. A
+ * potential covert channel exists for an attribute when a HIGH subject can
+ * Modify it and a LOW subject can Reference it — information flows High → Low
+ * through a resource neither was meant to communicate through. Storage vs timing
+ * follows the attribute's nature.
+ *
+ * Reference: R. A. Kemmerer, "Shared Resource Matrix Methodology", ACM TOCS, 1983.
+ */
+
+import { el, div, span, replace } from './dom.js';
+import { sectionHeader, para, callout, inline } from './blocks.js';
+import { button } from './controls.js';
+
+const SUBJECTS = [
+  { id: 'high', label: 'Secret task', level: 'High' },
+  { id: 'low', label: 'Public task', level: 'Low' },
+];
+
+const ATTRIBUTES = [
+  { id: 'lock', label: 'Shared file lock (held / free)', kind: 'storage' },
+  { id: 'diskfull', label: '“Disk full” flag', kind: 'storage' },
+  { id: 'table', label: 'Rows in a shared table', kind: 'storage' },
+  { id: 'latency', label: 'Server response latency', kind: 'timing' },
+  { id: 'queue', label: 'Shared print-queue length', kind: 'storage' },
+];
+
+// A starting scenario. Two attributes already form a channel (lock, latency);
+// the learner can toggle cells and watch channels appear and disappear.
+const INITIAL = {
+  // A storage channel: High holds/frees the lock, Low tests it.
+  'lock:high': { R: false, M: true }, 'lock:low': { R: true, M: false },
+  // Both read it, only Low modifies -> a Low->High flow, not a secret leak.
+  'diskfull:high': { R: true, M: false }, 'diskfull:low': { R: true, M: true },
+  // High modifies, but Low cannot read it -> no channel here.
+  'table:high': { R: true, M: true }, 'table:low': { R: false, M: true },
+  // A timing channel: High hogs the CPU, Low measures latency.
+  'latency:high': { R: false, M: true }, 'latency:low': { R: true, M: false },
+  // Both read, only Low modifies -> no High->Low leak.
+  'queue:high': { R: true, M: false }, 'queue:low': { R: true, M: true },
+};
+
+let matrix = null;
+
+function key(a, s) { return `${a}:${s}`; }
+function cell(a, s) { return matrix[key(a, s)] || (matrix[key(a, s)] = { R: false, M: false }); }
+
+export function renderSrmView(state) {
+  matrix = structuredClone(INITIAL);
+  const matrixArea = div({});
+  const findingsArea = div({});
+
+  const node = el('section', { class: 'section', id: 'sec-srm' },
+    sectionHeader({
+      title: 'Shared-Resource Matrix', eyebrow: 'Analysis',
+      lede: 'How trusted-system evaluators actually hunt covert channels. Mark which task can Reference (R) or Modify (M) each shared attribute; the matrix flags any attribute a High task can modify and a Low task can read.',
+    }),
+    div({ class: 'prose-wide' },
+      para('A potential covert channel exists when information can flow **High → Low** through a shared attribute: the secret task **modifies** it, the public task **reads** it. Toggle cells below and watch channels appear and disappear — then decide whether each is a **storage** or **timing** channel.', undefined)),
+    el('div', { class: 'card' }, matrixArea),
+    findingsArea,
+    callout({ kind: 'note', title: 'Why this is the real method', body: 'The Shared Resource Matrix (Kemmerer, 1983) underpins covert-channel analysis in evaluated systems and lives on in guidance like NCSC-TG-030 and NIST SP 800-53 control SC-31 (Covert Channel Analysis). Finding the channel is step one; estimating its bandwidth and deciding whether to close, audit, or accept it is step two.' }));
+
+  function render() {
+    replace(matrixArea, matrixTable());
+    replace(findingsArea, findings());
+  }
+
+  function matrixTable() {
+    const head = el('tr', {},
+      el('th', { text: 'Shared attribute' }),
+      ...SUBJECTS.map((s) => el('th', {}, span({ text: s.label }), span({ class: 'srm-level', text: ` (${s.level})` }))),
+      el('th', { text: 'Kind' }));
+    const rows = ATTRIBUTES.map((a) => {
+      const chan = channelFor(a);
+      return el('tr', { class: chan ? 'srm-channel-row' : '' },
+        el('td', {}, span({ text: a.label }), chan ? span({ class: 'srm-flag', text: ' ⚠ channel' }) : null),
+        ...SUBJECTS.map((s) => el('td', { class: 'srm-cell' }, rmToggle(a, s, render))),
+        el('td', {}, span({ class: `pill ${a.kind === 'timing' ? 'pill-mod' : 'pill-normal'}`, text: a.kind })));
+    });
+    return div({ class: 'table-wrap' },
+      el('table', { class: 'data-table srm-table' },
+        el('thead', {}, head), el('tbody', {}, ...rows)));
+  }
+
+  function findings() {
+    const chans = ATTRIBUTES.map((a) => ({ a, c: channelFor(a) })).filter((x) => x.c);
+    if (chans.length === 0) {
+      return el('div', { class: 'card' }, para('No potential channels in the current matrix. Give the Secret task a **Modify** and the Public task a **Read** on the same attribute to open one.', 'subtle'));
+    }
+    return el('div', { class: 'card' },
+      el('h3', { class: 'card-title', text: `${chans.length} potential channel${chans.length === 1 ? '' : 's'} found` }),
+      ...chans.map(({ a, c }) => div({ class: 'srm-finding' },
+        el('div', { class: 'srm-finding-head' },
+          span({ class: 'srm-finding-name', text: a.label }),
+          span({ class: `pill ${a.kind === 'timing' ? 'pill-mod' : 'pill-normal'}`, text: `${a.kind} channel` })),
+        el('p', {}, ...inline(`**Secret task modifies** this attribute and the **Public task reads** it — a High → Low flow. ${bandwidthNote(a)}`)))));
+  }
+
+  render();
+  return { node, refresh() {} };
+}
+
+/** Channel criterion: High modifies AND Low references the same attribute. */
+function channelFor(a) {
+  const highM = cell(a.id, 'high').M;
+  const lowR = cell(a.id, 'low').R;
+  return highM && lowR;
+}
+
+function bandwidthNote(a) {
+  return a.kind === 'timing'
+    ? 'Illustrative capacity is low and noisy — one bit per observable timing difference, easily swamped by scheduling.'
+    : 'Illustrative capacity is up to one bit per modify → read cycle; the faster the resource can flip, the higher the rate.';
+}
+
+function rmToggle(a, s, onChange) {
+  const c = cell(a.id, s.id);
+  const mk = (flag, label) => el('button', {
+    class: `srm-rm${c[flag] ? ' on' : ''}`, type: 'button',
+    attrs: { 'aria-pressed': c[flag] ? 'true' : 'false', 'aria-label': `${label} — ${a.label} — ${s.label}` },
+    on: { click: () => { c[flag] = !c[flag]; onChange(); } },
+  }, label);
+  return div({ class: 'srm-rm-pair' }, mk('R', 'R'), mk('M', 'M'));
+}

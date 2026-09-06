@@ -26,6 +26,8 @@ export const SECTIONS = [
   { id: 'detection', label: 'Detection Console', group: 'Analysis' },
   { id: 'challenge', label: 'Detection Challenge', group: 'Analysis' },
   { id: 'compare', label: 'Compare Channels', group: 'Analysis' },
+  { id: 'atlas', label: 'Carrier Atlas', group: 'Analysis' },
+  { id: 'srm', label: 'Shared-Resource Matrix', group: 'Analysis' },
   { id: 'concepts', label: 'What Makes a Channel Covert?', group: 'Analysis' },
   { id: 'defense', label: 'Defensive Takeaways', group: 'Analysis' },
   { id: 'glossary', label: 'Glossary', group: 'Reference' },

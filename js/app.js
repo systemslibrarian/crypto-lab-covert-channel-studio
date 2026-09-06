@@ -22,6 +22,8 @@ import { renderMetadataView } from './views/metadataView.js';
 import { renderDetectionView } from './views/detectionView.js';
 import { renderChallengeView } from './views/challengeView.js';
 import { renderComparisonView } from './views/comparisonView.js';
+import { renderAtlasView } from './views/atlasView.js';
+import { renderSrmView } from './views/srmView.js';
 import { renderConceptsView } from './views/conceptsView.js';
 import { renderDefenseView } from './views/defenseView.js';
 import { renderGlossaryView } from './views/glossaryView.js';
@@ -39,6 +41,8 @@ const VIEWS = {
   detection: renderDetectionView,
   challenge: renderChallengeView,
   compare: renderComparisonView,
+  atlas: renderAtlasView,
+  srm: renderSrmView,
   concepts: renderConceptsView,
   defense: renderDefenseView,
   glossary: renderGlossaryView,
