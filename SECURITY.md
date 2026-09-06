@@ -1,7 +1,7 @@
 # Security Policy — Covert Channel Studio
 
-**Covert Channel Studio** is an educational security exhibit in the fictional *Crypto-Lab*
-collection. It teaches how covert channels work — and how defenders detect them — through
+**Covert Channel Studio** is an educational security exhibit in the *Crypto-Lab*
+collection of browser-based cryptography and security labs. It teaches how covert channels work — and how defenders detect them — through
 a **100% client-side, browser-based simulation**. This document describes the project's
 scope, its own security posture, responsible-use expectations, and how to report issues.
 
@@ -42,7 +42,13 @@ Its attack surface is deliberately minimal:
 - **No cookies and no sensitive storage.** Nothing secret is written to cookies,
   `localStorage`, or any other browser storage.
 - **Strict Content-Security-Policy** delivered via a `<meta http-equiv>` tag, restricting
-  scripts, styles, and connections to the site's own origin.
+  scripts, styles, and connections to the site's own origin (`connect-src 'none'`, no
+  `unsafe-inline`/`eval`). Note a documented limitation: a `<meta>` CSP cannot enforce
+  `frame-ancestors` (it requires a real HTTP response header, which static GitHub Pages
+  hosting does not let us set), so that directive is intentionally omitted rather than listed
+  and silently ignored. The page has no login, payment, or state-changing actions, so
+  clickjacking risk is negligible; a deployment that needs framing protection should serve the
+  CSP as an HTTP header from infrastructure that permits custom headers.
 - **No `eval` or dynamic script execution.** No `eval()`, no `new Function()`, no
   string-based timers, no runtime script injection.
 - **No inline event handlers.** All event wiring uses `addEventListener` in ES modules.

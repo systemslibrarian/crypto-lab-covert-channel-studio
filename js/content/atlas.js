@@ -13,8 +13,9 @@
  */
 
 export const TAXONOMY = {
-  citation: 'Wendzel, Zander, Fechner & Herdin — "Pattern-Based Survey and Categorization of Network Covert Channel Techniques", ACM Computing Surveys 47(3), 2015',
+  citation: 'Wendzel, Zander, Fechner & Herdin — "Pattern-Based Survey and Categorization of Network Covert Channel Techniques", ACM Computing Surveys 47(3), 2015 (DOI 10.1145/2684195)',
   intro: 'The community reference organizes techniques into reusable hiding PATTERNS under two classic families — storage and timing. Mapping a technique to a pattern is more durable than memorizing individual tricks.',
+  since: 'This lab maps its hands-on modules to the 2015 NETWORK pattern taxonomy. In 2025 the same group generalized it: Wendzel, Caviglione, Mazurczyk et al., "A Generic Taxonomy for Steganography Methods" (ACM Computing Surveys, DOI 10.1145/3729165) spans information hiding across network, media, text, filesystem, and cyber-physical domains. The network patterns below remain the clearest on-ramp; the generic taxonomy is where to go next.',
   families: [
     {
       name: 'Storage patterns',

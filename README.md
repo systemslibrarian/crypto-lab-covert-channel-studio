@@ -2,7 +2,7 @@
 
 > Hidden communication in protocols, timing, and media.
 
-Covert Channel Studio is a polished, browser-based **educational security lab** — part of the fictional **Crypto-Lab** collection of exhibits. It teaches how covert channels work, how they differ from ordinary tunneling and steganography, and — just as importantly — how defenders detect them. Everything in the lab is a **100% client-side simulation**: every packet, DNS query, resolver, and timing event is a plain JavaScript object rendered in your browser. Nothing ever touches a real network.
+Covert Channel Studio is a polished, browser-based **educational security lab** — part of the [**Crypto-Lab**](https://github.com/systemslibrarian/crypto-lab) collection of browser-based cryptography and security exhibits. It teaches how covert channels work, how they differ from ordinary tunneling and steganography, and — just as importantly — how defenders detect them. Everything in the lab is a **100% client-side simulation**: every packet, DNS query, resolver, and timing event is a plain JavaScript object rendered in your browser. Nothing ever touches a real network.
 
 ## Table of contents
 
@@ -52,6 +52,7 @@ Interactive exhibit sections, plus a glossary and a quiz:
 - **Library Records** — the librarian's-eye exhibit: routine circulation/transfer metadata as an *unintended inference channel*, and data minimisation as the defence.
 - **Detection Console** — the defender's bench: named, cited statistical detectors across every channel.
 - **Detection Challenge** — a genuinely **blind, scored** exercise: observables only, commit a call (clean / suspicious / covert), then reveal the ground truth. Includes false-positive traps.
+- **Detector Validation Lab** — every detector is run over hundreds of deterministic clean/covert cases; the section shows **ROC curves, AUC, and confusion matrices** (FPR/FNR/precision/recall), making the detectors' quality — and their honest failure modes — measurable rather than asserted.
 - **Compare Channels** — ranked by educational clarity, reliability, and teaching value — never by "stealth."
 - **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (ICMP, VoIP, Wi-Fi, protocol hopping, cache-timing, history channels), each with a fidelity card.
 - **Shared-Resource Matrix** — Kemmerer's covert-channel-analysis method as a playable exercise.
@@ -78,6 +79,18 @@ to illustrate this section. Good candidates:
 - **Timing Channel** — the arrival timeline with the "the message is in *when* they arrived" reveal.
 - **DNS Channel** — the simulated query log alongside the defender's anomaly panel.
 - **Detection Console** — the at-a-glance anomaly gauges across all channels.
+
+## For instructors
+
+A complete teaching package ships with the repo:
+
+- **[INSTRUCTOR-GUIDE.md](INSTRUCTOR-GUIDE.md)** — 30 / 60 / 90-minute lesson plans, a learning-outcome map, grading rubrics, and common-misconception corrections.
+- **[docs/student-worksheet.md](docs/student-worksheet.md)** — a printable guided worksheet.
+- **[docs/answer-key.md](docs/answer-key.md)** — model answers and talking points.
+- **[docs/assessment.md](docs/assessment.md)** — a matched pre/post assessment.
+
+Hand out an exact reproducible state with a seeded link (e.g. `…/#challenge?seed=crypto-lab`), and
+have students export a **lab notebook** (Markdown) of each run from any channel's trade-off card.
 
 ## Architecture
 

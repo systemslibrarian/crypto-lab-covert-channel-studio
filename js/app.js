@@ -6,7 +6,7 @@
 
 import {
   getState, subscribe, setSection, setMessage, setSeed, setViewMode,
-  SECTIONS, VIEW_MODES, MAX_MESSAGE_BYTES,
+  SECTIONS, VIEW_MODES, MAX_MESSAGE_BYTES, VERSION,
 } from './state.js';
 import { el, div, span, clear } from './views/dom.js';
 import { messageInput, segmented, button } from './views/controls.js';
@@ -21,6 +21,7 @@ import { renderStegoView } from './views/stegoView.js';
 import { renderMetadataView } from './views/metadataView.js';
 import { renderDetectionView } from './views/detectionView.js';
 import { renderChallengeView } from './views/challengeView.js';
+import { renderValidationView } from './views/validationView.js';
 import { renderComparisonView } from './views/comparisonView.js';
 import { renderAtlasView } from './views/atlasView.js';
 import { renderSrmView } from './views/srmView.js';
@@ -40,6 +41,7 @@ const VIEWS = {
   metadata: renderMetadataView,
   detection: renderDetectionView,
   challenge: renderChallengeView,
+  validation: renderValidationView,
   compare: renderComparisonView,
   atlas: renderAtlasView,
   srm: renderSrmView,
@@ -129,7 +131,7 @@ function buildFooter() {
   clear(footerEl);
   footerEl.appendChild(div({},
     span({ text: 'Covert Channel Studio · an educational Crypto-Lab exhibit. ' }),
-    span({ class: 'mono', text: 'MIT licensed.' })));
+    span({ class: 'mono', text: `v${VERSION} · MIT licensed.` })));
   footerEl.appendChild(div({ class: 'foot-note' },
     span({ text: 'Everything here is simulated in your browser — no packets, DNS queries, or images are ever sent over the network.' })));
 }

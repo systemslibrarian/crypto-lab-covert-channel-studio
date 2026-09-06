@@ -134,6 +134,34 @@
 .notebook-md { background: var(--surface-inset); border: 1px solid var(--border-faint); border-radius: var(--r-md); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-xs); color: var(--text-dim); max-height: 260px; overflow-y: auto; }
 .notebook-md code { background: none; border: none; padding: 0; color: inherit; white-space: pre; }
 
+/* ---- Detector Validation Lab ---------------------------------------------- */
+.validation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--sp-4); }
+.val-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.val-auc { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+.val-auc-num { font-size: var(--fs-xl); font-weight: 800; }
+.val-auc-lab { font-size: var(--fs-xs); color: var(--text-faint); letter-spacing: 0.08em; }
+.val-auc.good .val-auc-num { color: var(--ok); }
+.val-auc.warn .val-auc-num { color: var(--warn); }
+.val-auc.bad .val-auc-num { color: var(--danger); }
+.val-body { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin: var(--sp-3) 0; }
+.roc-chart { width: 150px; height: 150px; flex: none; }
+.confusion { display: grid; grid-template-columns: auto 1fr 1fr; gap: 3px; font-size: var(--fs-xs); flex: 1 1 160px; }
+.cm-corner { }
+.cm-colhead, .cm-rowhead { color: var(--text-faint); font-size: 10px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.cm-rowhead { justify-content: flex-end; padding-right: 4px; }
+.cm-cell { padding: var(--sp-2); border-radius: var(--r-sm); display: grid; place-items: center; }
+.cm-cell.tp { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+.cm-cell.tn { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.cm-cell.fp { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+.cm-cell.fn { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+.cm-v { font-weight: 700; font-size: var(--fs-md); }
+.val-rates { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); margin-top: var(--sp-2); }
+.val-rate { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-xs); }
+.val-rate-label { color: var(--text-faint); }
+.val-rate-val.good { color: var(--ok); }
+.val-rate-val.warn { color: var(--warn); }
+.val-rate-val.bad { color: var(--danger); }
+
 /* ---- Learning outcomes ---------------------------------------------------- */
 .outcomes { margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4); background: color-mix(in srgb, var(--accent) 7%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border)); border-radius: var(--r-md); max-width: 68ch; }
 .outcomes-title { display: block; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; margin-bottom: var(--sp-2); }

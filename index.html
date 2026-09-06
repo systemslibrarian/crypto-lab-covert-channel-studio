@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- CSP delivered via <meta>. Note: frame-ancestors, sandbox and report-uri
+       are ignored in a meta CSP (they require a real HTTP response header, which
+       GitHub Pages cannot set), so frame-ancestors is intentionally omitted here
+       rather than listed and silently ignored — see SECURITY.md. The page has no
+       login or sensitive actions, so clickjacking risk is negligible. -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
                  script-src 'self';
@@ -12,8 +17,7 @@
                  connect-src 'none';
                  object-src 'none';
                  base-uri 'none';
-                 form-action 'none';
-                 frame-ancestors 'none'" />
+                 form-action 'none'" />
   <meta name="referrer" content="no-referrer" />
   <meta name="color-scheme" content="dark" />
   <meta name="description"

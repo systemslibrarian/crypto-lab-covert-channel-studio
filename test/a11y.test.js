@@ -85,6 +85,7 @@ const VIEW_MODULES = {
   metadata: ['metadataView', 'renderMetadataView'],
   detection: ['detectionView', 'renderDetectionView'],
   challenge: ['challengeView', 'renderChallengeView'],
+  validation: ['validationView', 'renderValidationView'],
   compare: ['comparisonView', 'renderComparisonView'],
   atlas: ['atlasView', 'renderAtlasView'],
   srm: ['srmView', 'renderSrmView'],

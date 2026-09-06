@@ -11,6 +11,9 @@ import { MAX_MESSAGE_BYTES } from './utils/utf8.js';
 
 export { MAX_MESSAGE_BYTES };
 
+/** Displayed in the footer; keep in sync with package.json and CHANGELOG.md. */
+export const VERSION = '1.2.0';
+
 /** View modes (never labelled "attacker" — neutral, educational framing). */
 export const VIEW_MODES = { SENDER: 'sender', DEFENDER: 'defender' };
 
@@ -25,6 +28,7 @@ export const SECTIONS = [
   { id: 'metadata', label: 'Library Records', group: 'Channels' },
   { id: 'detection', label: 'Detection Console', group: 'Analysis' },
   { id: 'challenge', label: 'Detection Challenge', group: 'Analysis' },
+  { id: 'validation', label: 'Detector Validation Lab', group: 'Analysis' },
   { id: 'compare', label: 'Compare Channels', group: 'Analysis' },
   { id: 'atlas', label: 'Carrier Atlas', group: 'Analysis' },
   { id: 'srm', label: 'Shared-Resource Matrix', group: 'Analysis' },

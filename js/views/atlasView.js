@@ -31,6 +31,7 @@ function taxonomyCard() {
   return el('div', { class: 'card' },
     el('h3', { class: 'card-title', text: 'The hiding-pattern taxonomy' }),
     para(TAXONOMY.intro, 'subtle'),
+    TAXONOMY.since ? para(TAXONOMY.since, 'block-note') : null,
     ...TAXONOMY.families.map((fam) =>
       div({ class: 'taxo-family' },
         el('h4', { class: 'taxo-fam-title' }, span({ text: fam.name }), span({ class: 'subtle', text: ` — ${fam.note}` })),

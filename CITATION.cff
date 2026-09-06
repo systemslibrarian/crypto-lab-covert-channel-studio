@@ -1,0 +1,58 @@
+cff-version: 1.2.0
+title: Covert Channel Studio
+message: >-
+  If you use this educational lab in teaching or research, please cite it.
+type: software
+authors:
+  - name: systemslibrarian (Covert Channel Studio contributors)
+repository-code: >-
+  https://github.com/systemslibrarian/crypto-lab-covert-channel-studio
+url: >-
+  https://systemslibrarian.github.io/crypto-lab-covert-channel-studio/
+abstract: >-
+  An educational, fully-simulated Crypto-Lab exhibit on covert channels: hidden
+  communication in protocols, timing, and media. It teaches storage vs. timing
+  channels, DNS/HTTP/IP-field/ordering/steganography carriers, the
+  capacity/reliability/observability trade-off, and how defenders detect them
+  using named, cited statistical methods — with a blind detection challenge and
+  a detector validation lab. It runs entirely client-side and generates no real
+  network traffic.
+keywords:
+  - covert channels
+  - security education
+  - steganography
+  - timing channel
+  - dns tunneling
+  - steganalysis
+  - detection
+  - crypto-lab
+license: MIT
+version: 1.2.0
+date-released: '2026-09-06'
+references:
+  - type: article
+    title: >-
+      Pattern-Based Survey and Categorization of Network Covert Channel
+      Techniques
+    authors:
+      - family-names: Wendzel
+        given-names: Steffen
+      - family-names: Zander
+        given-names: Sebastian
+      - family-names: Fechner
+        given-names: Bernhard
+      - family-names: Herdin
+        given-names: Christian
+    year: 2015
+    doi: 10.1145/2684195
+  - type: article
+    title: A Generic Taxonomy for Steganography Methods
+    authors:
+      - family-names: Wendzel
+        given-names: Steffen
+      - family-names: Caviglione
+        given-names: Luca
+      - family-names: Mazurczyk
+        given-names: Wojciech
+    year: 2025
+    doi: 10.1145/3729165

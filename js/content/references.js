@@ -36,8 +36,16 @@ export const REFERENCES = [
         authors: 'Steffen Wendzel, Sebastian Zander, Bernhard Fechner, Christian Herdin',
         year: 2015,
         venue: 'ACM Computing Surveys, 47(3)',
-        note: 'The community reference that organizes covert-channel techniques into reusable hiding patterns; the basis for the Carrier Atlas, which maps each module to a named pattern.',
+        note: 'The community reference that organizes NETWORK covert-channel techniques into reusable hiding patterns; the basis for the Carrier Atlas, which maps each module to a named pattern.',
         url: 'https://doi.org/10.1145/2684195'
+      },
+      {
+        title: 'A Generic Taxonomy for Steganography Methods',
+        authors: 'Steffen Wendzel, Luca Caviglione, Wojciech Mazurczyk, Aleksandra Mileva, Jana Dittmann, Christian Krätzer, Kevin Lamshöft, Claus Vielhauer, Laura Hartmann, Jörg Keller, Tom Neubert, Sebastian Zillien',
+        year: 2025,
+        venue: 'ACM Computing Surveys',
+        note: 'The newer UNIFIED, cross-domain taxonomy that generalizes the 2015 network patterns to steganography/information-hiding across media, text, filesystem, and cyber-physical domains. The Atlas notes this generalization.',
+        url: 'https://doi.org/10.1145/3729165'
       }
     ]
   },
@@ -115,16 +123,16 @@ export const REFERENCES = [
         authors: 'Serdar Cabuk, Carla E. Brodley, Clay Shields',
         year: 2004,
         venue: 'Proceedings of the 11th ACM Conference on Computer and Communications Security (CCS)',
-        note: 'A canonical study of encoding bits in packet inter-arrival times and of the regularity tests that expose them, mirroring both sides of the timing-channel simulation.',
-        url: ''
+        note: 'A canonical study of encoding bits in packet inter-arrival times and of the regularity tests that expose them, mirroring both sides of the timing-channel simulation. The exhibit implements this regularity statistic.',
+        url: 'https://doi.org/10.1145/1030083.1030108'
       },
       {
         title: 'Detecting Covert Timing Channels: An Entropy-Based Approach',
         authors: 'Steven Gianvecchio, Haining Wang',
         year: 2007,
         venue: 'Proceedings of the 14th ACM Conference on Computer and Communications Security (CCS)',
-        note: 'Uses entropy measures over inter-packet delays to separate covert timing traffic from legitimate traffic, the statistical idea behind the exhibit’s timing detector.',
-        url: ''
+        note: 'Uses corrected conditional entropy over inter-packet delays to separate covert timing traffic from legitimate traffic — the statistic implemented in the exhibit’s timing detector and measured in the Validation Lab.',
+        url: 'https://doi.org/10.1145/1315245.1315284'
       }
     ]
   },
