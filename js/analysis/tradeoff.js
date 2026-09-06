@@ -68,6 +68,13 @@ export function computeTradeoff(channel, message, params = {}) {
       reliability = { ber: run.bitErrorRate ?? 0 };
       break;
     }
+    case 'http': {
+      const bitsPerEvent = run.raw.meta.bitsPerRequest; // ⌊log2(6!)⌋ = 9
+      const bitsPerSecond = bitsPerEvent / 0.3; // ~300 ms between requests
+      capacity = { bitsPerEvent, bitsPerSecond, eventLabel: 'request' };
+      reliability = { ber: run.bitErrorRate ?? 0 };
+      break;
+    }
     default:
       throw new Error(`Unknown channel: ${channel}`);
   }

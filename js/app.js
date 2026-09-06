@@ -16,7 +16,9 @@ import { renderDnsView } from './views/dnsView.js';
 import { renderTimingView } from './views/timingView.js';
 import { renderStorageView } from './views/storageView.js';
 import { renderOrderingView } from './views/orderingView.js';
+import { renderHttpView } from './views/httpView.js';
 import { renderStegoView } from './views/stegoView.js';
+import { renderMetadataView } from './views/metadataView.js';
 import { renderDetectionView } from './views/detectionView.js';
 import { renderChallengeView } from './views/challengeView.js';
 import { renderComparisonView } from './views/comparisonView.js';
@@ -31,7 +33,9 @@ const VIEWS = {
   timing: renderTimingView,
   storage: renderStorageView,
   ordering: renderOrderingView,
+  http: renderHttpView,
   stego: renderStegoView,
+  metadata: renderMetadataView,
   detection: renderDetectionView,
   challenge: renderChallengeView,
   compare: renderComparisonView,
@@ -134,7 +138,7 @@ function go(id) {
 }
 
 // Sections whose layout actually depends on the Sender/Defender view mode.
-const VIEWMODE_SENSITIVE = new Set(['dns', 'timing', 'storage', 'ordering', 'stego']);
+const VIEWMODE_SENSITIVE = new Set(['dns', 'timing', 'storage', 'ordering', 'http', 'stego', 'metadata']);
 
 function renderSection(id, opts = {}) {
   const scroll = opts.scroll !== false;

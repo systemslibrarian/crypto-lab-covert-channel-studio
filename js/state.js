@@ -20,7 +20,9 @@ export const SECTIONS = [
   { id: 'timing', label: 'Timing Channel', group: 'Channels' },
   { id: 'storage', label: 'Storage Channel', group: 'Channels' },
   { id: 'ordering', label: 'Packet-Order Channel', group: 'Channels' },
+  { id: 'http', label: 'HTTP Header Channel', group: 'Channels' },
   { id: 'stego', label: 'Image Steganography', group: 'Channels' },
+  { id: 'metadata', label: 'Library Records', group: 'Channels' },
   { id: 'detection', label: 'Detection Console', group: 'Analysis' },
   { id: 'challenge', label: 'Detection Challenge', group: 'Analysis' },
   { id: 'compare', label: 'Compare Channels', group: 'Analysis' },
@@ -48,6 +50,8 @@ const DEFAULT_STATE = {
       middlebox: { nat: false, headerNormalization: false, proxy: false, firewall: false, reorder: false },
     },
     ordering: { reorderProb: 0 },
+    http: { coverCount: 20, normalize: false },
+    metadata: { minimize: false },
   },
   stego: { message: 'hi', carrier: 'sample', step: 8 },
 };

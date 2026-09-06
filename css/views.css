@@ -142,3 +142,15 @@
 .reveal-detector { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border-faint); }
 .reveal-fired { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: var(--sp-2) 0; }
 .reveal-named { font-size: var(--fs-sm); color: var(--text-dim); margin-top: var(--sp-2); }
+
+/* ---- HTTP header channel -------------------------------------------------- */
+.header-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.http-reqs { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.http-req { flex: 1 1 220px; min-width: 200px; background: var(--surface-inset); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-3); }
+.http-req-line { color: var(--accent); font-size: var(--fs-sm); margin-bottom: var(--sp-2); }
+.http-headers { display: flex; flex-direction: column; gap: 1px; }
+.http-header { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-xs); padding: 1px 4px; border-radius: var(--r-sm); }
+.http-header .hh-name { color: var(--text-faint); }
+.http-header .hh-val { color: var(--text-faint); opacity: 0.7; }
+.http-header.reorderable { background: color-mix(in srgb, var(--covert) 12%, transparent); }
+.http-header.reorderable .hh-name { color: var(--covert); font-weight: 650; }

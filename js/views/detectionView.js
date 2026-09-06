@@ -15,12 +15,14 @@ import { simulateDnsRun } from '../channels/dns.js';
 import { simulateTimingFromText, generateNormalGaps } from '../channels/timing.js';
 import { simulateStorageRun } from '../channels/storage.js';
 import { simulateOrderingRun } from '../channels/ordering.js';
+import { simulateHttpRun } from '../channels/http.js';
 import { embedMessage } from '../channels/stego.js';
 
 import { analyzeDns } from '../detectors/dnsDetector.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeOrdering } from '../detectors/orderingDetector.js';
+import { analyzeHttp } from '../detectors/httpDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
 import { loadSampleCarrier } from './stegoView.js';
 
@@ -29,6 +31,7 @@ const CHANNELS = [
   { key: 'timing', label: 'Timing' },
   { key: 'storage', label: 'Storage' },
   { key: 'ordering', label: 'Ordering' },
+  { key: 'http', label: 'HTTP' },
   { key: 'stego', label: 'Image' },
 ];
 
@@ -92,6 +95,10 @@ function analyze(channel, state) {
     case 'ordering': {
       const run = simulateOrderingRun(state.message, { reorderProb: state.channels.ordering.reorderProb, seed: `${state.seed}:ordering` });
       return { det: analyzeOrdering(run.pairs), run };
+    }
+    case 'http': {
+      const run = simulateHttpRun(state.message, { ...state.channels.http, seed: `${state.seed}:http` });
+      return { det: analyzeHttp(run.normalize ? run.processedRequests : run.covertRequests), run };
     }
     default: return { det: stegoCache, run: null };
   }
@@ -166,6 +173,15 @@ function detailExtras(channel, det, run) {
           { name: 'Longest run', value: String(m.longestRun) },
         ]),
         para('Frequency is near a coin-flip; ordering is caught by structure, not counts.', 'subtle'));
+    case 'http':
+      return div({},
+        el('h3', { class: 'card-title', text: 'Header-order fingerprint' }),
+        metricList([
+          { name: 'Distinct orderings', value: `${m.distinctOrders} / ${m.requestCount}`, hi: m.uniqueOrderRatio > 0.6 },
+          { name: 'Order entropy', value: `${round(m.normOrderEntropy, 2)} / 1.0`, hi: m.normOrderEntropy > 0.3 },
+          { name: 'Dominant order share', value: `${Math.round(m.modalFraction * 100)}%` },
+        ]),
+        para('A stable client fingerprints as one header order; near-random order is the tell.', 'subtle'));
     case 'stego':
       return div({},
         el('h3', { class: 'card-title', text: 'LSB block sweep' }),

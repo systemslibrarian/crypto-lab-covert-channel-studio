@@ -14,13 +14,15 @@ import { simulateDnsRun } from './channels/dns.js';
 import { simulateTimingFromText } from './channels/timing.js';
 import { simulateStorageRun } from './channels/storage.js';
 import { simulateOrderingRun } from './channels/ordering.js';
+import { simulateHttpRun } from './channels/http.js';
 
 import { analyzeDns } from './detectors/dnsDetector.js';
 import { analyzeTiming } from './detectors/timingDetector.js';
 import { analyzeStorage } from './detectors/storageDetector.js';
 import { analyzeOrdering } from './detectors/orderingDetector.js';
+import { analyzeHttp } from './detectors/httpDetector.js';
 
-export const CHANNELS = ['dns', 'timing', 'storage', 'ordering'];
+export const CHANNELS = ['dns', 'timing', 'storage', 'ordering', 'http'];
 
 /**
  * The text -> bytes -> bits pipeline shown in the Overview (and reused as a
@@ -60,6 +62,7 @@ export function runChannel(channel, message, params = {}) {
     case 'timing': return runTiming(message, params);
     case 'storage': return runStorage(message, params);
     case 'ordering': return runOrdering(message, params);
+    case 'http': return runHttp(message, params);
     default: throw new Error(`Unknown channel: ${channel}`);
   }
 }
@@ -121,6 +124,18 @@ function runOrdering(message, params) {
       pairs: raw.pairs.length,
       reorderProb: raw.reorderProb,
     },
+  });
+}
+
+function runHttp(message, params) {
+  const raw = simulateHttpRun(message, params);
+  const observed = raw.normalize ? raw.processedRequests : raw.covertRequests;
+  const detector = analyzeHttp(observed);
+  return normalise('http', message, raw, detector, {
+    decodedText: raw.decoded.text,
+    bitErrors: raw.bitErrors,
+    bitErrorRate: raw.bitErrorRate,
+    summary: { requests: raw.covertRequests.length, bitsPerRequest: raw.meta.bitsPerRequest },
   });
 }
 
