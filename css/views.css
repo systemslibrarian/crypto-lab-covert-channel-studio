@@ -118,3 +118,27 @@
 .quiz-list { display: flex; flex-direction: column; }
 .quiz-score-line { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-4); flex-wrap: wrap; }
 .quiz-num { color: var(--accent); }
+
+/* ---- Trade-off instrument ------------------------------------------------- */
+.tradeoff-card { border-color: color-mix(in srgb, var(--covert) 22%, var(--border)); }
+.tradeoff-card .tri-meters { margin-bottom: var(--sp-3); }
+.chart-grid { stroke: var(--border-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+.curve-xlabel { text-align: center; margin-top: 2px; }
+
+/* ---- Detection Challenge --------------------------------------------------- */
+.challenge-bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.challenge-tally { margin-bottom: var(--sp-5); }
+.challenge-list { display: flex; flex-direction: column; gap: var(--sp-4); }
+.challenge-case { border-left: 3px solid var(--border-strong); }
+.challenge-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-3); flex-wrap: wrap; }
+.challenge-answer { margin-top: var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--border-faint); }
+.challenge-q { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); font-size: var(--fs-sm); color: var(--text-dim); flex-wrap: wrap; }
+.challenge-q .ctrl { min-width: 220px; }
+.challenge-calls { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.challenge-reveal { margin-top: var(--sp-4); padding: var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--border); background: var(--surface-inset); }
+.challenge-reveal.ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+.challenge-reveal.bad { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.reveal-verdict { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.reveal-detector { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: 1px solid var(--border-faint); }
+.reveal-fired { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: var(--sp-2) 0; }
+.reveal-named { font-size: var(--fs-sm); color: var(--text-dim); margin-top: var(--sp-2); }

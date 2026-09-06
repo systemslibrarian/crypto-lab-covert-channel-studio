@@ -85,10 +85,12 @@ test('analyzeDns flags a sustained covert tunnel as HIGH and rates cover traffic
 
   const covert = analyzeDns(forwarded);
 
-  // Deterministic (seed 'x'): the sustained tunnel scores 76 -> HIGH.
-  assert.equal(covert.score, 76);
-  assert.ok(covert.score >= 67, 'covert score is in the HIGH band');
+  // The sustained tunnel reads HIGH, driven by character-frequency divergence
+  // (base32 labels sit far from hostname text) plus length/entropy/uniqueness.
+  assert.ok(covert.score >= 67, `covert score is in the HIGH band (got ${covert.score})`);
   assert.equal(covert.anomalyLevel, 'high');
+  assert.ok(covert.metrics.charDivergence > 1.5, 'encoded labels diverge from hostname text');
+  assert.ok(covert.methods.some((mm) => /Born/.test(mm.citation)), 'character-frequency method is cited');
   assert.equal(covert.metrics.queryCount, 24);
 
   // The standing disclaimer must ride along on the result.
@@ -100,7 +102,8 @@ test('analyzeDns flags a sustained covert tunnel as HIGH and rates cover traffic
 
   // Ordinary cover traffic must score well below the covert tunnel.
   const cover = analyzeDns(generateCoverTraffic(60, { seed: 'y' }));
-  assert.equal(cover.score, 27); // deterministic (seed 'y')
+  assert.ok(cover.score < 34, `cover traffic reads LOW (got ${cover.score})`);
+  assert.ok(cover.metrics.charDivergence < 1, 'dictionary labels look like hostname text');
   assert.ok(cover.score < covert.score, 'cover scores lower than the covert tunnel');
   assert.equal(cover.anomalyLevel, 'low', 'cover traffic reads as LOW anomaly');
   assert.equal(cover.disclaimer, DISCLAIMER);
@@ -123,10 +126,15 @@ test('analyzeTiming: a jitter-free alternating pattern is sharply bimodal and ou
   assert.deepEqual(uniqueGaps, [100, 300]);
 
   const alt = analyzeTiming(sim.observedGaps);
-  assert.equal(alt.score, 100, 'a perfect two-level signal maxes the score');
+  assert.ok(alt.score >= 67, `a perfect two-level signal reads HIGH (got ${alt.score})`);
   assert.equal(alt.anomalyLevel, 'high');
+  assert.ok(alt.metrics.cce < 1, 'corrected conditional entropy is low for a regular signal');
+  assert.ok(alt.metrics.regularity < 0.05, 'Cabuk regularity is near zero for a metronomic signal');
   assert.equal(alt.metrics.bimodality, 1, 'bimodality is maximal with no within-cluster spread');
   assert.equal(alt.metrics.twoLevelFit, 1, 'every gap sits exactly on a cluster centre');
+  // Cited methods are exposed to the UI.
+  assert.ok(alt.methods.some((mm) => /Gianvecchio/.test(mm.citation)), 'CCE method is cited');
+  assert.ok(alt.methods.some((mm) => /Cabuk/.test(mm.citation)), 'Cabuk method is cited');
   assert.equal(alt.metrics.clusterLow, 100);
   assert.equal(alt.metrics.clusterHigh, 300);
   assert.equal(alt.disclaimer, DISCLAIMER);

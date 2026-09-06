@@ -7,6 +7,7 @@ import { sectionHeader, para, calloutChip, inline } from './blocks.js';
 import { panel, controlGroup, select, toggle, button, segmented } from './controls.js';
 import { verticalBars } from './charts.js';
 import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateStorageRun, FIELDS, MIDDLEBOX_IMPACT, extractBit } from '../channels/storage.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
@@ -30,10 +31,12 @@ export function renderStorageView(state) {
     options: [{ value: 'normal', label: 'Normal view' }, { value: 'reveal', label: 'Reveal covert field' }],
     onChange: (v) => { reveal = v === 'reveal'; renderInner(); },
   });
+  const instrumentArea = div({});
   center.appendChild(el('div', { class: 'card' },
     div({ class: 'timing-topbar' },
       el('h3', { class: 'card-title', text: 'Simulated packet stream' }), seg),
     noteArea, tableArea));
+  center.appendChild(instrumentArea);
 
   const node = el('section', { class: 'section', id: 'sec-storage' },
     sectionHeader({ ...copy, eyebrow: 'Storage' }),
@@ -47,6 +50,7 @@ export function renderStorageView(state) {
       ? para(`Hidden bit is read from **${info.label}** — ${info.rule}. ${info.description}`, 'subtle')
       : para('Ordinary-looking TCP/IP metadata. Nothing here draws attention.', 'subtle'));
     replace(tableArea, packetTable(run.cleanPackets, run.field, reveal));
+    replace(instrumentArea, tradeoffInstrument('storage', cur.message, { field: cur.channels.storage.field, middlebox: cur.channels.storage.middlebox, seed: `${cur.seed}:storage` }));
     replace(right, rightContent(cur, run));
   }
   function refresh(s) { cur = s; renderInner(); }

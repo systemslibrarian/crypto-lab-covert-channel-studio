@@ -6,6 +6,7 @@ import { el, div, span, replace } from './dom.js';
 import { sectionHeader, para, bitRibbon, calloutChip } from './blocks.js';
 import { panel, controlGroup, slider, button } from './controls.js';
 import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateOrderingRun } from '../channels/ordering.js';
 import { analyzeOrdering } from '../detectors/orderingDetector.js';
@@ -24,7 +25,7 @@ export function renderOrderingView(state) {
 
   function refresh(s) {
     const run = simulateOrderingRun(s.message, { reorderProb: s.channels.ordering.reorderProb, seed: `${s.seed}:ordering` });
-    replace(center, centerContent(run));
+    replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
   }
   refresh(state);
@@ -48,12 +49,14 @@ function leftPanel(state) {
       div({ class: 'block-code mono' }, 'A then B → 0\nB then A → 1')));
 }
 
-function centerContent(run) {
+function centerContent(state, run) {
   const pairs = run.pairs.slice(0, 32);
-  return el('div', { class: 'card' },
-    el('h3', { class: 'card-title', text: 'Ordered event pairs' }),
-    div({ class: 'ord-stream' }, ...pairs.map((pair) => orderPair(pair))),
-    para('Each unit is the same two events; only their order carries the bit. Swaps from reordering are marked.', 'subtle'));
+  return div({},
+    el('div', { class: 'card' },
+      el('h3', { class: 'card-title', text: 'Ordered event pairs' }),
+      div({ class: 'ord-stream' }, ...pairs.map((pair) => orderPair(pair))),
+      para('Each unit is the same two events; only their order carries the bit. Swaps from reordering are marked.', 'subtle')),
+    tradeoffInstrument('ordering', state.message, { reorderProb: state.channels.ordering.reorderProb, seed: `${state.seed}:ordering` }));
 }
 
 function orderPair(pair) {

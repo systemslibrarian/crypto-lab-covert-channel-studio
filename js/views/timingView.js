@@ -8,6 +8,7 @@ import { sectionHeader, para, bitRibbon, calloutChip } from './blocks.js';
 import { panel, controlGroup, slider, button } from './controls.js';
 import { dualHistogram, horizontalMeter } from './charts.js';
 import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateTimingFromText, generateNormalGaps } from '../channels/timing.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
@@ -67,6 +68,7 @@ function centerContent(state, run) {
         button({ label: 'Replay', variant: 'ghost', icon: '▶', onClick: replayAnim })),
       timeline(run),
       identicalBanner()),
+    tradeoffInstrument('timing', state.message, { ...state.channels.timing, seed: `${state.seed}:timing` }),
   );
 }
 

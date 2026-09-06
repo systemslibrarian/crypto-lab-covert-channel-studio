@@ -9,7 +9,10 @@
  * Pure logic (no DOM).
  */
 
-import { variance, stdDev, coefficientOfVariation, histogram, minMax, mean, clamp } from '../utils/statistics.js';
+import {
+  variance, stdDev, coefficientOfVariation, histogram, minMax, mean, clamp,
+  cabukRegularity, correctedConditionalEntropy, round,
+} from '../utils/statistics.js';
 import { levelFromScore, weightedScore, observation, DISCLAIMER } from './anomaly.js';
 
 /** Two-means (k=2) clustering with tightness/fit stats. Deterministic. */
@@ -65,6 +68,13 @@ export function analyzeTiming(observedGaps, opts = {}) {
   let bimodality = 0;
   if (separation > 0) bimodality = clamp(1 - (within / separation) / 0.25, 0, 1);
 
+  // --- Published methods -----------------------------------------------------
+  // Corrected conditional entropy (Gianvecchio & Wang, CCS 2007): low = regular.
+  const cceResult = correctedConditionalEntropy(gaps, { bins: 5, maxLen: 5 });
+  const cce = cceResult.cce;
+  // Cabuk regularity (Cabuk et al., CCS 2004): low = metronomic.
+  const regularity = cabukRegularity(gaps, 10);
+
   const metrics = {
     count: gaps.length,
     mean: m,
@@ -77,33 +87,68 @@ export function analyzeTiming(observedGaps, opts = {}) {
     clusterSeparation: separation,
     twoLevelFit: fit,
     bimodality,
+    cce,
+    ccePerLength: cceResult.perLength,
+    regularity,
     decoderConfidence: opts.decoderConfidence ?? null, // receiver-side, shown for teaching only
   };
 
-  // "How tightly do points sit on two levels" only means something once two
-  // levels actually exist; otherwise k=2 trivially splits any spread and would
-  // inflate ordinary one-blob traffic.
+  // Named methods surfaced to the UI with citations.
+  const methods = [
+    {
+      key: 'cce', name: 'Corrected conditional entropy',
+      citation: 'Gianvecchio & Wang, CCS 2007',
+      value: Number.isFinite(cce) ? `${round(cce, 2)} bits` : 'n/a (need more samples)',
+      interpretation: 'Lower means more regular/predictable timing — a covert channel is far less complex than human traffic.',
+    },
+    {
+      key: 'regularity', name: 'Cabuk regularity',
+      citation: 'Cabuk et al., CCS 2004',
+      value: Number.isFinite(regularity) ? round(regularity, 3) : 'n/a (need more samples)',
+      interpretation: 'Standard deviation of per-window variability. A crafted channel keeps it nearly constant (low); bursty traffic is high.',
+    },
+    {
+      key: 'bimodality', name: 'Two-level clustering (k=2)',
+      citation: 'Educational indicator',
+      value: round(bimodality, 2),
+      interpretation: 'How cleanly the gaps fall into two tight levels — the signature of a binary timing channel.',
+    },
+  ];
+
+  // --- Scoring ---------------------------------------------------------------
   const twoLevelPresent = bimodality > 0.3;
+  const cceVal = Number.isFinite(cce) ? clamp(1 - cce / 1.5, 0, 1) : 0;
+  const regVal = Number.isFinite(regularity) ? clamp(1 - regularity / 0.2, 0, 1) : 0;
   const contributions = [
-    { value: bimodality, weight: 1.0 },
-    { value: (gaps.length >= 8 && twoLevelPresent) ? fit : 0, weight: 0.9 },
+    { value: cceVal, weight: 1.0 },
+    { value: regVal, weight: 0.9 },
+    { value: bimodality, weight: 0.7 },
+    { value: (gaps.length >= 8 && twoLevelPresent) ? fit : 0, weight: 0.4 },
   ];
   const observations = [];
 
+  if (Number.isFinite(cce) && cce < 0.9) {
+    observations.push(observation(
+      `Corrected conditional entropy is low (${round(cce, 2)} bits).`,
+      'The timing sequence is far more predictable than ordinary traffic — the entropy-based signature of a covert timing channel (Gianvecchio & Wang, 2007).',
+      'Machine-driven but benign traffic (polling, heartbeats) is also low-entropy; CCE flags regularity, not intent.',
+      { weight: 1.0 },
+    ));
+  }
+  if (Number.isFinite(regularity) && regularity < 0.1) {
+    observations.push(observation(
+      `Cabuk regularity is very low (${round(regularity, 3)}).`,
+      'Per-window variability barely changes across the trace, which is what a metronomic encoder produces (Cabuk et al., 2004).',
+      'A fixed-rate application stream can look equally regular over a short window.',
+      { weight: 0.9 },
+    ));
+  }
   if (bimodality > 0.45) {
     observations.push(observation(
       `Inter-arrival times split into two clusters (~${c0.toFixed(0)} ms and ~${c1.toFixed(0)} ms).`,
       'Two tight timing levels are the hallmark of a binary timing channel; normal traffic spreads out.',
       'Some applications alternate between two natural states (idle keepalive vs active burst), which also looks bimodal.',
-      { weight: 1.0 },
-    ));
-  }
-  if (gaps.length >= 8 && twoLevelPresent && fit > 0.8) {
-    observations.push(observation(
-      `${(fit * 100).toFixed(0)}% of gaps sit tightly on one of the two levels.`,
-      'Very little spread around two exact values suggests a generated, not human, pattern.',
-      'Fixed polling intervals and hardware timers can also produce tightly-quantised gaps.',
-      { weight: 0.9 },
+      { weight: 0.7 },
     ));
   }
 
@@ -112,12 +157,12 @@ export function analyzeTiming(observedGaps, opts = {}) {
 
   if (observations.length === 0) {
     observations.push(observation(
-      'Inter-arrival times form a single broad distribution.',
-      'This looks like ordinary bursty traffic rather than a two-level signal.',
-      'Enough jitter can smear a real timing channel into one blob too — subtlety cuts both ways.',
+      'Timing looks complex and irregular, like ordinary bursty traffic.',
+      'High entropy and changing per-window variability are what legitimate human/application traffic shows.',
+      'Enough jitter can smear a real timing channel into this shape too — subtlety cuts both ways.',
       { triggered: false },
     ));
   }
 
-  return { metrics, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
+  return { metrics, methods, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
 }

@@ -1,0 +1,114 @@
+/**
+ * views/tradeoffView.js — the live capacity/reliability/observability instrument
+ * and its trade-off curve, computed from the actual simulation.
+ */
+
+import { el, div, span, svg } from './dom.js';
+import { horizontalMeter, legend } from './charts.js';
+import { para } from './blocks.js';
+import { round } from '../utils/statistics.js';
+import { computeTradeoff, sweepTradeoff, SWEEP } from '../analysis/tradeoff.js';
+
+/**
+ * A full trade-off card for a channel: three live meters + (where a natural knob
+ * exists) the observability/BER curve as that knob is swept.
+ * @param {string} channel
+ * @param {string} message
+ * @param {Object} params  channel params incl. seed
+ */
+export function tradeoffInstrument(channel, message, params) {
+  const t = computeTradeoff(channel, message, params);
+  const cap = t.capacity;
+  const rel = t.reliability;
+  const obs = t.observability;
+
+  const meters = div({ class: 'tri-meters' },
+    horizontalMeter(cap.norm, {
+      label: 'Capacity — how much it carries',
+      valueText: `${round(cap.bitsPerSecond, 0)} bits/s · ${round(cap.bitsPerEvent, 2)}/${cap.eventLabel}`,
+      color: 'var(--accent)',
+    }),
+    horizontalMeter(rel.successRate, {
+      label: 'Reliability — survives the network',
+      valueText: `BER ${round((rel.ber ?? 0) * 100, 0)}%`,
+      color: 'var(--accent-2)',
+    }),
+    horizontalMeter(obs.norm, {
+      label: 'Observability — visible to a defender',
+      valueText: `${obs.score}/100 (${obs.level})`,
+      color: 'var(--covert)',
+    }));
+
+  const children = [
+    el('h3', { class: 'card-title', text: 'Trade-off — capacity · reliability · observability' }),
+    meters,
+  ];
+
+  if (cap.ceilingBits !== undefined) {
+    children.push(para(`This toy encoder carries **${cap.achievedBits} bits** across ${message ? [...message].length : 0} characters; full permutations of the same events could hold **${cap.ceilingBits} bits** (⌊log₂ n!⌋) — capacity traded for simplicity.`, 'subtle'));
+  }
+
+  if (SWEEP[channel]) {
+    const points = sweepTradeoff(channel, message, params);
+    children.push(el('h4', { class: 'card-title', style: { marginTop: 'var(--sp-4)' }, text: `Push one knob: ${SWEEP[channel].label}` }));
+    children.push(tradeoffCurve(points, SWEEP[channel].label));
+    children.push(para(curveCaption(channel), 'subtle'));
+  } else {
+    children.push(para('Storage capacity is one bit per packet; reliability holds until a middlebox rewrites the field, at which point BER jumps to ~50%. Try the middlebox toggles above.', 'subtle'));
+  }
+
+  return el('div', { class: 'card tradeoff-card' }, ...children);
+}
+
+function curveCaption(channel) {
+  switch (channel) {
+    case 'timing': return 'As jitter rises, bit errors climb AND the detector score falls — past a point the receiver and the defender both lose the signal.';
+    case 'dns': return 'Longer labels carry more per query, but the detector score rises with them: capacity and observability move together.';
+    case 'ordering': return 'More reordering means more bit errors; the ordering structure stays visible until reliability has already collapsed.';
+    default: return '';
+  }
+}
+
+/**
+ * Dual-line curve on a single 0..100 axis: observability score and bit-error-%
+ * versus the swept knob. One axis, two lines, legend — never dual-axis.
+ */
+export function tradeoffCurve(points, xLabel) {
+  const W = 320;
+  const H = 150;
+  const pad = { top: 10, bottom: 26, left: 30, right: 8 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+  const n = points.length;
+  if (n < 2) return div({ class: 'empty-note', text: 'not enough points' });
+
+  const xAt = (i) => pad.left + (plotW * i) / (n - 1);
+  const yAt = (v) => pad.top + plotH * (1 - v / 100); // v in 0..100
+
+  const linePath = (getV) => points.map((p, i) => `${i === 0 ? 'M' : 'L'}${xAt(i).toFixed(1)},${yAt(getV(p)).toFixed(1)}`).join(' ');
+  const obsPath = linePath((p) => Math.max(0, Math.min(100, p.obsScore)));
+  const berPath = linePath((p) => Math.max(0, Math.min(100, (p.ber ?? 0) * 100)));
+
+  const gridLines = [0, 25, 50, 75, 100].map((v) =>
+    svg('g', {},
+      svg('line', { x1: pad.left, y1: yAt(v), x2: W - pad.right, y2: yAt(v), class: 'chart-grid' }),
+      svg('text', { x: pad.left - 4, y: yAt(v) + 3, 'text-anchor': 'end', class: 'chart-xlabel' }, String(v))));
+
+  const dots = (getV, color) => points.map((p, i) =>
+    svg('circle', { cx: xAt(i), cy: yAt(getV(p)), r: 3, fill: color },
+      svg('title', { text: `${xLabel} ${p.x}: ${Math.round(getV(p))}` })));
+
+  const chart = svg('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', preserveAspectRatio: 'none', role: 'img', 'aria-label': `Trade-off curve of observability score and bit-error percentage versus ${xLabel}` },
+    ...gridLines,
+    svg('path', { d: berPath, fill: 'none', stroke: 'var(--accent-2)', 'stroke-width': 2, 'stroke-linejoin': 'round' }),
+    svg('path', { d: obsPath, fill: 'none', stroke: 'var(--covert)', 'stroke-width': 2, 'stroke-linejoin': 'round' }),
+    ...dots((p) => (p.ber ?? 0) * 100, 'var(--accent-2)'),
+    ...dots((p) => p.obsScore, 'var(--covert)'),
+    svg('text', { x: pad.left, y: H - 6, class: 'chart-xlabel', 'text-anchor': 'start' }, String(points[0].x)),
+    svg('text', { x: W - pad.right, y: H - 6, class: 'chart-xlabel', 'text-anchor': 'end' }, String(points[n - 1].x)));
+
+  return el('figure', { class: 'chart-figure' },
+    chart,
+    div({ class: 'curve-xlabel subtle', text: xLabel + ' →' }),
+    legend([{ label: 'Observability (0–100)', color: 'var(--covert)' }, { label: 'Bit errors (%)', color: 'var(--accent-2)' }]));
+}

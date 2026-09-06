@@ -22,6 +22,7 @@ export const SECTIONS = [
   { id: 'ordering', label: 'Packet-Order Channel', group: 'Channels' },
   { id: 'stego', label: 'Image Steganography', group: 'Channels' },
   { id: 'detection', label: 'Detection Console', group: 'Analysis' },
+  { id: 'challenge', label: 'Detection Challenge', group: 'Analysis' },
   { id: 'compare', label: 'Compare Channels', group: 'Analysis' },
   { id: 'concepts', label: 'What Makes a Channel Covert?', group: 'Analysis' },
   { id: 'defense', label: 'Defensive Takeaways', group: 'Analysis' },

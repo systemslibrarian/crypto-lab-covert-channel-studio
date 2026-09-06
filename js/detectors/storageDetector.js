@@ -13,7 +13,7 @@
  * Pure logic (no DOM).
  */
 
-import { oddEvenRatio, frequency, histogram, minMax, clamp } from '../utils/statistics.js';
+import { oddEvenRatio, frequency, histogram, minMax, clamp, round } from '../utils/statistics.js';
 import { levelFromScore, weightedScore, observation, DISCLAIMER } from './anomaly.js';
 import { FIELDS, extractBit } from '../channels/storage.js';
 
@@ -121,8 +121,23 @@ export function analyzeStorage(packets, field) {
     ));
   }
 
+  const methods = [
+    {
+      key: 'support', name: 'Field value support',
+      citation: 'Kemmerer shared-resource analysis',
+      value: `${distinct} of ${n} distinct`,
+      interpretation: 'A field confined to a tiny or unusual set of values (e.g. a per-packet 64/65 TTL toggle) is a covert-storage audit flag.',
+    },
+    {
+      key: 'bias', name: 'Extracted-bit bias',
+      citation: 'Educational indicator',
+      value: round(bitBias, 2),
+      interpretation: 'A parity or low-bit channel barely biases its field, so a balanced histogram does NOT prove no channel exists.',
+    },
+  ];
+
   const score = weightedScore(contributions.length ? contributions : [{ value: 0, weight: 1 }]);
   const anomalyLevel = levelFromScore(score);
 
-  return { metrics, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
+  return { metrics, methods, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
 }

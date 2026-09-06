@@ -67,8 +67,25 @@ export function analyzeOrdering(pairs) {
     ));
   }
 
+  // Each 2-event pair carries at most log2(2!) = 1 bit; the surprise of an
+  // all-pairs stream is how far its structure sits from path-typical traffic.
+  const methods = [
+    {
+      key: 'permCapacity', name: 'Permutation capacity',
+      citation: 'Shannon (⌊log₂ n!⌋)',
+      value: `${n} bit${n === 1 ? '' : 's'} over ${n} pairs`,
+      interpretation: 'A 2-event pair holds 1 bit; full permutations of n events would hold ⌊log₂(n!)⌋ bits — the ceiling this toy encoder trades away for simplicity.',
+    },
+    {
+      key: 'structure', name: 'Pair-structure regularity',
+      citation: 'Educational indicator',
+      value: metrics.wellFormedPairs ? 'all tight pairs' : 'mixed',
+      interpretation: 'A pure stream of isolated A/B pairs is machine-like; ordinary traffic interleaves many flows.',
+    },
+  ];
+
   const score = weightedScore(contributions);
   const anomalyLevel = levelFromScore(score);
 
-  return { metrics, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
+  return { metrics, methods, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
 }

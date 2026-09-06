@@ -7,6 +7,7 @@ import { sectionHeader, renderBlocks, callout, calloutChip, para, inline } from 
 import { panel, controlGroup, slider, toggle, button } from './controls.js';
 import { verticalBars } from './charts.js';
 import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateDnsRun } from '../channels/dns.js';
 import { analyzeDns } from '../detectors/dnsDetector.js';
@@ -73,7 +74,8 @@ function centerContent(state, run) {
       el('h3', { class: 'card-title' }, span({ text: 'Simulated DNS query log ' }), span({ class: 'sim-note', text: '' })),
       dnsLog(run.mixed, { markCovert: sender }),
       run.params.lossProb > 0 ? para(`${countLost(run)} covert queries were lost in transit.`, 'subtle') : null),
-    sender ? splitCompare(run) : null);
+    sender ? splitCompare(run) : null,
+    tradeoffInstrument('dns', state.message, { ...state.channels.dns, seed: `${state.seed}:dns` }));
 }
 
 function encodeBreakdown(run) {

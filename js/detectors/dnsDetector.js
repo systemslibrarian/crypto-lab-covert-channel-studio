@@ -12,8 +12,22 @@
 
 import {
   mean, stdDev, coefficientOfVariation, uniqueRatio,
-  normalizedStringEntropy, frequency, clamp,
+  normalizedStringEntropy, frequency, clamp, klDivergenceBits, round,
 } from '../utils/statistics.js';
+
+/**
+ * Approximate character distribution of ordinary hostnames (English letter
+ * frequencies). Anything not listed is floored inside klDivergenceBits, so the
+ * digits and rare symbols that pack a tunnel's base32 labels register as very
+ * unlikely — the basis of character-frequency DNS-tunnel detection
+ * (Born & Gustafson, 2010).
+ */
+const HOSTNAME_CHAR_BASELINE = {
+  e: 0.127, t: 0.091, a: 0.082, o: 0.075, i: 0.070, n: 0.067, s: 0.063, h: 0.061,
+  r: 0.060, d: 0.043, l: 0.040, c: 0.028, u: 0.028, m: 0.024, w: 0.024, f: 0.022,
+  g: 0.020, y: 0.020, p: 0.019, b: 0.015, v: 0.0098, k: 0.0077, j: 0.0015,
+  x: 0.0015, q: 0.00095, z: 0.00074,
+};
 import {
   levelFromScore, weightedScore, observation, DISCLAIMER,
 } from './anomaly.js';
@@ -60,6 +74,10 @@ export function analyzeDns(queries) {
   const maxParentCount = parentFreq.size ? Math.max(...parentFreq.values()) : 0;
   const repeatedParentRatio = n ? maxParentCount / n : 0;
 
+  // Character-frequency divergence of all label characters vs a hostname
+  // baseline (Born & Gustafson, 2010). Encoded labels sit far from English text.
+  const charDivergence = klDivergenceBits(charFreq, HOSTNAME_CHAR_BASELINE);
+
   const metrics = {
     queryCount: n,
     uniqueSubdomainCount,
@@ -68,18 +86,51 @@ export function analyzeDns(queries) {
     maxLabelLength,
     avgLabelEntropy,
     charDistribution,
+    charDivergence,
     requestsPerMinute,
     interArrivalCV,
     interArrivalStd,
     repeatedParentRatio,
   };
 
+  const methods = [
+    {
+      key: 'charDivergence', name: 'Character-frequency divergence',
+      citation: 'Born & Gustafson, 2010',
+      value: `${round(charDivergence, 2)} bits`,
+      interpretation: 'KL divergence of the labels’ character mix from ordinary hostname text. Encoded/encrypted labels diverge sharply.',
+    },
+    {
+      key: 'entropy', name: 'Mean label entropy',
+      citation: 'Educational indicator',
+      value: `${round(avgLabelEntropy, 2)} / 1.0`,
+      interpretation: 'Normalised Shannon entropy per label; near-random data approaches 1.0.',
+    },
+    {
+      key: 'unique', name: 'Unique-QNAME ratio',
+      citation: 'Educational indicator',
+      value: `${Math.round(uniqueSubRatio * 100)}%`,
+      interpretation: 'Tunnels emit fresh names constantly, so almost nothing repeats and caching never helps.',
+    },
+  ];
+
   // --- Scored indicators ---------------------------------------------------
   const contributions = [];
   const observations = [];
 
+  const divVal = clamp((charDivergence - 1.2) / (4 - 1.2), 0, 1);
+  contributions.push({ value: divVal, weight: 1.0 });
+  if (charDivergence > 2.2) {
+    observations.push(observation(
+      `Label characters diverge sharply from hostname text (${round(charDivergence, 1)} bits KL).`,
+      'Base32/base64 or encrypted payloads use a near-uniform character mix nothing like English hostnames (Born & Gustafson, 2010).',
+      'Hashed asset names and some CDN hostnames are also high-divergence; combine with volume and cadence.',
+      { weight: 1.0 },
+    ));
+  }
+
   const entropyVal = clamp(avgLabelEntropy, 0, 1);
-  contributions.push({ value: entropyVal, weight: 1.0 });
+  contributions.push({ value: entropyVal, weight: 0.8 });
   if (avgLabelEntropy > 0.72) {
     observations.push(observation(
       `Average label entropy is high (${avgLabelEntropy.toFixed(2)} of 1.0).`,
@@ -156,5 +207,5 @@ export function analyzeDns(queries) {
     ));
   }
 
-  return { metrics, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
+  return { metrics, methods, score, anomalyLevel, observations, disclaimer: DISCLAIMER };
 }

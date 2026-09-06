@@ -18,6 +18,7 @@ import { renderStorageView } from './views/storageView.js';
 import { renderOrderingView } from './views/orderingView.js';
 import { renderStegoView } from './views/stegoView.js';
 import { renderDetectionView } from './views/detectionView.js';
+import { renderChallengeView } from './views/challengeView.js';
 import { renderComparisonView } from './views/comparisonView.js';
 import { renderConceptsView } from './views/conceptsView.js';
 import { renderDefenseView } from './views/defenseView.js';
@@ -32,6 +33,7 @@ const VIEWS = {
   ordering: renderOrderingView,
   stego: renderStegoView,
   detection: renderDetectionView,
+  challenge: renderChallengeView,
   compare: renderComparisonView,
   concepts: renderConceptsView,
   defense: renderDefenseView,
