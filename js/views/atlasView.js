@@ -34,7 +34,7 @@ function taxonomyCard() {
     ...TAXONOMY.families.map((fam) =>
       div({ class: 'taxo-family' },
         el('h4', { class: 'taxo-fam-title' }, span({ text: fam.name }), span({ class: 'subtle', text: ` — ${fam.note}` })),
-        div({ class: 'table-wrap' },
+        div({ class: 'table-wrap', attrs: { tabindex: '0', role: 'region', 'aria-label': `Hiding-pattern taxonomy: ${fam.name}` } },
           el('table', { class: 'data-table' },
             el('thead', {}, el('tr', {}, el('th', { text: 'Pattern' }), el('th', { text: 'Idea' }), el('th', { text: 'In this lab' }))),
             el('tbody', {}, ...fam.patterns.map((p) => el('tr', {},

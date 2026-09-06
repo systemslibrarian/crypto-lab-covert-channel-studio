@@ -45,13 +45,16 @@ export function toggle({ label, checked, onChange, help }) {
     help ? el('p', { class: 'ctrl-help', text: help }) : null);
 }
 
-/** Dropdown select. */
-export function select({ label, options, value, onChange, help }) {
+/** Dropdown select. Pass `ariaLabel` when there is no visible `label`. */
+export function select({ label, options, value, onChange, help, ariaLabel }) {
   const id = nextId('se');
-  const sel = el('select', { id, class: 'ctrl-select', on: { change: (e) => onChange && onChange(e.target.value) } },
-    ...options.map((o) => el('option', { value: o.value, selected: o.value === value ? true : false, text: o.label })));
+  const sel = el('select', {
+    id, class: 'ctrl-select',
+    attrs: (!label && ariaLabel) ? { 'aria-label': ariaLabel } : {},
+    on: { change: (e) => onChange && onChange(e.target.value) },
+  }, ...options.map((o) => el('option', { value: o.value, selected: o.value === value ? true : false, text: o.label })));
   return div({ class: 'ctrl' },
-    el('label', { for: id, text: label }),
+    label ? el('label', { for: id, text: label }) : null,
     sel,
     help ? el('p', { class: 'ctrl-help', text: help }) : null);
 }

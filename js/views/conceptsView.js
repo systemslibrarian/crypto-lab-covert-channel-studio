@@ -43,7 +43,7 @@ export function renderConceptsView(state) {
     div({ class: 'prose-wide' }, renderBlocks(COPY.concepts.blocks)),
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'The trade-off, measured live' }),
-      para(`Each channel below encodes the same demo message (\`${DEMO}\`) and the meters are computed from that actual run — not from presets. Move a knob in any channel’s own module and these numbers move with it.`, 'subtle'),
+      para(`Each channel below encodes the same demo message (\`${DEMO}\`) with fixed illustrative settings, and the meters are computed from that actual seeded run — not from presets. Open a channel’s own module to move its knobs and watch its numbers shift there.`, 'subtle'),
       seg,
       area,
       callout({

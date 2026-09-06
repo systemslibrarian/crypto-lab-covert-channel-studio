@@ -54,10 +54,19 @@ export function tradeoffInstrument(channel, message, params) {
     children.push(tradeoffCurve(points, SWEEP[channel].label));
     children.push(para(curveCaption(channel), 'subtle'));
   } else {
-    children.push(para('Storage capacity is one bit per packet; reliability holds until a middlebox rewrites the field, at which point BER jumps to ~50%. Try the middlebox toggles above.', 'subtle'));
+    const cap = fallbackCaption(channel);
+    if (cap) children.push(para(cap, 'subtle'));
   }
 
   return el('div', { class: 'card tradeoff-card' }, ...children);
+}
+
+function fallbackCaption(channel) {
+  switch (channel) {
+    case 'storage': return 'Storage capacity is one bit per packet; reliability holds until a middlebox rewrites the field, at which point bit errors jump. Try the middlebox toggles.';
+    case 'http': return 'Header order carries ~9 bits per request; a normalizing proxy that re-sorts headers collapses the channel entirely.';
+    default: return '';
+  }
 }
 
 function curveCaption(channel) {

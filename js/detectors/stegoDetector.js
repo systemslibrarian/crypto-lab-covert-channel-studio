@@ -40,7 +40,9 @@ function chiSquarePairsAttack(hist256) {
     if (expected > 0) { chi += ((a - expected) ** 2) / expected; terms++; }
   }
   const dof = Math.max(1, terms - 1);
-  return { chiSquare: chi, dof, pEmbed: chiSquareUpperProbability(chi, dof) };
+  // No value pairs observed = no data = no evidence of embedding (NOT certainty).
+  const pEmbed = terms === 0 ? 0 : chiSquareUpperProbability(chi, dof);
+  return { chiSquare: chi, dof, pEmbed };
 }
 
 /**
@@ -89,16 +91,23 @@ export function analyzeStego(raster, opts = {}) {
     }
   }
 
-  const entropies = blocks.map((b) => b.entropy);
+  // Grid tiling can leave trailing empty blocks (ceil() overshoots the image).
+  // Exclude them: an all-zero block has entropy 0 and would drag the median
+  // down (inflating contrast) and — before the pEmbed guard — falsely win the
+  // chi-square selection. Analyse only cells that actually contain pixels.
+  const active = blocks.filter((b) => b.count > 0);
+  const pool = active.length ? active : blocks;
+
+  const entropies = pool.map((b) => b.entropy);
   const medianEntropy = median(entropies);
-  let hottest = blocks[0];
-  for (const b of blocks) if (b.entropy > hottest.entropy) hottest = b;
+  let hottest = pool[0];
+  for (const b of pool) if (b.entropy > hottest.entropy) hottest = b;
   const contrast = clamp(hottest.entropy - medianEntropy, 0, 1);
 
-  // Chi-square attack: whole-image and the most-suspicious block.
+  // Chi-square attack: whole-image and the most-suspicious real block.
   const globalAttack = chiSquarePairsAttack(globalHist);
-  let chiBlock = blocks[0];
-  for (const b of blocks) if (b.pEmbed > chiBlock.pEmbed) chiBlock = b;
+  let chiBlock = pool[0];
+  for (const b of pool) if (b.pEmbed > chiBlock.pEmbed) chiBlock = b;
 
   const metrics = {
     globalSetRatio,

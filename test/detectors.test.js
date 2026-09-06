@@ -227,6 +227,18 @@ test('analyzeStego: embedding into a smooth carrier raises the score and a hotte
   assert.equal(cleanAnalysis.disclaimer, DISCLAIMER);
 });
 
+test('analyzeStego: clean carriers read LOW even at sizes that leave empty grid blocks', () => {
+  // Regression: with a 12x12 grid, ceil(dim/12) overshoots many sizes, leaving
+  // trailing empty blocks. An empty block must not chi-square to p(embed)=1.
+  for (const [w, h] of [[64, 64], [50, 50], [40, 90], [70, 70]]) {
+    const clean = smoothRaster(w, h, 100);
+    const a = analyzeStego(clean);
+    assert.ok(a.score < 34, `clean ${w}x${h} should read LOW, got ${a.score}`);
+    assert.equal(a.anomalyLevel, 'low');
+    assert.ok(a.metrics.chiSquareMaxBlock.pEmbed < 0.5, 'no empty block falsely flags embedding');
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Ordering detector
 // ---------------------------------------------------------------------------

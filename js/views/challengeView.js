@@ -20,6 +20,7 @@ export function renderChallengeView(state) {
   const tally = div({ class: 'challenge-tally' });
   const listArea = div({ class: 'challenge-list' });
   let currentSet = [];
+  let cur = state;
 
   const node = el('section', { class: 'section', id: 'sec-challenge' },
     sectionHeader({
@@ -33,7 +34,7 @@ export function renderChallengeView(state) {
     listArea);
 
   function build() {
-    currentSet = generateChallengeSet(`${state.seed}#${nonce}`, 6);
+    currentSet = generateChallengeSet(`${cur.seed}#${nonce}`, 6);
     renderTally();
     replace(listArea, ...currentSet.map((c) => caseCard(c)));
   }
@@ -75,7 +76,7 @@ export function renderChallengeView(state) {
     let indicator = INDICATORS[c.channel][0];
     return div({ class: 'challenge-answer' },
       div({ class: 'challenge-q' }, span({ text: 'What’s the tell? ' }),
-        select({ label: '', value: indicator, options: INDICATORS[c.channel].map((x) => ({ value: x, label: x })), onChange: (v) => { indicator = v; } })),
+        select({ label: '', ariaLabel: 'What’s the tell?', value: indicator, options: INDICATORS[c.channel].map((x) => ({ value: x, label: x })), onChange: (v) => { indicator = v; } })),
       div({ class: 'challenge-calls' },
         callButton(c, 'clean', 'Clean', () => commit(c, 'clean', indicator)),
         callButton(c, 'suspicious', 'Suspicious', () => commit(c, 'suspicious', indicator)),
@@ -92,7 +93,16 @@ export function renderChallengeView(state) {
   }
 
   build();
-  return { node, refresh() {} };
+  return {
+    node,
+    refresh(s) {
+      // Editing the global seed regenerates the case set (answers reset);
+      // other changes (message, params) don't affect the challenge.
+      const seedChanged = s.seed !== cur.seed;
+      cur = s;
+      if (seedChanged) { answers = {}; build(); }
+    },
+  };
 }
 
 function callButton(c, key, label, onClick) {
