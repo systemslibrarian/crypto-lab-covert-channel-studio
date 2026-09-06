@@ -80,7 +80,7 @@ export function renderSrmView(state) {
         ...SUBJECTS.map((s) => el('td', { class: 'srm-cell' }, rmToggle(a, s, render))),
         el('td', {}, span({ class: `pill ${a.kind === 'timing' ? 'pill-mod' : 'pill-normal'}`, text: a.kind })));
     });
-    return div({ class: 'table-wrap' },
+    return div({ class: 'table-wrap', attrs: { tabindex: '0', role: 'region', 'aria-label': 'Shared-resource matrix' } },
       el('table', { class: 'data-table srm-table' },
         el('thead', {}, head), el('tbody', {}, ...rows)));
   }

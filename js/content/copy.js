@@ -34,6 +34,11 @@ export const COPY = {
 
   dns: {
     title: 'DNS as a Covert Carrier',
+    outcomes: [
+      'explain how DNS **query structure** — not the payload — carries hidden data',
+      'name the indicators a monitor uses (label length, character-frequency divergence, unique-name ratio, cadence)',
+      'describe the capacity-vs-observability tension as you pack more per query',
+    ],
     lede: 'DNS is everywhere and often crosses security boundaries, which is exactly why it is a classic carrier to study — and why enterprise defenders inspect it closely.',
     blocks: [
       'Every label you see below is **generated locally**. Nothing is resolved; no query leaves your browser. Names live under the reserved `.test` TLD (RFC 6761), so `example.test` can never resolve on the real Internet.',
@@ -54,6 +59,11 @@ export const COPY = {
 
   timing: {
     title: 'The Message Is in the Clock',
+    outcomes: [
+      'explain how identical packets carry bits purely in their **inter-arrival gaps**',
+      'predict how jitter, noise, and loss raise the bit-error rate',
+      'recognise the entropy/regularity signature a defender measures — and why it fades as jitter rises',
+    ],
     lede: 'Here the packets can be identical. Nothing inside them changes. The bits are carried purely by the **gaps between arrivals**.',
     blocks: [
       { code: '0  →  short gap\n1  →  long gap' },
@@ -69,6 +79,11 @@ export const COPY = {
 
   storage: {
     title: 'Hiding Bits in Values',
+    outcomes: [
+      'encode bits in a protocol **field value** (IP-ID parity, TTL, TCP-seq low bit)',
+      'explain why a NAT, proxy, or normaliser can silently destroy the channel',
+      'see why a well-chosen parity channel evades a simple histogram — a false-negative lesson',
+    ],
     lede: 'The classic covert storage channel hides bits in the **value** of a field that was never meant to carry a message. The packets look ordinary; a receiver who knows the rule reads one bit out of a chosen field.',
     blocks: [
       { callout: {
@@ -83,6 +98,10 @@ export const COPY = {
 
   ordering: {
     title: 'The Message Is in the Order',
+    outcomes: [
+      'encode a bit in the **order** of two interchangeable events',
+      'explain why network reordering makes the channel collapse',
+    ],
     lede: 'A channel with no special value and no timing signature at all: the bit lives purely in the **order** of two otherwise interchangeable events.',
     blocks: [
       { code: 'A then B  →  0\nB then A  →  1' },
@@ -92,6 +111,11 @@ export const COPY = {
 
   http: {
     title: 'The Message Is in the Header Order',
+    outcomes: [
+      'compute how many bits a permutation of n headers can hold (⌊log₂ n!⌋)',
+      'explain why a stable client "fingerprint" makes header-order variety suspicious',
+      'connect the normalizing-proxy defence back to the storage-channel middlebox lesson',
+    ],
     lede: 'A covert channel one layer up: the request looks completely normal, but the **order of its headers** carries the payload.',
     blocks: [
       { code: 'Accept, Accept-Language, Accept-Encoding, …\n↕ reorder these 6 headers\n6! = 720 orderings  →  ⌊log₂ 720⌋ = 9 bits per request' },
@@ -107,6 +131,11 @@ export const COPY = {
 
   stego: {
     title: 'Hidden in Plain Sight',
+    outcomes: [
+      'embed and recover a message in the **least-significant bits** of an image',
+      'explain why lossy re-compression destroys the payload',
+      'read the chi-square steganalysis attack and its limits on small payloads',
+    ],
     lede: 'Steganography hides a payload **inside other content**. Here a short message rides in the least-significant bits of an image’s pixels, where a ±1 change in a colour value is invisible to the eye.',
     blocks: [
       { callout: {
@@ -121,6 +150,11 @@ export const COPY = {
 
   metadata: {
     title: 'The Message Is in the Records',
+    outcomes: [
+      'explain how routine metadata becomes an **unintended inference channel**',
+      'connect covert channels to everyday privacy risk in operational logs',
+      'apply data minimisation as a defence that removes the channel and the exposure',
+    ],
     lede: 'Covert channels are not only a network idea. Ordinary operational **metadata** — records no one designed to carry a message — can be read as one. This is the exhibit a librarian would build.',
     blocks: [
       { code: 'Each item transfer is routed to a branch:\nCentral = 0     Riverside = 1\nThe routing pattern spells a message.' },
@@ -142,6 +176,10 @@ export const COPY = {
   detection: {
     title: 'Detection Console',
     lede: 'A defender rarely knows the hidden message. They look at the **shape** of the traffic and ask whether it is statistically or structurally unusual.',
+    outcomes: [
+      'read named, cited detector metrics across every channel',
+      'explain why detection is probabilistic — what fired, why, and what else could cause it',
+    ],
     blocks: [
       { callout: {
         kind: 'key',
@@ -162,6 +200,11 @@ export const COPY = {
 
   concepts: {
     title: 'What Makes a Channel Covert?',
+    outcomes: [
+      'distinguish storage from timing, and covert channels from tunnels and encryption',
+      'explain why an encrypted tunnel is usually **not** a covert channel',
+      'reason about the capacity ↔ reliability ↔ observability trade-off',
+    ],
     lede: 'Three distinctions do most of the work. Getting them straight is the point of the whole exhibit.',
     blocks: [
       { kv: [

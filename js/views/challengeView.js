@@ -26,6 +26,11 @@ export function renderChallengeView(state) {
     sectionHeader({
       title: 'Detection Challenge', eyebrow: 'Analysis',
       lede: 'You are the analyst. Each case shows only what a monitor would see — no message, no bits, no “this is the covert one.” Read the traffic, commit to a call, then reveal the ground truth and how you did.',
+      outcomes: [
+        'make a clean / suspicious / covert call from **observables alone**',
+        'name the indicator you would investigate',
+        'weigh false positives (benign-but-busy traffic) against misses (subtle channels)',
+      ],
     }),
     div({ class: 'challenge-bar' },
       button({ label: 'New case set', variant: 'primary', icon: '⟳', onClick: () => { nonce++; answers = {}; build(); } }),

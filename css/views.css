@@ -125,6 +125,12 @@
 .chart-grid { stroke: var(--border-faint); stroke-width: 1; stroke-dasharray: 2 3; }
 .curve-xlabel { text-align: center; margin-top: 2px; }
 
+/* ---- Learning outcomes ---------------------------------------------------- */
+.outcomes { margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4); background: color-mix(in srgb, var(--accent) 7%, var(--surface-1)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border)); border-radius: var(--r-md); max-width: 68ch; }
+.outcomes-title { display: block; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; margin-bottom: var(--sp-2); }
+.outcomes-list { margin: 0; padding-left: 1.2em; }
+.outcomes-list li { font-size: var(--fs-sm); color: var(--text-dim); }
+
 /* ---- Detection Challenge --------------------------------------------------- */
 .challenge-bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-4); }
 .challenge-tally { margin-bottom: var(--sp-5); }

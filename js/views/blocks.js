@@ -83,14 +83,22 @@ export function renderBlocks(blocks) {
   return frag;
 }
 
-/** Section header (title + optional lede) from a COPY entry. */
+/** Section header (title + optional lede + learning outcomes) from a COPY entry. */
 export function sectionHeader(copy, extra) {
   return el('header', { class: 'section-header' },
     copy.eyebrow ? el('p', { class: 'eyebrow', text: copy.eyebrow }) : null,
     el('h2', { class: 'section-title', text: copy.title }),
     copy.subtitle ? el('p', { class: 'section-subtitle', text: copy.subtitle }) : null,
     copy.lede ? para(copy.lede, 'section-lede') : null,
+    copy.outcomes ? outcomesBlock(copy.outcomes) : null,
     extra || null);
+}
+
+/** A compact "By the end you can…" list of learning outcomes. */
+export function outcomesBlock(outcomes) {
+  return el('div', { class: 'outcomes', attrs: { role: 'note', 'aria-label': 'Learning outcomes' } },
+    el('span', { class: 'outcomes-title', text: 'By the end you can' }),
+    el('ul', { class: 'outcomes-list' }, ...outcomes.map((o) => el('li', {}, ...inline(o)))));
 }
 
 /**

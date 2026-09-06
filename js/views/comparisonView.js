@@ -12,7 +12,7 @@ export function renderComparisonView(state) {
     sectionHeader({ ...COPY.compare, eyebrow: 'Analysis' }),
     div({ class: 'prose-wide' }, renderBlocks(COPY.compare.blocks)),
     el('div', { class: 'card' },
-      div({ class: 'table-wrap' },
+      div({ class: 'table-wrap', attrs: { tabindex: '0', role: 'region', 'aria-label': 'Channel comparison table' } },
         el('table', { class: 'data-table compare-table' },
           el('thead', {}, el('tr', {}, ...COMPARISON_COLUMNS.map((c) => el('th', { text: c.label })))),
           el('tbody', {}, ...COMPARISON_ROWS.map(rowEl))))));
