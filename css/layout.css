@@ -1,0 +1,157 @@
+/* ============================================================================
+   layout.css — app shell, header, navigation, and the section workbench grid
+   ========================================================================== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-5);
+  background: color-mix(in srgb, var(--surface-0) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+.brand-mark {
+  width: 38px; height: 38px; flex: none;
+  border-radius: var(--r-md);
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  box-shadow: var(--glow-accent);
+  display: grid; place-items: center;
+  color: var(--text-invert); font-weight: 800; font-size: 1.1rem;
+}
+.brand-text h1 { font-size: 1.02rem; letter-spacing: -0.01em; }
+.brand-text p { font-size: var(--fs-xs); color: var(--text-faint); margin-top: 1px; }
+
+.header-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-4);
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.header-controls .msg-field { min-width: 220px; flex: 1 1 240px; max-width: 340px; }
+.header-controls .seed-field { width: 140px; }
+
+.app-body {
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  gap: 0;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* ---- Sidebar nav ---------------------------------------------------------- */
+.sidebar {
+  position: sticky;
+  top: 66px;
+  align-self: start;
+  height: calc(100vh - 66px);
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-3) var(--sp-6) var(--sp-5);
+  border-right: 1px solid var(--border-faint);
+}
+.nav-group + .nav-group { margin-top: var(--sp-4); }
+.nav-group-title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+  padding: 0 var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.nav-link {
+  display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.nav-link:hover { background: var(--surface-1); color: var(--text); }
+.nav-link[aria-current="page"] {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.nav-link .nav-index {
+  font-size: var(--fs-xs); color: var(--text-faint);
+  width: 1.4em; text-align: right; flex: none;
+}
+.nav-link[aria-current="page"] .nav-index { color: var(--accent); }
+
+/* ---- Main / sections ------------------------------------------------------ */
+.app-main { min-width: 0; padding: var(--sp-6) clamp(var(--sp-4), 4vw, var(--sp-7)) var(--sp-8); }
+
+.section { max-width: 1120px; margin: 0 auto; }
+.section[hidden] { display: none; }
+
+.section-header { margin-bottom: var(--sp-6); max-width: 76ch; }
+.eyebrow {
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--accent); margin-bottom: var(--sp-2); font-weight: 650;
+}
+.section-title { font-size: var(--fs-2xl); margin-bottom: var(--sp-2); }
+.section-subtitle { font-size: var(--fs-md); color: var(--text-dim); margin-bottom: var(--sp-3); }
+.section-lede { font-size: var(--fs-md); color: var(--text-dim); }
+
+/* ---- The three-panel workbench ------------------------------------------- */
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(280px, 340px);
+  gap: var(--sp-4);
+  align-items: start;
+}
+.workbench > .panel { min-width: 0; }
+.panel { display: flex; flex-direction: column; gap: var(--sp-4); }
+.panel-left { position: sticky; top: 82px; }
+.panel-right { position: sticky; top: 82px; }
+
+/* Two-column fallback layouts for prose-heavy sections */
+.prose-wide { max-width: 80ch; display: flex; flex-direction: column; gap: var(--sp-4); }
+.split-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); align-items: start; }
+
+/* ---- Responsive ----------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .workbench { grid-template-columns: minmax(0,1fr); }
+  .panel-left, .panel-right { position: static; }
+}
+@media (max-width: 960px) {
+  .app-body { grid-template-columns: 1fr; }
+  .sidebar {
+    position: static; height: auto; width: 100%;
+    border-right: none; border-bottom: 1px solid var(--border-faint);
+    display: flex; gap: var(--sp-4); overflow-x: auto;
+    padding: var(--sp-3) var(--sp-4);
+  }
+  .nav-group { min-width: max-content; }
+  .nav-group + .nav-group { margin-top: 0; }
+  .split-2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .header-controls { justify-content: flex-start; }
+  .header-controls .msg-field { max-width: none; }
+  .section-title { font-size: var(--fs-xl); }
+}
+
+/* ---- Footer --------------------------------------------------------------- */
+.app-footer {
+  max-width: var(--maxw); margin: 0 auto;
+  padding: var(--sp-6) clamp(var(--sp-4), 4vw, var(--sp-7));
+  border-top: 1px solid var(--border-faint);
+  color: var(--text-faint); font-size: var(--fs-sm);
+  display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-5); justify-content: space-between;
+}
+.app-footer a { color: var(--text-dim); }

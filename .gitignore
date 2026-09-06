@@ -1,0 +1,13 @@
+# Dependencies (none — this project vendors everything and uses no build step)
+node_modules/
+
+# Editor / OS cruft
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Test / coverage output
+coverage/
+*.log
