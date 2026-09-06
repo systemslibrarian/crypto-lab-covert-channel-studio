@@ -65,6 +65,8 @@ Cross-cutting features:
 - **Named, cited detectors** — corrected conditional entropy (Gianvecchio & Wang 2007), Cabuk regularity (Cabuk et al. 2004), character-frequency divergence (Born & Gustafson 2010), the Westfeld–Pfitzmann chi-square attack, and permutation-capacity bounds — each with a known-answer test.
 - **Sender/receiver vs. defender view modes** on every channel.
 - **Shareable, reproducible links** — the seed and view mode live in the URL hash (`#dns?seed=crypto-lab&mode=defender`), so an instructor can hand out an exact state.
+- **Exportable lab notebook** — every channel section can copy the current run (link, seed, settings, decoded result, capacity/BER/observability, detector methods) as Markdown for a take-home or answer key.
+- **Per-module learning outcomes** — each interactive section opens with a concise "by the end you can…" contract.
 - **Toy messages only** — capped at 24 UTF-8 bytes; the point is understanding, not throughput.
 
 ## Screenshots
@@ -209,6 +211,8 @@ Tests use the Node.js built-in test runner (`node --test`). They cover the utili
 - Full keyboard navigation with visible focus indicators.
 - `prefers-reduced-motion` respected — animations and timing visualizations degrade gracefully.
 - Sender/receiver and defender view modes are reachable and operable without a pointer.
+- Meaning is never carried by colour alone (bits, anomaly levels, and status all pair colour with a glyph or label).
+- An **automated accessibility gate** (`test/a11y.test.js`) renders every view in both modes and fails the build if any control lacks an accessible name or any scrollable region is not a focusable, labelled region.
 
 ## Browser support
 

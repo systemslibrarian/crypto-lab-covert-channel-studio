@@ -6,8 +6,11 @@
 import { el, div, span, svg } from './dom.js';
 import { horizontalMeter, legend } from './charts.js';
 import { para } from './blocks.js';
+import { button } from './controls.js';
 import { round } from '../utils/statistics.js';
 import { computeTradeoff, sweepTradeoff, SWEEP } from '../analysis/tradeoff.js';
+
+const CHANNEL_LABEL = { dns: 'DNS', timing: 'Timing', storage: 'Storage', ordering: 'Packet ordering', http: 'HTTP header order' };
 
 /**
  * A full trade-off card for a channel: three live meters + (where a natural knob
@@ -58,7 +61,55 @@ export function tradeoffInstrument(channel, message, params) {
     if (cap) children.push(para(cap, 'subtle'));
   }
 
+  children.push(labNotebook(channel, message, t));
+
   return el('div', { class: 'card tradeoff-card' }, ...children);
+}
+
+/** An exportable, reproducible record of this run — for a take-home / instructor. */
+function labNotebook(channel, message, t) {
+  const md = buildNotebook(channel, message, t);
+  const copyBtn = button({
+    label: 'Copy Markdown', variant: 'ghost', icon: '⧉',
+    onClick: (e) => {
+      const b = e.target.closest('button');
+      const done = () => { if (b) { const s = b.querySelector('span:last-child'); if (s) { s.textContent = 'Copied!'; setTimeout(() => { s.textContent = 'Copy Markdown'; }, 1500); } } };
+      try { navigator.clipboard.writeText(md).then(done, () => {}); } catch { /* the <pre> is selectable as a fallback */ }
+    },
+  });
+  return el('details', { class: 'notebook' },
+    el('summary', { class: 'notebook-summary', text: 'Lab notebook — export this run' }),
+    div({ class: 'notebook-body' },
+      div({ class: 'notebook-actions' }, copyBtn,
+        span({ class: 'subtle', text: 'Reproducible: the link, seed, and settings replay this exact run.' })),
+      el('pre', { class: 'notebook-md' }, el('code', { text: md }))));
+}
+
+function buildNotebook(channel, message, t) {
+  const run = t.run;
+  const L = [];
+  L.push('# Covert Channel Studio — lab notebook', '');
+  L.push(`- Channel: ${CHANNEL_LABEL[channel] || channel}`);
+  L.push(`- Message: ${JSON.stringify(message)}`);
+  const href = safeHref();
+  if (href) L.push(`- Shareable link: ${href}`);
+  try { L.push(`- Captured: ${new Date().toISOString()}`); } catch { /* no clock */ }
+  L.push('', '## Result');
+  L.push(`- Decoded: ${JSON.stringify(run.decodedText)}${run.bitErrors != null ? ` (${run.bitErrors} bit errors)` : ''}`);
+  L.push(`- Capacity: ${round(t.capacity.bitsPerSecond, 0)} bits/s (${round(t.capacity.bitsPerEvent, 2)}/${t.capacity.eventLabel})`);
+  if (t.capacity.ceilingBits !== undefined) L.push(`- Capacity ceiling: ${t.capacity.ceilingBits} bits (⌊log2 n!⌋)`);
+  L.push(`- Reliability: bit-error rate ${round((t.reliability.ber || 0) * 100, 0)}%`);
+  L.push(`- Observability: ${t.observability.score}/100 (${t.observability.level})`);
+  if (run.detector && run.detector.methods && run.detector.methods.length) {
+    L.push('', '### Detector methods');
+    for (const m of run.detector.methods) L.push(`- ${m.name} (${m.citation}): ${m.value}`);
+  }
+  L.push('', '_Educational indicator — not a security verdict. All traffic is simulated in-browser; nothing is sent._');
+  return L.join('\n');
+}
+
+function safeHref() {
+  try { return location.href; } catch { return ''; }
 }
 
 function fallbackCaption(channel) {
