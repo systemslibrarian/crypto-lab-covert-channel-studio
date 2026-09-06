@@ -135,10 +135,44 @@ function buildFooter() {
 }
 
 /* ---- Routing & lifecycle -------------------------------------------------- */
+// URLs look like `#dns?seed=crypto-lab&mode=defender` so a whole reproducible
+// state is shareable. Seed and mode appear only when they differ from default.
 function go(id) {
   if (!VALID.has(id)) id = 'overview';
-  if (location.hash !== `#${id}`) location.hash = id;
-  setSection(id);
+  setSection(id); // onStateChange syncs the URL
+}
+
+function parseHash() {
+  const raw = (location.hash || '').replace(/^#/, '');
+  const [sec, query] = raw.split('?');
+  const params = new URLSearchParams(query || '');
+  return {
+    section: VALID.has(sec) ? sec : 'overview',
+    seed: params.get('seed'),
+    mode: params.get('mode'),
+  };
+}
+
+function syncUrl() {
+  try {
+    const st = getState();
+    const params = new URLSearchParams();
+    if (st.seed && st.seed !== 'crypto-lab') params.set('seed', st.seed);
+    if (st.viewMode === VIEW_MODES.DEFENDER) params.set('mode', 'defender');
+    const qs = params.toString();
+    const hash = `#${st.section}${qs ? `?${qs}` : ''}`;
+    if (location.hash !== hash) history.replaceState(null, '', hash);
+  } catch { /* replaceState can throw in exotic contexts; ignore */ }
+}
+
+function applyHash() {
+  const { section, seed, mode } = parseHash();
+  if (seed != null && seed !== getState().seed) setSeed(seed);
+  const wantDefender = mode === 'defender';
+  if (mode != null && wantDefender !== (getState().viewMode === VIEW_MODES.DEFENDER)) {
+    setViewMode(wantDefender ? VIEW_MODES.DEFENDER : VIEW_MODES.SENDER);
+  }
+  if (section !== current.id) setSection(section);
 }
 
 // Sections whose layout actually depends on the Sender/Defender view mode.
@@ -163,40 +197,37 @@ function onStateChange(state, meta = {}) {
   const reason = meta.reason;
   if (reason === 'section') {
     if (state.section !== current.id) renderSection(state.section);
-    return;
-  }
-  if (reason === 'viewMode') {
+  } else if (reason === 'viewMode') {
     // Only rebuild sections that actually change with view mode; others (quiz,
     // glossary, …) keep their local UI state via a plain refresh.
     if (VIEWMODE_SENSITIVE.has(current.id)) renderSection(state.section, { scroll: false, focus: false });
     else if (current.refresh) current.refresh(state);
-    return;
-  }
-  if (reason === 'reset') {
+  } else if (reason === 'reset') {
     renderSection(state.section, { scroll: false, focus: false }); // reflect reset control values
-    return;
+  } else if (current.refresh) {
+    // message / seed / param / middlebox / stego → refresh outputs only
+    current.refresh(state);
   }
-  // message / seed / param / middlebox / stego → refresh outputs only
-  if (current.refresh) current.refresh(state);
-}
-
-function initialSection() {
-  const hash = (location.hash || '').replace(/^#/, '');
-  return VALID.has(hash) ? hash : 'overview';
+  syncUrl();
 }
 
 function boot() {
+  // Apply any seed/mode from the incoming URL before building the header so the
+  // controls reflect the shared state. No subscribers yet, so these don't render.
+  const { section, seed, mode } = parseHash();
+  if (seed != null) setSeed(seed);
+  if (mode === 'defender') setViewMode(VIEW_MODES.DEFENDER);
+
   buildHeader();
   buildNav();
   buildFooter();
   subscribe(onStateChange);
-  window.addEventListener('hashchange', () => {
-    const id = initialSection();
-    if (id !== current.id) setSection(id);
-  });
-  const start = initialSection();
-  if (start === getState().section) renderSection(start); // no emit will fire; render directly
-  else setSection(start); // emits 'section' → onStateChange renders exactly once
+  window.addEventListener('hashchange', applyHash);
+
+  const start = VALID.has(section) ? section : 'overview';
+  if (start === getState().section) renderSection(start);
+  else setSection(start);
+  syncUrl();
 }
 
 boot();

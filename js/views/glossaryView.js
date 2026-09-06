@@ -22,8 +22,10 @@ export function renderGlossaryView(state) {
     grid);
 
   function renderGrid() {
-    const items = GLOSSARY.filter((g) =>
-      !query || g.term.toLowerCase().includes(query) || g.definition.toLowerCase().includes(query));
+    const items = GLOSSARY
+      .filter((g) => !query || g.term.toLowerCase().includes(query) || g.definition.toLowerCase().includes(query))
+      .slice()
+      .sort((a, b) => a.term.localeCompare(b.term));
     replace(grid, ...(items.length ? items.map(item) : [div({ class: 'empty-note', text: 'No matching terms.' })]));
   }
   renderGrid();

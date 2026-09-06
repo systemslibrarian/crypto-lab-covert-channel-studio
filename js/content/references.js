@@ -30,6 +30,14 @@ export const REFERENCES = [
         venue: 'US Department of Defense Rainbow Series',
         note: 'The classic government guidance on identifying, measuring, and handling covert channels, including the bandwidth-estimation mindset behind the capacity/reliability/observability triangle.',
         url: 'https://irp.fas.org/nsa/rainbow/tg030.htm'
+      },
+      {
+        title: 'Pattern-Based Survey and Categorization of Network Covert Channel Techniques',
+        authors: 'Steffen Wendzel, Sebastian Zander, Bernhard Fechner, Christian Herdin',
+        year: 2015,
+        venue: 'ACM Computing Surveys, 47(3)',
+        note: 'The community reference that organizes covert-channel techniques into reusable hiding patterns; the basis for the Carrier Atlas, which maps each module to a named pattern.',
+        url: 'https://doi.org/10.1145/2684195'
       }
     ]
   },
@@ -138,6 +146,14 @@ export const REFERENCES = [
         venue: 'Cambridge University Press',
         note: 'The standard textbook on digital steganography and steganalysis, covering LSB embedding and the statistical attacks that motivate the image-steganography section.',
         url: ''
+      },
+      {
+        title: 'Attacks on Steganographic Systems',
+        authors: 'Andreas Westfeld, Andreas Pfitzmann',
+        year: 1999,
+        venue: 'Information Hiding, LNCS 1768',
+        note: 'Introduces the chi-square "pairs of values" attack the image-steganography detector implements: LSB embedding equalises adjacent value pairs, which the test measures.',
+        url: 'https://doi.org/10.1007/10719724_5'
       }
     ]
   },

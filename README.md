@@ -40,27 +40,32 @@ The exhibit teaches both the **sender/receiver** perspective and the **defender/
 
 ## Features
 
-Ten interactive exhibit sections, plus a glossary and a quiz:
+Interactive exhibit sections, plus a glossary and a quiz:
 
-- **Overview** — the thesis, the taxonomy, and a map of the lab.
-- **DNS Channel** — how a hierarchical name-lookup protocol can be abused as a carrier; encodes toy messages into simulated query names under the reserved `.test` documentation TLD.
-- **Timing Channel** — encoding bits in inter-event gaps; shows how jitter and noise degrade reliability, and how timing statistics expose the pattern.
-- **Storage Channel** — hiding bits in simulated protocol field values; illustrates why "unused" fields are a classic audit target.
-- **Packet-Order Channel** — information carried by the *ordering* of otherwise-innocent events, with the combinatorics of how many bits an ordering can hold.
-- **Image Steganography** — LSB embedding in a small generated cover image, with a visual diff so you can see exactly what changed.
-- **Detection Console** — the defender's bench: run simple statistical detectors (entropy, frequency, timing regularity, ordering anomalies) against simulated traffic and see indicators light up.
-- **Compare Channels** — side-by-side comparison ranked by educational clarity, reliability in simulation, defensive teaching value, and complexity — never by "stealth."
-- **What Makes a Channel Covert?** — the conceptual core: intent of the mechanism, the storage/timing distinction, and why an encrypted tunnel is usually not a covert channel.
-- **Defensive Takeaways** — practical lessons for analysts: what to log, what to baseline, and why simple statistics are indicators rather than verdicts.
-- **Glossary** — plain-language definitions of every term used in the lab.
-- **Quiz** — self-check questions tied to each section.
+- **Overview** — the thesis, the taxonomy, and a "same bits, five carriers" preview.
+- **DNS Channel** — a name-lookup protocol abused as a carrier; toy messages encoded into simulated query labels under the reserved `.test` TLD.
+- **Timing Channel** — bits in inter-event gaps; jitter degrades reliability *and* detectability, made visible on a live trade-off curve.
+- **Storage Channel** — bits in simulated IP/TCP field values (IP-ID parity, TTL toggle, TCP-seq low bit), with a middlebox experiment that rewrites the field and breaks the channel.
+- **Packet-Order Channel** — information in the *ordering* of interchangeable events, with the ⌊log₂ n!⌋ capacity ceiling.
+- **HTTP Header Channel** — an application-layer channel: permuting reorderable request headers hides 9 bits/request; a normalizing proxy destroys it.
+- **Image Steganography** — LSB embedding with a visual diff, bit-plane view, and the chi-square steganalysis attack.
+- **Library Records** — the librarian's-eye exhibit: routine circulation/transfer metadata as an *unintended inference channel*, and data minimisation as the defence.
+- **Detection Console** — the defender's bench: named, cited statistical detectors across every channel.
+- **Detection Challenge** — a genuinely **blind, scored** exercise: observables only, commit a call (clean / suspicious / covert), then reveal the ground truth. Includes false-positive traps.
+- **Compare Channels** — ranked by educational clarity, reliability, and teaching value — never by "stealth."
+- **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (ICMP, VoIP, Wi-Fi, protocol hopping, cache-timing, history channels), each with a fidelity card.
+- **Shared-Resource Matrix** — Kemmerer's covert-channel-analysis method as a playable exercise.
+- **What Makes a Channel Covert?** — the conceptual core plus the trade-off triangle, computed live.
+- **Defensive Takeaways**, **Glossary**, and an interactive **Quiz**.
 
 Cross-cutting features:
 
-- **Sender/receiver vs. defender view modes** — every channel exhibit can be viewed from both sides of the exchange.
-- **Seeded, reproducible simulations** — a deterministic seeded PRNG means every run can be replayed exactly, which makes the statistics teachable.
-- **Tradeoff triangle** — capacity, reliability, and observability are surfaced throughout, so the cost of every encoding choice is visible.
-- **Toy messages only** — messages are capped at 24 UTF-8 bytes; the point is understanding, not throughput.
+- **Blind, scored detection challenge** — analysis, not recognition of a labelled example.
+- **Live capacity / reliability / observability instrument** — computed from the actual seeded run (not presets) on every channel, with a sweep curve showing the trade-off move.
+- **Named, cited detectors** — corrected conditional entropy (Gianvecchio & Wang 2007), Cabuk regularity (Cabuk et al. 2004), character-frequency divergence (Born & Gustafson 2010), the Westfeld–Pfitzmann chi-square attack, and permutation-capacity bounds — each with a known-answer test.
+- **Sender/receiver vs. defender view modes** on every channel.
+- **Shareable, reproducible links** — the seed and view mode live in the URL hash (`#dns?seed=crypto-lab&mode=defender`), so an instructor can hand out an exact state.
+- **Toy messages only** — capped at 24 UTF-8 bytes; the point is understanding, not throughput.
 
 ## Screenshots
 
@@ -84,21 +89,24 @@ A fully static site: vanilla JavaScript ES modules, no framework, no build step,
   LICENSE (MIT), README.md, SECURITY.md
   /css   base.css (tokens/reset), layout.css, components.css, views.css
   /js
-    app.js            — bootstrap + hash routing between sections
+    app.js            — bootstrap + hash routing (seed/mode carried in the URL)
     state.js          — central seeded app state + pub/sub
     simulation.js     — deterministic orchestrator (encode -> channel -> decode -> detect)
-    /channels  dns.js, timing.js, storage.js, ordering.js, stego.js
+    /channels  dns.js, timing.js, storage.js, ordering.js, http.js, stego.js, metadata.js
     /detectors anomaly.js, dnsDetector.js, timingDetector.js, storageDetector.js,
-               orderingDetector.js, stegoDetector.js
-    /views     overviewView, dnsView, timingView, storageView, orderingView, stegoView,
-               detectionView, comparisonView, conceptsView, defenseView, glossaryView,
-               quizView (plus shared helpers: dom.js, blocks.js, charts.js,
-               controls.js, widgets.js)
-    /content   glossary.js, quiz.js, comparison.js, references.js, copy.js
-    /utils     utf8.js, bits.js, seededRandom.js, statistics.js
+               orderingDetector.js, httpDetector.js, stegoDetector.js
+    /analysis  tradeoff.js (live capacity/reliability/observability),
+               challenge.js (blind detection cases)
+    /views     one *View.js per section (overview, dns, timing, storage, ordering,
+               http, stego, metadata, detection, challenge, compare, atlas, srm,
+               concepts, defense, glossary, quiz, tradeoffView) plus shared helpers
+               (dom.js, blocks.js, charts.js, controls.js, widgets.js)
+    /content   glossary.js, quiz.js, comparison.js, references.js, atlas.js, copy.js
+    /utils     utf8.js, bits.js, seededRandom.js, statistics.js (incl. published
+               detection methods: CCE, Cabuk regularity, KL divergence, chi-square)
   /assets  sample-cover-image.png (small, generated locally)
-  /test    node --test suites for utf8/bits/seededRandom/statistics,
-           each channel, the detectors, and the simulation orchestrator
+  /test    node --test suites for utf8/bits/seededRandom/statistics, the published
+           methods (known-answer), each channel, the detectors, and the orchestrator
 ```
 
 Design principles:

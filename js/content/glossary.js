@@ -129,5 +129,45 @@ export const GLOSSARY = [
     term: 'Tunneling',
     definition: 'Wrapping one protocol inside another so traffic rides a carrier protocol, as in DNS tunneling or an SSH tunnel. Tunnels hide or repackage content, but they are often readily identifiable as tunnels, so tunneling is not automatically covert — hiding content is not the same as hiding the existence or purpose of communication.',
     seeAlso: ['Covert channel', 'Carrier', 'Encryption', 'Resolver']
+  },
+  {
+    term: 'Corrected conditional entropy',
+    definition: 'A complexity measure of a sequence of events, corrected for finite-sample bias. Covert timing channels are far more regular than human traffic, so their corrected conditional entropy is unusually low — the basis of an entropy-based timing-channel detector (Gianvecchio & Wang, 2007).',
+    seeAlso: ['Covert timing channel', 'Entropy', 'Inter-arrival time']
+  },
+  {
+    term: 'Cabuk regularity',
+    definition: 'A statistic that measures how constant a traffic stream\'s per-window variability is. A crafted timing channel keeps it nearly constant (low regularity value); bursty legitimate traffic does not (Cabuk et al., 2004).',
+    seeAlso: ['Covert timing channel', 'Inter-arrival time']
+  },
+  {
+    term: 'Chi-square attack',
+    definition: 'A steganalysis test that detects LSB embedding by measuring how far the counts of adjacent pixel-value pairs have been equalised, which near-random embedding tends to do (Westfeld & Pfitzmann, 1999).',
+    seeAlso: ['Steganography', 'Least-significant bit (LSB)']
+  },
+  {
+    term: 'Shared Resource Matrix',
+    definition: 'Kemmerer\'s methodology (1983) for finding covert channels by tabulating which subjects can Reference or Modify each shared attribute; a potential channel exists where a high-clearance subject can modify an attribute a low-clearance subject can read.',
+    seeAlso: ['Covert storage channel', 'Covert timing channel']
+  },
+  {
+    term: 'Hiding pattern',
+    definition: 'A reusable category of covert-channel technique in the network information-hiding taxonomy (Wendzel et al., 2015), such as value modulation, sequence/ordering, or inter-packet times. Learning the pattern generalises better than memorising individual tricks.',
+    seeAlso: ['Covert channel', 'Carrier']
+  },
+  {
+    term: 'Permutation capacity',
+    definition: 'The information a permutation of n distinguishable events can carry: ⌊log₂(n!)⌋ bits. It sets the ceiling for ordering-based channels such as packet order and HTTP header order.',
+    seeAlso: ['Capacity', 'Covert storage channel']
+  },
+  {
+    term: 'Inference channel',
+    definition: 'Information leaked by metadata, aggregates, or operational records that were never intended to carry a message — for example, patterns in circulation or routing logs. Related to covert channels but often unintended, and a privacy risk in its own right.',
+    seeAlso: ['Covert channel', 'Data minimisation']
+  },
+  {
+    term: 'Data minimisation',
+    definition: 'Collecting and retaining only the data a task requires, for only as long as needed. A core privacy practice that also removes many inference and covert channels in records: you cannot leak, or be compelled to disclose, what you never kept.',
+    seeAlso: ['Inference channel']
   }
 ];

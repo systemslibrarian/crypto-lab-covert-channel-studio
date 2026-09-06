@@ -79,14 +79,13 @@ repository itself.
 
 If you find a problem:
 
-1. **Open a GitHub issue** on this repository describing the affected page or module and
-   the general nature of the issue.
-2. **Do not include working exploit code** in a public issue. A description of the input
-   and the observed behavior is enough; maintainers will follow up if more detail is
-   needed.
-3. For anything you believe is sensitive enough to warrant private disclosure, contact the
-   maintainer directly: `security@example.test` *(placeholder — replace with the
-   maintainer's real contact before publishing)*.
+1. **For anything sensitive, use GitHub's private vulnerability reporting.** On this
+   repository, go to the **Security** tab → **Report a vulnerability** (GitHub Security
+   Advisories). This keeps the report private with the maintainers until a fix is ready.
+2. **For non-sensitive functional or content bugs, open a regular GitHub issue** describing
+   the affected page or module and the general nature of the problem.
+3. **Do not include working exploit code** in a public issue. A description of the input and
+   the observed behavior is enough; maintainers will follow up if more detail is needed.
 
 There is no bug-bounty program. Reports are handled on a best-effort basis, and fixes ship
 as ordinary commits to the public repository.
