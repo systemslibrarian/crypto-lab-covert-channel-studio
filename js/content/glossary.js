@@ -169,5 +169,45 @@ export const GLOSSARY = [
     term: 'Data minimisation',
     definition: 'Collecting and retaining only the data a task requires, for only as long as needed. A core privacy practice that also removes many inference and covert channels in records: you cannot leak, or be compelled to disclose, what you never kept.',
     seeAlso: ['Inference channel']
-  }
+  },
+  {
+    term: 'On/off keying (OOK)',
+    definition: 'The simplest form of amplitude modulation: the carrier is switched fully on for one symbol and fully off for the other, so a lit emitter is a 1 and a dark one is a 0. It is the encoding used by the air-gap optical module in this exhibit.',
+    seeAlso: ['Air-gap covert channel', 'Matched filter', 'Encoding']
+  },
+  {
+    term: 'Matched filter',
+    definition: 'A receiver that correlates the incoming signal with the known shape of the transmitted symbol; for a rectangular pulse this is simply averaging the samples across the symbol. Averaging N independent noise samples reduces the noise by a factor of the square root of N while leaving the signal untouched — the processing gain that makes a faint carrier readable.',
+    seeAlso: ['On/off keying (OOK)', 'Bit-error rate (BER)', 'Baseline']
+  },
+  {
+    term: 'Air-gap covert channel',
+    definition: 'A channel between machines with no network connection between them, carried by a physical medium instead: light from an indicator LED, heat, fan or drive noise, power-line draw, or stray electromagnetic emission. Air-gapping removes the network but not physics.',
+    seeAlso: ['Carrier', 'On/off keying (OOK)', 'Covert channel']
+  },
+  {
+    term: 'Bit-error rate (BER)',
+    definition: 'The fraction of transmitted bits the receiver recovers incorrectly. It is the reliability axis of the capacity/reliability/observability trade-off, and it rises as noise rises — every channel module in this exhibit reports its measured BER.',
+    seeAlso: ['Capacity', 'Observability', 'Jitter']
+  },
+  {
+    term: 'Flush+Reload',
+    definition: 'A shared-cache attack in which the receiver flushes one specific cache line, waits, then reloads it and times the load: a fast reload means someone else touched that line in the interval. It requires a page mapped by both parties, typically a shared library (Yarom & Falkner, 2014).',
+    seeAlso: ['Prime+Probe', 'Cache side channel', 'Shared Resource Matrix']
+  },
+  {
+    term: 'Prime+Probe',
+    definition: 'A shared-cache attack that needs no shared memory: the receiver fills a cache set with its own lines, waits, then re-walks the set and times it. A slow walk means the other party used that set and evicted something. Note the polarity is the opposite of Flush+Reload (Osvik, Shamir & Tromer, 2006).',
+    seeAlso: ['Flush+Reload', 'Cache side channel', 'Shared Resource Matrix']
+  },
+  {
+    term: 'Cache side channel',
+    definition: 'A channel that carries information through the presence or absence of data in a shared CPU cache, read by timing memory accesses. Neither party writes to the other; they simply contend for one shared hardware resource, which makes it the concrete case of the shared-attribute criterion in the Shared Resource Matrix.',
+    seeAlso: ['Flush+Reload', 'Prime+Probe', 'Covert timing channel', 'Shared Resource Matrix']
+  },
+  {
+    term: 'Detectability index (d-prime)',
+    definition: 'How many standard deviations of noise separate two signal classes, computed as the distance between their means divided by the pooled within-class standard deviation. A large value means a threshold receiver can tell the two classes apart almost perfectly — which is what both a covert receiver and a defender are measuring.',
+    seeAlso: ['Bit-error rate (BER)', 'Anomaly', 'Baseline']
+  },
 ];

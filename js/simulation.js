@@ -15,14 +15,18 @@ import { simulateTimingFromText } from './channels/timing.js';
 import { simulateStorageRun } from './channels/storage.js';
 import { simulateOrderingRun } from './channels/ordering.js';
 import { simulateHttpRun } from './channels/http.js';
+import { simulatePhysicalRun } from './channels/physical.js';
+import { simulateCacheRun } from './channels/cache.js';
 
 import { analyzeDns } from './detectors/dnsDetector.js';
 import { analyzeTiming } from './detectors/timingDetector.js';
 import { analyzeStorage } from './detectors/storageDetector.js';
 import { analyzeOrdering } from './detectors/orderingDetector.js';
 import { analyzeHttp } from './detectors/httpDetector.js';
+import { analyzePhysical } from './detectors/physicalDetector.js';
+import { analyzeCache } from './detectors/cacheDetector.js';
 
-export const CHANNELS = ['dns', 'timing', 'storage', 'ordering', 'http'];
+export const CHANNELS = ['dns', 'timing', 'storage', 'ordering', 'http', 'physical', 'cache'];
 
 /**
  * The text -> bytes -> bits pipeline shown in the Overview (and reused as a
@@ -49,7 +53,7 @@ export function buildMessagePipeline(text) {
  * Run one channel end-to-end and normalise the outcome. `params` are the
  * channel-specific control values from the UI.
  *
- * @param {'dns'|'timing'|'storage'|'ordering'} channel
+ * @param {'dns'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
  * @param {string} message
  * @param {Object} [params]
  * @returns {{ channel:string, message:string, raw:Object, detector:Object,
@@ -63,6 +67,8 @@ export function runChannel(channel, message, params = {}) {
     case 'storage': return runStorage(message, params);
     case 'ordering': return runOrdering(message, params);
     case 'http': return runHttp(message, params);
+    case 'physical': return runPhysical(message, params);
+    case 'cache': return runCache(message, params);
     default: throw new Error(`Unknown channel: ${channel}`);
   }
 }
@@ -136,6 +142,41 @@ function runHttp(message, params) {
     bitErrors: raw.bitErrors,
     bitErrorRate: raw.bitErrorRate,
     summary: { requests: raw.covertRequests.length, bitsPerRequest: raw.meta.bitsPerRequest },
+  });
+}
+
+function runPhysical(message, params) {
+  const raw = simulatePhysicalRun(message, params);
+  // A defender sees the medium, not the payload: the matched-filter levels.
+  const detector = analyzePhysical(raw.filteredLevels, { decoderConfidence: raw.confidence });
+  return normalise('physical', message, raw, detector, {
+    decodedText: raw.recoveredText,
+    bitErrors: raw.bitErrors,
+    bitErrorRate: raw.bitErrorRate,
+    summary: {
+      bits: raw.bits.length,
+      confidence: raw.confidence,
+      snrDb: raw.snrDb,
+      predictedBer: raw.predictedBer,
+    },
+  });
+}
+
+function runCache(message, params) {
+  const raw = simulateCacheRun(message, params);
+  const detector = analyzeCache(raw.latencies, {
+    decoderConfidence: raw.confidence, probe: raw.probe,
+  });
+  return normalise('cache', message, raw, detector, {
+    decodedText: raw.recoveredText,
+    bitErrors: raw.bitErrors,
+    bitErrorRate: raw.bitErrorRate,
+    summary: {
+      probe: raw.probe,
+      bits: raw.bits.length,
+      evicted: raw.evictedCount,
+      predictedBer: raw.predictedBer,
+    },
   });
 }
 

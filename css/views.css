@@ -243,3 +243,44 @@
 .srm-finding-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-bottom: 4px; }
 .srm-finding-name { font-weight: 650; }
 .srm-finding p { font-size: var(--fs-sm); }
+
+/* ---- Per-channel accents --------------------------------------------------
+   Each channel section re-points --accent so a module has its own identity.
+   Scoped to #sec-<id>, so the global brand accent in base.css is untouched and
+   every other surface (nav, header, analysis views) keeps the house colour.
+
+   These values are deliberately distinct from the SEMANTIC tokens in base.css
+   (--covert, --ok, --warn, --danger, --info, --bit-0, --bit-1, --accent-2),
+   because those appear side by side with the accent inside a channel view.
+   Colour is decorative only — it is never the sole carrier of meaning.
+   -------------------------------------------------------------------------- */
+#sec-dns      { --accent: #2dd4bf; --accent-deep: #14b8a6; } /* teal   */
+#sec-timing   { --accent: #22d3ee; --accent-deep: #06b6d4; } /* cyan   */
+#sec-storage  { --accent: #4ade80; --accent-deep: #22c55e; } /* green  */
+#sec-ordering { --accent: #a78bfa; --accent-deep: #8b5cf6; } /* violet */
+#sec-http     { --accent: #e879f9; --accent-deep: #d946ef; } /* fuchsia*/
+#sec-stego    { --accent: #bef264; --accent-deep: #a3e635; } /* lime   */
+#sec-metadata { --accent: #5eead4; --accent-deep: #2dd4bf; } /* mint   */
+#sec-physical { --accent: #fb923c; --accent-deep: #f97316; } /* orange */
+#sec-cache    { --accent: #c084fc; --accent-deep: #a855f7; } /* purple */
+
+/* ---- Air-gap optical ------------------------------------------------------ */
+.ook-strip { display: flex; flex-wrap: nowrap; gap: 6px; padding: var(--sp-2) 0; }
+.ook-sym { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 30px; padding: 4px 2px; border-radius: var(--r-sm); background: var(--surface-inset); }
+.ook-sym.lit { background: color-mix(in srgb, var(--accent) 18%, var(--surface-inset)); }
+.ook-sym.err { outline: 1.5px solid var(--bit-err); }
+.ook-lamp { font-size: var(--fs-md); line-height: 1; color: var(--text-faint); }
+.ook-sym.lit .ook-lamp { color: var(--accent); text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent); }
+.ook-lux { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-faint); }
+.ook-bit { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-xs); padding: 1px 4px; border-radius: var(--r-sm); }
+.ook-bit.b0 { color: var(--bit-0); }
+.ook-bit.b1 { color: var(--bit-1); }
+.ook-bit.err { outline: 1.5px solid var(--bit-err); }
+
+/* ---- Shared cache --------------------------------------------------------- */
+.data-table tr.row-err td { background: color-mix(in srgb, var(--bit-err) 14%, transparent); }
+
+/* ---- Carrier Atlas: described-only carriers with a sibling deep dive ------- */
+.atlas-concept-footer { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+.atlas-deepdive-note { margin: 0; font-size: var(--fs-xs); }
+a.atlas-deepdive { text-decoration: none; }

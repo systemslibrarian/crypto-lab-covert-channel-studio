@@ -58,7 +58,24 @@ function carrierCard(c, isBuilt) {
     fidelityCard(c.fidelity),
     isBuilt && c.section
       ? el('button', { class: 'btn ghost atlas-open', type: 'button', on: { click: () => setSection(c.section) } }, span({ text: 'Open module →' }))
-      : span({ class: 'atlas-conceptmark', text: 'Concept only — nothing here is sent or executed' }));
+      : conceptFooter(c));
+}
+
+/** Described-only carriers keep their safety mark; some also point at a sibling
+ *  exhibit that covers the family properly. The outbound link is a plain anchor
+ *  — no fetch, so it stays within the page's connect-src 'none' policy. */
+function conceptFooter(c) {
+  const mark = span({ class: 'atlas-conceptmark', text: 'Concept only — nothing here is sent or executed' });
+  if (!c.deepDive) return mark;
+  return div({ class: 'atlas-concept-footer' },
+    mark,
+    c.deepDive.note ? el('p', { class: 'atlas-deepdive-note subtle', text: c.deepDive.note }) : null,
+    el('a', {
+      class: 'btn ghost atlas-open atlas-deepdive',
+      href: c.deepDive.url,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    }, span({ text: c.deepDive.label })));
 }
 
 function kvLine(label, value) {

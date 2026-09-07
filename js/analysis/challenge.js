@@ -18,6 +18,10 @@ import { textToBits } from '../utils/bits.js';
 import { analyzeDns } from '../detectors/dnsDetector.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
+import { simulatePhysical, generateAmbientBaseline } from '../channels/physical.js';
+import { simulateCache, generateIdleLatencies } from '../channels/cache.js';
+import { analyzePhysical } from '../detectors/physicalDetector.js';
+import { analyzeCache } from '../detectors/cacheDetector.js';
 
 const HIDDEN = ['MEET', 'GO NOW', 'NODE7', 'ACKED', 'RENDEZVOUS', 'PING'];
 
@@ -26,6 +30,8 @@ export const INDICATORS = {
   dns: ['Long / high-entropy labels', 'Character mix unlike hostnames', 'Almost no repeated names', 'High query volume', 'Metronomic cadence', 'Nothing unusual'],
   timing: ['Two tight timing levels', 'Very low entropy (predictable)', 'Metronomic regularity', 'Nothing unusual'],
   storage: ['A field stuck on two odd values', 'Tiny value support', 'Skewed bit pattern', 'Nothing unusual'],
+  physical: ['Two tight luminance levels', 'Levels far above the noise floor', 'Near-50% duty cycle', 'Nothing unusual'],
+  cache: ['Fast and slow used about equally', 'Two tight latency groups', 'Groups far apart (clean readout)', 'Nothing unusual'],
 };
 
 /**
@@ -95,6 +101,53 @@ const SCENARIOS = [
     build(rng, seed) {
       const packets = generateNormalPackets(rng.int(40, 64), { seed });
       return { observables: storageObs(packets), detector: analyzeStorage(packets, 'ttl-toggle') };
+    },
+  },
+  {
+    channel: 'physical', truth: 'covert', title: 'Activity LED filmed across the room',
+    build(rng, seed) {
+      const run = simulatePhysical(textToBits(pick(rng, HIDDEN)), { ambientNoise: rng.int(0, 40), seed });
+      return {
+        observables: seriesObs(run.filteredLevels, 'luminance readings', 'lux'),
+        detector: analyzePhysical(run.filteredLevels), decoded: run.recoveredText,
+      };
+    },
+  },
+  {
+    channel: 'physical', truth: 'clean', title: 'Activity LED filmed across the room',
+    build(rng, seed) {
+      const levels = generateAmbientBaseline(rng.int(120, 180), { ambientNoise: rng.int(4, 20), seed });
+      return { observables: seriesObs(levels, 'luminance readings', 'lux'), detector: analyzePhysical(levels) };
+    },
+  },
+  {
+    channel: 'cache', truth: 'covert', title: 'Cache access timings from a co-tenant VM',
+    build(rng, seed) {
+      const probe = rng.bool(0.5) ? 'flush-reload' : 'prime-probe';
+      const run = simulateCache(textToBits(pick(rng, HIDDEN)), { probe, jitterCycles: rng.int(0, 60), seed });
+      return {
+        observables: seriesObs(run.latencies, 'access latencies', 'cycles'),
+        detector: analyzeCache(run.latencies), decoded: run.recoveredText,
+      };
+    },
+  },
+  {
+    channel: 'cache', truth: 'clean', title: 'Cache access timings from a co-tenant VM',
+    build(rng, seed) {
+      const lat = generateIdleLatencies(rng.int(120, 180), { missRate: rng.float(0.05, 0.2), seed });
+      return { observables: seriesObs(lat, 'access latencies', 'cycles'), detector: analyzeCache(lat) };
+    },
+  },
+  {
+    channel: 'cache', truth: 'clean', title: 'A streaming scan over a large array',
+    build(rng, seed) {
+      // Honest false-positive trap: a working set larger than the cache misses
+      // about as often as it hits, which is the balance the detector keys on.
+      const lat = generateIdleLatencies(rng.int(120, 180), { missRate: rng.float(0.4, 0.5), seed });
+      return {
+        observables: seriesObs(lat, 'access latencies', 'cycles'),
+        detector: analyzeCache(lat), note: 'a big streaming scan misses about as often as it hits',
+      };
     },
   },
 ];
@@ -172,6 +225,17 @@ function storageObs(packets) {
       index: p.index, ttl: p.ttl, ipId: p.ipId, sequence: p.sequence, len: p.payloadLength,
     })),
     count: packets.length,
+  };
+}
+
+/** A plain numeric series (luminance levels, access latencies) to read as a shape. */
+function seriesObs(values, label, unit) {
+  return {
+    type: 'series',
+    values: values.slice(0, 220).map((v) => Math.round(v)),
+    count: values.length,
+    label,
+    unit,
   };
 }
 

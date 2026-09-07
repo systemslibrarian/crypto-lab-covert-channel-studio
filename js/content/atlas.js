@@ -5,7 +5,8 @@
  * named entry in the research community's hiding-pattern taxonomy, so a learner
  * can read a paper and say "this is a value-modulation pattern"; and (2) honest
  * coverage of the carrier families this lab deliberately does NOT build as tools
- * (ICMP, VoIP, Wi-Fi, protocol hopping, cache side channels, history channels),
+ * (ICMP, VoIP, Wi-Fi, protocol hopping, history channels, and the text/linguistic
+ * family, which has its own sibling exhibit),
  * each with a "fidelity card" — what is faithful, what is simplified, and what a
  * real environment adds.
  *
@@ -130,7 +131,37 @@ export const CARRIERS = [
     },
   },
 
+  {
+    name: 'Air-gap physical media', layer: 'Physical (no network)', family: 'Both', pattern: null,
+    status: 'built', section: 'physical',
+    idea: 'With no network at all, the carrier becomes the **medium** — light from an LED, heat, fan noise, power draw, or stray RF. This lab models the OPTICAL carrier as on/off keying with an explicit ambient-noise process.',
+    breaks: 'Ambient light and its drift, distance and line of sight, sensor bandwidth, and simply covering or removing the emitter.',
+    indicators: 'Luminance that falls into two tight levels well clear of the noise floor, and is driven lit about half the time — an activity LED doing ordinary work wanders and is mostly dark.',
+    fidelity: {
+      faithful: ['on/off keying', 'the matched filter and its √N processing gain', 'threshold decoding', 'noise vs systematic drift as distinct impairments', 'measured BER against Shannon capacity'],
+      simplified: ['THE MEDIUM IS MODELLED — no LED, camera, or light sensor is involved; the "photodiode" is a number and ambient light is an explicit noise process', 'only the optical carrier is built; thermal, acoustic, power-line and RF carriers are named in the references, not modelled'],
+      realWorld: ['real photodiode and camera response, frame rates, rolling shutter, distance falloff, and physical sightlines'],
+    },
+  },
+
   /* ---- Conceptual carriers: described, never built as tools ---------------- */
+  {
+    name: 'Text / linguistic carriers', layer: 'Application / document', family: 'Steganography', pattern: null,
+    status: 'concept',
+    idea: 'The characters themselves carry the payload: zero-width and variation-selector code points, Unicode Tags, whitespace runs (SNOW), homoglyph substitution, and bidi controls that make the stored order differ from the displayed order.',
+    breaks: 'Unicode normalisation (NFKC), whitespace collapsing, confusable/mixed-script detection, and any pipeline that re-encodes or strips non-printing code points.',
+    indicators: 'Non-printing code points inside a plain-text field, mixed-script tokens, trailing-whitespace runs, and a rendered string that does not match its stored bytes.',
+    fidelity: {
+      faithful: ['the concept and the carrier family'],
+      simplified: ['NOT BUILT HERE — the text/linguistic family is covered in depth by a sibling exhibit rather than duplicated in this one'],
+      realWorld: ['copy-and-paste paths, document and code-review pipelines, chat and model prompts, and any renderer that shows something other than what the bytes say'],
+    },
+    deepDive: {
+      url: 'https://systemslibrarian.github.io/Ghost-Ink/',
+      label: 'Deep dive: the Ghost-Ink exhibit →',
+      note: 'A sibling Crypto-Lab exhibit devoted to this family — invisible Unicode-tag messages, and how to catch them.',
+    },
+  },
   {
     name: 'ICMP tunneling', layer: 'Network', family: 'Storage', pattern: 'payload-structure',
     status: 'concept',
@@ -180,15 +211,15 @@ export const CARRIERS = [
     },
   },
   {
-    name: 'Cache / shared-resource timing', layer: 'System side channel', family: 'Timing', pattern: 'inter-packet',
-    status: 'concept',
-    idea: 'Two parties on shared hardware signal by contending for a cache or other resource (Flush+Reload, occupancy).',
-    breaks: 'Noise from co-tenants; mitigations like cache partitioning.',
-    indicators: 'Micro-architectural monitoring; not visible at the network layer.',
+    name: 'Cache / shared-resource timing', layer: 'System side channel', family: 'Timing', pattern: null,
+    status: 'built', section: 'cache',
+    idea: 'Two parties on shared hardware signal by contending for a cache line or set (Flush+Reload, Prime+Probe). The concrete instance of the Shared-Resource Matrix abstraction.',
+    breaks: 'Co-tenant eviction noise, scheduler interference, and mitigations such as cache partitioning or flushing on context switch.',
+    indicators: 'A latency histogram whose fast and slow classes are used about equally — ordinary code has locality and mostly hits. Not visible at the network layer at all.',
     fidelity: {
-      faithful: ['the concept'],
-      simplified: ['NOT POSSIBLE HERE — a browser page cannot mount a real Flush+Reload; this is described only'],
-      realWorld: ['precise timers, shared caches, and physical co-residency'],
+      faithful: ['both probing protocols and their opposite polarities', 'the threshold classifier', 'repeated probing and its averaging gain', 'asymmetric eviction noise', 'measured BER and capacity arithmetic'],
+      simplified: ['THE CACHE IS MODELLED — no line is flushed, no timer is read, and no timing side channel exists in this page; "cycles" are numbers drawn from a documented distribution'],
+      realWorld: ['precise cycle counters, real inclusive-cache behaviour, address-to-set mapping, prefetchers, and physical co-residency'],
     },
   },
   {

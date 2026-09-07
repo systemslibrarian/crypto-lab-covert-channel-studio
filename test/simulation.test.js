@@ -52,6 +52,8 @@ const cleanParams = {
   timing: { seed: 'test-timing', jitterMs: 0 },
   storage: { seed: 'test-storage' }, // no middlebox by default
   ordering: { seed: 'test-ordering', reorderProb: 0 },
+  physical: { seed: 'test-physical', ambientNoise: 0, ambientDrift: 0 },
+  cache: { seed: 'test-cache', jitterCycles: 0, evictionProb: 0 },
 };
 
 for (const channel of CHANNELS) {

@@ -144,6 +144,7 @@ function observablePanel(obs) {
   if (obs.type === 'dns') return dnsPanel(obs);
   if (obs.type === 'timing') return timingPanel(obs);
   if (obs.type === 'storage') return storagePanel(obs);
+  if (obs.type === 'series') return seriesPanel(obs);
   return null;
 }
 
@@ -173,6 +174,23 @@ function timingPanel(obs) {
       { val: `${round(mean(gaps), 0)}ms`, lab: 'mean gap' },
       { val: `${min}–${max}`, lab: 'range (ms)' },
       { val: String(new Set(gaps.map((g) => Math.round(g / 20))).size), lab: 'coarse levels' },
+    ]));
+}
+
+function seriesPanel(obs) {
+  const v = obs.values;
+  const h = histogram(v, { bins: 16 });
+  const bars = h.bins.map((b) => ({ label: '', value: b.count, title: `${b.count} readings in [${b.start.toFixed(0)}–${b.end.toFixed(0)}] ${obs.unit}` }));
+  const { min, max } = minMax(v);
+  const mid = (min + max) / 2;
+  const upper = v.filter((x) => x >= mid).length;
+  return div({},
+    para(`${obs.count} ${obs.label} observed. Read the shape: one hump, or two groups — and if two, are they used equally?`, 'subtle'),
+    verticalBars(bars, { height: 130, color: 'var(--accent)', ariaLabel: `Histogram of ${obs.label} for this case` }),
+    statTiles([
+      { val: `${round(mean(v), 0)}`, lab: `mean (${obs.unit})` },
+      { val: `${min}–${max}`, lab: `range (${obs.unit})` },
+      { val: `${Math.round((upper / Math.max(1, v.length)) * 100)}%`, lab: 'in upper half' },
     ]));
 }
 

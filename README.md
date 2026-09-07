@@ -50,12 +50,14 @@ Interactive exhibit sections, plus a glossary and a quiz:
 - **HTTP Header Channel** — an application-layer channel: permuting reorderable request headers hides 9 bits/request; a normalizing proxy destroys it.
 - **Image Steganography** — LSB embedding with a visual diff, bit-plane view, and the chi-square steganalysis attack.
 - **Library Records** — the librarian's-eye exhibit: routine circulation/transfer metadata as an *unintended inference channel*, and data minimisation as the defence.
+- **Air-Gap Optical Channel** — with no network at all, the carrier becomes the medium: an LED blinked as on/off keying, recovered by a matched filter against an explicit ambient-noise process, with measured BER against Shannon capacity. **The medium is modelled, not measured** — no hardware is touched.
+- **Shared-Cache Channel** — two colluding processes signalling through cache-line presence (Flush+Reload, with Prime+Probe as the inverted-polarity variant), read by a latency-histogram classifier. The concrete instance of the resource the Shared-Resource Matrix describes abstractly. **The cache is modelled, not measured** — nothing is flushed and no timer is read.
 - **Detection Console** — the defender's bench: named, cited statistical detectors across every channel.
 - **Detection Challenge** — a genuinely **blind, scored** exercise: observables only, commit a call (clean / suspicious / covert), then reveal the ground truth. Includes false-positive traps.
 - **Detector Validation Lab** — every detector is run over hundreds of deterministic clean/covert cases; the section shows **ROC curves, AUC, and confusion matrices** (FPR/FNR/precision/recall), making the detectors' quality — and their honest failure modes — measurable rather than asserted. Method transparency (equation → implementation → threshold → known-answer test → failure modes) is documented in **[VALIDATION.md](VALIDATION.md)**.
 - **Capacity as three numbers** — every channel reports *theoretical* vs *raw throughput* vs *effective goodput* (after errors/normalisation), not one hand-wavy figure — aligned with the bandwidth-estimation mindset of NIST SC-31.
 - **Compare Channels** — ranked by educational clarity, reliability, and teaching value — never by "stealth."
-- **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (ICMP, VoIP, Wi-Fi, protocol hopping, cache-timing, history channels), each with a fidelity card.
+- **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (ICMP, VoIP, Wi-Fi, protocol hopping, history channels, and the text/linguistic family), each with a fidelity card. The text/linguistic entry links out to the sibling exhibit [**Ghost-Ink**](https://systemslibrarian.github.io/Ghost-Ink/), which covers that family in depth rather than duplicating it here.
 - **Shared-Resource Matrix** — Kemmerer's covert-channel-analysis method as a playable exercise.
 - **What Makes a Channel Covert?** — the conceptual core plus the trade-off triangle, computed live.
 - **Defensive Takeaways**, **Glossary**, and an interactive **Quiz**.
@@ -108,14 +110,17 @@ A fully static site: vanilla JavaScript ES modules, no framework, no build step,
     app.js            — bootstrap + hash routing (seed/mode carried in the URL)
     state.js          — central seeded app state + pub/sub
     simulation.js     — deterministic orchestrator (encode -> channel -> decode -> detect)
-    /channels  dns.js, timing.js, storage.js, ordering.js, http.js, stego.js, metadata.js
+    /channels  dns.js, timing.js, storage.js, ordering.js, http.js, stego.js,
+               metadata.js, physical.js, cache.js
     /detectors anomaly.js, dnsDetector.js, timingDetector.js, storageDetector.js,
-               orderingDetector.js, httpDetector.js, stegoDetector.js
+               orderingDetector.js, httpDetector.js, stegoDetector.js,
+               physicalDetector.js, cacheDetector.js
     /analysis  tradeoff.js (live capacity/reliability/observability),
                challenge.js (blind detection cases)
     /views     one *View.js per section (overview, dns, timing, storage, ordering,
-               http, stego, metadata, detection, challenge, compare, atlas, srm,
-               concepts, defense, glossary, quiz, tradeoffView) plus shared helpers
+               http, stego, metadata, physical, cache, detection, challenge,
+               compare, atlas, srm, concepts, defense, glossary, quiz,
+               tradeoffView) plus shared helpers
                (dom.js, blocks.js, charts.js, controls.js, widgets.js)
     /content   glossary.js, quiz.js, comparison.js, references.js, atlas.js, copy.js
     /utils     utf8.js, bits.js, seededRandom.js, statistics.js (incl. published

@@ -228,9 +228,10 @@ Library Records → Shared-Resource Matrix → Carrier Atlas → Detection Chall
 | --- | --- | --- |
 | 0–8 min | Frame the thesis, taxonomy, and the "same bits, five carriers" preview. | `#overview` |
 | 8–30 min | **Station rotation (build & break).** Groups pick 3 of: DNS, Timing, Storage, Packet-Order, HTTP Header. Build in Sender view, break with the natural knob (jitter / middlebox / reordering / normalising proxy), export a notebook each. | `#dns`, `#timing`, `#storage`, `#ordering`, `#http` (add `?seed=…`) |
+| 30–42 min | **Beyond the network (optional swap).** Air-Gap Optical: raise ambient noise, then raise samples-per-bit and watch the matched filter win the message back; then raise *drift* with noise at zero to show a systematic offset averaging cannot remove. Shared Cache: switch Flush+Reload to Prime+Probe and note the polarity inverts. Both are explicit **models** of their medium. | `#physical`, `#cache` |
 | 30–42 min | **Media & metadata.** Image Steganography: embed, view the bit-plane and the chi-square attack, then note lossy re-compression destroys the payload. Library Records: routine metadata as an unintended inference channel, and **data minimisation** as the defence. | `#stego`, `#metadata` |
 | 42–55 min | **Systematic method.** Work the **Shared-Resource Matrix** (Kemmerer 1983) as an interactive exercise — read/alter relationships that reveal storage and timing channels. | `#srm` |
-| 55–63 min | **Carrier Atlas.** Map each module to a named hiding pattern (Wendzel et al.), and read the fidelity cards for carriers the lab only *describes* (ICMP, VoIP, Wi-Fi, cache-timing, history). | `#atlas` |
+| 55–63 min | **Carrier Atlas.** Map each module to a named hiding pattern (Wendzel et al.), and read the fidelity cards for carriers the lab only *describes* (ICMP, VoIP, Wi-Fi, history, and the text/linguistic family, which links out to the sibling Ghost-Ink exhibit). | `#atlas` |
 | 63–80 min | **Blind Detection Challenge**, distinct seeds per group; then compare tallies as a class. | `#challenge?seed=team-a`, `…team-b`, … |
 | 80–88 min | **Defensive Takeaways** — combine weak indicators, respect false positives, know your middleboxes, understand the limits. | `#defense` |
 | 88–90 min | Assign the graded reflection + the two exported notebooks. | — |

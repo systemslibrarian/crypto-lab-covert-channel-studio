@@ -429,7 +429,7 @@ Reproduce: `#atlas?seed=crypto-lab`.
 Wendzel et al. (2015) categorisation; the timing module maps to an *inter-packet-times* pattern. Any correct
 module→pattern pairing from the Atlas is acceptable.
 
-**Task — Pick a described-only carrier (ICMP, VoIP, Wi-Fi, protocol hopping, cache-timing, history channels) and
+**Task — Pick a described-only carrier (ICMP, VoIP, Wi-Fi, protocol hopping, history channels, text/linguistic) and
 say what its fidelity card admits.**
 *Model answer:* The fidelity card states honestly that the carrier is **described conceptually, not simulated** —
 so students understand the mechanism without the lab implying an operational capability it does not provide.

@@ -134,14 +134,53 @@ cases (parameter sweeps × seeds, no `Date`/`Math.random`) and computes:
 - **Confusion matrix** + FPR/FNR/precision/recall at thresholds 34 and 67.
 
 Representative measured AUCs (deterministic; see `test/validation.test.js` for the asserted ranges):
-DNS ≈ 1.00, Timing ≈ 0.99, Storage (TTL toggle) ≈ 1.00, HTTP ≈ 1.00, Image-LSB ≈ 0.75. Two honest
-limitations are built into the benchmark and reported rather than hidden:
+DNS ≈ 1.00, Timing ≈ 0.99, Storage (TTL toggle) ≈ 1.00, HTTP ≈ 1.00, Air-gap optical ≈ 0.92,
+Image-LSB ≈ 0.75, Shared cache ≈ 0.70. Four honest limitations are built into the benchmark and
+reported rather than hidden:
 
 - a **parity IP-ID / low-bit-sequence** storage channel barely disturbs its field, so no simple
   histogram separates it — a taught false negative (the benchmark validates the *detectable* TTL
   toggle);
 - the **chi-square attack false-positives on noisy carriers**, which is exactly why image-LSB scores
-  lowest.
+  lowest;
+- the **air-gap optical** detector loses covert cases at high ambient noise — but so does the
+  receiver, so those are cases where the channel has already failed (detectability and usability
+  collapse together);
+- the **shared-cache** detector scores lowest of all, deliberately. Its clean set includes
+  high-miss-rate workloads (a streaming scan over an array larger than the cache), which use the
+  fast and slow access classes about as evenly as a covert channel does. Since balance is the
+  discriminator (see §9), those are genuine false positives. Accepting the lower AUC was preferred
+  over keying on a signal that ordinary memory access already produces.
+
+## 9. Two-level recovery, matched filtering, and BSC capacity (air-gap optical, shared cache)
+
+Both physical-medium modules are **models of their medium** — no hardware, cache, or timer is
+involved — but the signal processing over that model is ordinary and checkable.
+
+- **Matched filter** (`channels/physical.js`, `channels/cache.js`): for a rectangular symbol the
+  matched filter is the mean over the symbol's samples, so averaging `N` independent noise samples
+  scales the noise standard deviation by `1/√N`. Asserted by known-answer tests that show the
+  predicted error rate falling as `samplesPerBit` / `repetitions` rise.
+- **Error rate** (`utils/statistics.js › qFunction`): `Q(x) = ½·erfc(x/√2)` via Abramowitz & Stegun
+  7.1.26 (|error| < 1.5×10⁻⁷). With the threshold anywhere between the two levels the two error
+  directions are computed separately and averaged over equiprobable bits.
+- **Capacity** (`utils/statistics.js › bscCapacityBits`): `C = 1 − H₂(p)` bits per channel use
+  (Shannon 1948). Known answers: `p=0 → 1`, `p=0.5 → 0`. The optical module additionally reports the
+  soft-decision AWGN bound `½·log₂(1+SNR)`; the gap between the two is the cost of hard thresholding.
+- **Two-level split** (`utils/statistics.js › twoLevelSplit`): deterministic k=2 Lloyd iterations
+  from fixed seed centres, reporting `d′ = separation / pooled within-class SD`. Shared by both
+  detectors so the defender measures the levels the same way the receiver recovers them.
+
+Two honesty notes are asserted in the tests rather than left implicit:
+
+- the optical module's **predicted BER models the Gaussian term only**. Measured BER can exceed it,
+  for two documented reasons: *drift* is a systematic offset that averaging cannot remove, and a
+  sensor reading floors at darkness, so heavy noise clips and biases readings upward. The gap
+  between the predicted and measured curves is a teaching point, not an error.
+- the cache module's noise is **asymmetric** — a co-tenant can evict a line the sender placed, but
+  cannot conjure one it never touched — so errors land almost entirely on one symbol. Its capacity
+  figure therefore uses the symmetric (BSC) formula on the *average* error rate: exact when eviction
+  is off, mildly pessimistic otherwise. This approximation is stated in the module and in the UI.
 
 ---
 

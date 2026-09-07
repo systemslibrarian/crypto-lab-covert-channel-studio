@@ -12,20 +12,25 @@ import { MAX_MESSAGE_BYTES } from './utils/utf8.js';
 export { MAX_MESSAGE_BYTES };
 
 /** Displayed in the footer; keep in sync with package.json and CHANGELOG.md. */
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 
 /** View modes (never labelled "attacker" — neutral, educational framing). */
 export const VIEW_MODES = { SENDER: 'sender', DEFENDER: 'defender' };
 
+/** Per-channel identity: `icon` is shown in the nav, and `css/views.css` scopes a
+ *  matching `--accent` to each channel's `#sec-<id>`. Purely decorative — colour
+ *  is never the only carrier of meaning anywhere in the exhibit. */
 export const SECTIONS = [
   { id: 'overview', label: 'Overview', group: 'Start' },
-  { id: 'dns', label: 'DNS Channel', group: 'Channels' },
-  { id: 'timing', label: 'Timing Channel', group: 'Channels' },
-  { id: 'storage', label: 'Storage Channel', group: 'Channels' },
-  { id: 'ordering', label: 'Packet-Order Channel', group: 'Channels' },
-  { id: 'http', label: 'HTTP Header Channel', group: 'Channels' },
-  { id: 'stego', label: 'Image Steganography', group: 'Channels' },
-  { id: 'metadata', label: 'Library Records', group: 'Channels' },
+  { id: 'dns', label: 'DNS Channel', group: 'Channels', icon: '\u{1F310}' },
+  { id: 'timing', label: 'Timing Channel', group: 'Channels', icon: '\u{23F1}' },
+  { id: 'storage', label: 'Storage Channel', group: 'Channels', icon: '\u{1F4E6}' },
+  { id: 'ordering', label: 'Packet-Order Channel', group: 'Channels', icon: '\u{1F500}' },
+  { id: 'http', label: 'HTTP Header Channel', group: 'Channels', icon: '\u{1F4E8}' },
+  { id: 'stego', label: 'Image Steganography', group: 'Channels', icon: '\u{1F5BC}' },
+  { id: 'metadata', label: 'Library Records', group: 'Channels', icon: '\u{1F4DA}' },
+  { id: 'physical', label: 'Air-Gap Optical Channel', group: 'Channels', icon: '\u{1F4A1}' },
+  { id: 'cache', label: 'Shared-Cache Channel', group: 'Channels', icon: '\u{1F5C4}' },
   { id: 'detection', label: 'Detection Console', group: 'Analysis' },
   { id: 'challenge', label: 'Detection Challenge', group: 'Analysis' },
   { id: 'validation', label: 'Detector Validation Lab', group: 'Analysis' },
@@ -58,6 +63,14 @@ const DEFAULT_STATE = {
     ordering: { reorderProb: 0 },
     http: { coverCount: 20, normalize: false },
     metadata: { minimize: false },
+    physical: {
+      onLux: 220, offLux: 40, ambientNoise: 0, ambientDrift: 0,
+      samplesPerBit: 8, symbolMs: 20, thresholdLux: 130,
+    },
+    cache: {
+      probe: 'flush-reload', hitCycles: 80, missCycles: 300,
+      jitterCycles: 0, evictionProb: 0, repetitions: 1, thresholdCycles: 190,
+    },
   },
   stego: { message: 'hi', carrier: 'sample', step: 8 },
 };

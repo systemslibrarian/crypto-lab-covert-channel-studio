@@ -17,6 +17,8 @@ import { simulateStorageRun } from '../channels/storage.js';
 import { simulateOrderingRun } from '../channels/ordering.js';
 import { simulateHttpRun } from '../channels/http.js';
 import { embedMessage } from '../channels/stego.js';
+import { simulatePhysicalRun } from '../channels/physical.js';
+import { simulateCacheRun } from '../channels/cache.js';
 
 import { analyzeDns } from '../detectors/dnsDetector.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
@@ -24,6 +26,8 @@ import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeOrdering } from '../detectors/orderingDetector.js';
 import { analyzeHttp } from '../detectors/httpDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
+import { analyzePhysical } from '../detectors/physicalDetector.js';
+import { analyzeCache } from '../detectors/cacheDetector.js';
 import { loadSampleCarrier } from './stegoView.js';
 
 const CHANNELS = [
@@ -33,6 +37,8 @@ const CHANNELS = [
   { key: 'ordering', label: 'Ordering' },
   { key: 'http', label: 'HTTP' },
   { key: 'stego', label: 'Image' },
+  { key: 'physical', label: 'Air gap' },
+  { key: 'cache', label: 'Cache' },
 ];
 
 let selected = 'dns';
@@ -99,6 +105,14 @@ function analyze(channel, state) {
     case 'http': {
       const run = simulateHttpRun(state.message, { ...state.channels.http, seed: `${state.seed}:http` });
       return { det: analyzeHttp(run.normalize ? run.processedRequests : run.covertRequests), run };
+    }
+    case 'physical': {
+      const run = simulatePhysicalRun(state.message, { ...state.channels.physical, seed: `${state.seed}:physical` });
+      return { det: analyzePhysical(run.filteredLevels, { decoderConfidence: run.confidence }), run };
+    }
+    case 'cache': {
+      const run = simulateCacheRun(state.message, { ...state.channels.cache, seed: `${state.seed}:cache` });
+      return { det: analyzeCache(run.latencies, { decoderConfidence: run.confidence, probe: run.probe }), run };
     }
     default: return { det: stegoCache, run: null };
   }

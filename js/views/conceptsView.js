@@ -14,6 +14,8 @@ const CHANNELS = [
   { key: 'timing', label: 'Timing' },
   { key: 'storage', label: 'Storage' },
   { key: 'ordering', label: 'Ordering' },
+  { key: 'physical', label: 'Air gap' },
+  { key: 'cache', label: 'Cache' },
 ];
 
 const DEMO = 'HELLO WORLD';
@@ -24,6 +26,8 @@ function demoParams(channel) {
     case 'timing': return { jitterMs: 0, seed };
     case 'storage': return { field: 'ttl-toggle', seed };
     case 'ordering': return { reorderProb: 0, seed };
+    case 'physical': return { ambientNoise: 0, ambientDrift: 0, seed };
+    case 'cache': return { probe: 'flush-reload', jitterCycles: 0, evictionProb: 0, seed };
     default: return { seed };
   }
 }

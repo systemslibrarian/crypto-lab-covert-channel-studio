@@ -173,6 +173,62 @@ export const COPY = {
     ],
   },
 
+  physical: {
+    title: 'The Message Is in the Light',
+    outcomes: [
+      'explain how an **air-gapped** machine with no network still has carriers — light, heat, sound, power',
+      'apply a **matched filter** and see why averaging N samples buys a √N reliability gain',
+      'separate two kinds of impairment: random noise, which averaging removes, and **drift**, which it cannot',
+      'read a bit-error rate against the Shannon capacity of the same channel',
+    ],
+    lede: 'Pulling the network cable removes the network. It does not remove **physics**. A machine that can blink an LED can transmit, and a camera across the room can receive — no packet, no protocol, no wire.',
+    blocks: [
+      { code: 'LED dark  ->  bit 0\nLED lit   ->  bit 1\n\n(on/off keying, one symbol per bit)' },
+      { callout: {
+        kind: 'warn',
+        title: 'This is a MODEL of a medium, not a measurement',
+        body: 'Nothing here touches hardware. There is no LED, no camera, and no light sensor — the "photodiode" is a JavaScript number and ambient light is an **explicit noise process** written into the code. What is genuinely real is the signal processing: the encoder, the matched filter, the threshold decoder, the measured error rate, and the capacity arithmetic. Read the numbers as a study of the *method*, never as evidence about any real machine.',
+      } },
+      { h: 'Why the matched filter matters' },
+      'The receiver averages `samples per bit` readings of each symbol. Averaging N independent noise samples shrinks the noise by **√N** while leaving the signal untouched — the processing gain that makes a faint carrier readable. Turn the ambient noise up and then raise the sample count: the same channel comes back.',
+      { h: 'Noise and drift are not the same problem' },
+      'Ambient **noise** is random, so averaging removes it. Ambient **drift** — the sun moving, someone switching a lamp on — is a slow systematic offset, and no amount of averaging helps. Push the drift slider up with noise at zero: the error rate climbs anyway, because a fixed threshold has quietly walked off the levels. Real receivers track the baseline instead of trusting a constant.',
+      { callout: {
+        kind: 'note',
+        title: 'The published family',
+        body: 'Optical is one carrier among several demonstrated in the research literature: thermal (BitWhisper), acoustic via fan noise (Fansmitter), power-line (PowerHammer), and radio from the display cable (AirHopper). Only the optical carrier is modelled here; the others are named in the references so the family is visible.',
+      } },
+    ],
+  },
+
+  cache: {
+    title: 'The Message Is in the Cache',
+    outcomes: [
+      'explain how two processes that cannot address each other still share the **CPU cache**',
+      'describe Flush+Reload and Prime+Probe, and why their timing polarities are **opposite**',
+      'recognise that a bimodal latency histogram is normal, and that **balance** is the real indicator',
+      'connect a concrete channel back to the Shared-Resource Matrix abstraction',
+    ],
+    lede: 'Two processes are forbidden to communicate. They share no memory and no socket. They still share the **cache** — and presence or absence of a single cache line is a bit.',
+    blocks: [
+      { code: 'Flush + Reload   fast reload (HIT)    ->  1\n                 slow reload (MISS)   ->  0\n\nPrime + Probe    slow probe (EVICTED) ->  1\n                 fast probe (intact)  ->  0' },
+      { callout: {
+        kind: 'warn',
+        title: 'This is a MODEL of a cache, not a measurement',
+        body: 'No cache line is flushed, no timer is read, and no timing side channel exists in this page. "Cycles" are JavaScript numbers drawn from a documented distribution. What is genuinely real is the protocol logic: the two probing strategies and their opposite polarities, the threshold classifier, repeated probing and its averaging gain, and the error and capacity arithmetic.',
+      } },
+      { h: 'The abstraction this makes concrete' },
+      'The **Shared-Resource Matrix** asks a single question of every shared attribute: can a high process *modify* it, and can a low process *reference* it? Cache occupancy answers yes to both — the sender modifies it by touching a line, the receiver references it by timing one. This module is what that matrix cell looks like when you build it.',
+      { h: 'Why the noise here is lopsided' },
+      'A co-tenant can **evict** a line the sender did place, turning a 1 into a 0. It cannot conjure a line the sender never touched. Errors therefore land almost entirely on one symbol, which is why this channel is *asymmetric* — unlike the jitter in a timing channel, which damages both bits equally.',
+      { callout: {
+        kind: 'tip',
+        title: 'What the defender should actually look at',
+        body: 'A bimodal latency histogram is **not** suspicious by itself: ordinary memory either hits or misses, so two clusters are normal. Locality is what gives it away — real workloads hit far more often than they miss, while a channel carrying arbitrary data uses both classes about equally. Switch to the Defender view and compare the balance, not the shape.',
+      } },
+    ],
+  },
+
   detection: {
     title: 'Detection Console',
     lede: 'A defender rarely knows the hidden message. They look at the **shape** of the traffic and ask whether it is statistically or structurally unusual.',
@@ -194,7 +250,7 @@ export const COPY = {
     title: 'Compare Channels',
     lede: 'The same message can hide many ways, and the trade-offs differ sharply. This table ranks channels by teaching value, reliability in simulation, and what a defender can look for — **not** by how well they evade anyone.',
     blocks: [
-      { note: 'ICMP, HTTPS, SSH, VoIP/RTP, and Wi-Fi are described conceptually. HTTPS and SSH tunnels conceal content but remain recognisable *as* HTTPS or SSH, so they are tunnelling rather than covert signalling.' },
+      { note: 'ICMP, HTTPS, SSH, VoIP/RTP, Wi-Fi, and the text/linguistic carriers are described conceptually rather than built here. HTTPS and SSH tunnels conceal content but remain recognisable *as* HTTPS or SSH, so they are tunnelling rather than covert signalling.' },
     ],
   },
 
@@ -257,5 +313,7 @@ export const CALLOUTS = {
   http: { title: 'HTTP header channel', body: 'Every header is valid; the order they appear in carries the bits.' },
   metadata: { title: 'Metadata channel', body: 'Records never meant as a message can still carry — and leak — one.' },
   stego: { title: 'Steganography', body: 'The carrier still looks like ordinary content.' },
+  physical: { title: 'Physical-medium channel', body: 'The carrier is the medium itself — light, heat, sound — so no network is involved at all.' },
+  cache: { title: 'Shared-resource channel', body: 'Neither process writes to the other; the shared hardware state is the message.' },
   defender: { title: 'Defender', body: 'The receiver needs the encoding rule. The defender may only need to notice that the pattern is statistically unusual.' },
 };

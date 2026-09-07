@@ -19,6 +19,8 @@ import { renderOrderingView } from './views/orderingView.js';
 import { renderHttpView } from './views/httpView.js';
 import { renderStegoView } from './views/stegoView.js';
 import { renderMetadataView } from './views/metadataView.js';
+import { renderPhysicalView } from './views/physicalView.js';
+import { renderCacheView } from './views/cacheView.js';
 import { renderDetectionView } from './views/detectionView.js';
 import { renderChallengeView } from './views/challengeView.js';
 import { renderValidationView } from './views/validationView.js';
@@ -39,6 +41,8 @@ const VIEWS = {
   http: renderHttpView,
   stego: renderStegoView,
   metadata: renderMetadataView,
+  physical: renderPhysicalView,
+  cache: renderCacheView,
   detection: renderDetectionView,
   challenge: renderChallengeView,
   validation: renderValidationView,
@@ -113,6 +117,7 @@ function buildNav() {
         on: { click: () => go(s.id) },
       },
         span({ class: 'nav-index', text: String(idx).padStart(2, '0') }),
+        s.icon ? span({ class: 'nav-icon', 'aria-hidden': 'true', text: s.icon }) : null,
         span({ text: s.label })));
     }
     navEl.appendChild(groupEl);
@@ -178,7 +183,7 @@ function applyHash() {
 }
 
 // Sections whose layout actually depends on the Sender/Defender view mode.
-const VIEWMODE_SENSITIVE = new Set(['dns', 'timing', 'storage', 'ordering', 'http', 'stego', 'metadata']);
+const VIEWMODE_SENSITIVE = new Set(['dns', 'timing', 'storage', 'ordering', 'http', 'stego', 'metadata', 'physical', 'cache']);
 
 function renderSection(id, opts = {}) {
   const scroll = opts.scroll !== false;

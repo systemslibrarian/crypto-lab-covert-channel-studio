@@ -449,3 +449,93 @@ export function permutationCapacityBits(n) {
   for (let k = 2; k <= n; k++) logFact += Math.log2(k);
   return Math.floor(logFact);
 }
+
+/** Binary entropy H2(p) in bits. H2(0) = H2(1) = 0, H2(0.5) = 1. */
+export function binaryEntropy(p) {
+  if (!(p > 0) || p >= 1) return p >= 1 ? 0 : 0;
+  const q = 1 - p;
+  return -(p * Math.log2(p) + q * Math.log2(q));
+}
+
+/** Upper tail of the standard normal, Q(x) = P(Z > x).
+ *  Abramowitz & Stegun 7.1.26 for erfc; |error| < 1.5e-7. */
+export function qFunction(x) {
+  if (!Number.isFinite(x)) return x > 0 ? 0 : 1;
+  const z = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * z);
+  const poly = t * (0.254829592
+    + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  const erfc = poly * Math.exp(-z * z);
+  const q = 0.5 * erfc;
+  return x >= 0 ? q : 1 - q;
+}
+
+/** Capacity of a binary symmetric channel with crossover probability p,
+ *  C = 1 − H2(p) bits per channel use (Shannon 1948). */
+export function bscCapacityBits(p) {
+  const pp = clamp(p, 0, 1);
+  return clamp(1 - binaryEntropy(pp), 0, 1);
+}
+
+/**
+ * Split values into two levels (k=2 Lloyd iterations from fixed seed centres)
+ * and report the statistics a threshold receiver cares about. Deterministic.
+ *
+ * `dPrime` is the classic detectability index — how many pooled within-level
+ * standard deviations separate the two levels. `duty` is the share of samples
+ * landing in the upper level, which for arbitrary payload data sits near 0.5.
+ *
+ * @param {number[]} values
+ * @returns {{ c0:number, c1:number, within:number, fit:number, separation:number,
+ *   pooledSd:number, dPrime:number, duty:number, bimodality:number }}
+ */
+export function twoLevelSplit(values) {
+  const empty = {
+    c0: 0, c1: 0, within: 0, fit: 0, separation: 0,
+    pooledSd: 0, dPrime: 0, duty: 0, bimodality: 0,
+  };
+  if (values.length < 4) return empty;
+  const { min, max } = minMax(values);
+  // A single flat level is not a two-level channel, however tight it is.
+  if (max === min) return { ...empty, c0: min, c1: max };
+
+  let c0 = min + (max - min) * 0.25;
+  let c1 = min + (max - min) * 0.75;
+  let lo = [];
+  let hi = [];
+  for (let iter = 0; iter < 16; iter++) {
+    lo = []; hi = [];
+    for (const v of values) {
+      if (Math.abs(v - c0) <= Math.abs(v - c1)) lo.push(v); else hi.push(v);
+    }
+    const nc0 = lo.length ? mean(lo) : c0;
+    const nc1 = hi.length ? mean(hi) : c1;
+    if (nc0 === c0 && nc1 === c1) break;
+    c0 = nc0; c1 = nc1;
+  }
+
+  let within = 0;
+  for (const v of values) within += Math.min(Math.abs(v - c0), Math.abs(v - c1));
+  within /= values.length;
+  const separation = Math.abs(c1 - c0);
+
+  const v0 = lo.length > 1 ? variance(lo) : 0;
+  const v1 = hi.length > 1 ? variance(hi) : 0;
+  const pooledSd = Math.sqrt((v0 * lo.length + v1 * hi.length) / Math.max(1, lo.length + hi.length));
+  const dPrime = pooledSd > 0 ? separation / pooledSd : (separation > 0 ? Infinity : 0);
+
+  // Fraction of samples sitting within 20% of the separation from their centre.
+  const tol = Math.max(1e-9, separation * 0.2);
+  let close = 0;
+  for (const v of values) {
+    if (Math.min(Math.abs(v - c0), Math.abs(v - c1)) <= tol) close++;
+  }
+  const fit = close / values.length;
+  const duty = hi.length / values.length;
+
+  // Calibrated so a unimodal spread (mean within/separation ratio near 0.25)
+  // scores ~0 and only genuinely two-levelled data approaches 1.
+  const bimodality = separation > 0 ? clamp(1 - (within / separation) / 0.25, 0, 1) : 0;
+
+  return { c0, c1, within, fit, separation, pooledSd, dPrime, duty, bimodality };
+}

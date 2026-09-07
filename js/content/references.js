@@ -185,5 +185,71 @@ export const REFERENCES = [
         url: 'https://attack.mitre.org/techniques/T1071/004/'
       }
     ]
-  }
+  },
+  {
+    category: 'Air-gap & physical-medium channels',
+    items: [
+      {
+        title: 'AirHopper: Bridging the Air-Gap between Isolated Networks and Mobile Phones using Radio Frequencies',
+        authors: 'Mordechai Guri, Gabi Kedma, Assaf Kachlon, Yuval Elovici',
+        year: 2014,
+        venue: '9th International Conference on Malicious and Unwanted Software (MALWARE)',
+        note: 'The paper that opened this family: data leaves an isolated machine as FM radio emitted by the display cable and is received by a nearby phone. Establishes the premise the air-gap module is built on — removing the network does not remove the carrier.',
+        url: 'https://arxiv.org/abs/1411.0237'
+      },
+      {
+        title: 'BitWhisper: Covert Signaling Channel between Air-Gapped Computers using Thermal Manipulations',
+        authors: 'Mordechai Guri, Matan Monitz, Yisroel Mirsky, Yuval Elovici',
+        year: 2015,
+        venue: 'IEEE 28th Computer Security Foundations Symposium (CSF)',
+        note: 'A thermal carrier: CPU load raises temperature, and the neighbouring machine reads it with its own on-board sensors. Notable for being bidirectional, and for a bit rate so low it makes the capacity/reliability trade in this exhibit vivid.',
+        url: 'https://doi.org/10.1109/CSF.2015.26'
+      },
+      {
+        title: 'Fansmitter: Acoustic Data Exfiltration from (Speakerless) Air-Gapped Computers',
+        authors: 'Mordechai Guri, Yosef Solewicz, Andrey Daidakulov, Yuval Elovici',
+        year: 2016,
+        venue: 'arXiv preprint arXiv:1606.05915',
+        note: 'An acoustic carrier that survives the obvious countermeasure: with the speakers removed, fan speed is modulated instead and a nearby microphone recovers the signal. A good illustration of why enumerating carriers is harder than blocking one.',
+        url: 'https://arxiv.org/abs/1606.05915'
+      },
+      {
+        title: 'LED-it-GO: Leaking (a lot of) Data from Air-Gapped Computers via the (small) Hard Drive LED',
+        authors: 'Mordechai Guri, Boris Zadov, Yuval Elovici',
+        year: 2017,
+        venue: 'Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA)',
+        note: 'The optical carrier this lab models. The activity LED is blinked far faster than the eye can follow and read back by a camera or light sensor, and its covertness comes from the fact that the LED flickers routinely anyway — the observation the defender panel is built around.',
+        url: 'https://doi.org/10.1007/978-3-319-60876-1_8'
+      },
+      {
+        title: 'PowerHammer: Exfiltrating Data from Air-Gapped Computers through Power Lines',
+        authors: 'Mordechai Guri, Boris Zadov, Dima Bykhovsky, Yuval Elovici',
+        year: 2018,
+        venue: 'arXiv preprint arXiv:1804.04014',
+        note: 'A conducted rather than radiated carrier: data is modulated onto current draw and read off the power line. Included to show the breadth of the family beyond the single optical carrier modelled here.',
+        url: 'https://arxiv.org/abs/1804.04014'
+      }
+    ]
+  },
+  {
+    category: 'Shared-resource & micro-architectural channels',
+    items: [
+      {
+        title: 'FLUSH+RELOAD: A High Resolution, Low Noise, L3 Cache Side-Channel Attack',
+        authors: 'Yuval Yarom, Katrina Falkner',
+        year: 2014,
+        venue: '23rd USENIX Security Symposium, pp. 719-732',
+        note: 'The protocol the cache module models: flush a shared line, wait, reload it, and time the load. The paper is also the source of the hit/miss separation the exhibit\u2019s cache detector measures as d-prime.',
+        url: 'https://www.usenix.org/conference/usenixsecurity14/technical-sessions/presentation/yarom'
+      },
+      {
+        title: 'Cache Attacks and Countermeasures: The Case of AES',
+        authors: 'Dag Arne Osvik, Adi Shamir, Eran Tromer',
+        year: 2006,
+        venue: 'Topics in Cryptology - CT-RSA 2006',
+        note: 'Introduces the Prime+Probe methodology offered as the variant protocol in the cache module. Requires no shared memory, only co-residency, and inverts the timing polarity - the detail that catches most learners out first.',
+        url: 'https://doi.org/10.1007/11605805_1'
+      }
+    ]
+  },
 ];

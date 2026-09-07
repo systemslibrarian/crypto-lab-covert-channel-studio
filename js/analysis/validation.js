@@ -20,11 +20,15 @@ import { simulateDnsRun, generateCoverTraffic } from '../channels/dns.js';
 import { simulateTiming, generateNormalGaps } from '../channels/timing.js';
 import { encodeBitsToPackets, generateNormalPackets } from '../channels/storage.js';
 import { simulateHttpRun, generateNormalRequests } from '../channels/http.js';
+import { simulatePhysical, generateAmbientBaseline } from '../channels/physical.js';
+import { simulateCache, generateIdleLatencies } from '../channels/cache.js';
 import { analyzeDns } from '../detectors/dnsDetector.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeHttp } from '../detectors/httpDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
+import { analyzePhysical } from '../detectors/physicalDetector.js';
+import { analyzeCache } from '../detectors/cacheDetector.js';
 import { embedMessage } from '../channels/stego.js';
 
 /* ---- metrics -------------------------------------------------------------- */
@@ -186,24 +190,70 @@ function stegoCases() {
   return pts;
 }
 
+function physicalCases() {
+  const pts = [];
+  const bits = textToBits('HELLO WORLD');
+  // Covert: on/off keying across ambient noise (clean -> badly degraded).
+  for (const noise of [0, 20, 60, 120, 200]) {
+    for (const s of ['a', 'b', 'c', 'd']) {
+      const r = simulatePhysical(bits, { ambientNoise: noise, seed: `v:ph:c:${noise}:${s}` });
+      pts.push({ score: analyzePhysical(r.filteredLevels).score, label: 'covert' });
+    }
+  }
+  // Clean: an LED blinking for ordinary reasons, at several activity levels.
+  for (const noise of [4, 12, 24]) {
+    for (const s of ['a', 'b', 'c', 'd']) {
+      const levels = generateAmbientBaseline(160, { ambientNoise: noise, seed: `v:ph:n:${noise}:${s}` });
+      pts.push({ score: analyzePhysical(levels).score, label: 'clean' });
+    }
+  }
+  return pts;
+}
+
+function cacheCases() {
+  const pts = [];
+  const bits = textToBits('HELLO WORLD');
+  // Covert: both probe protocols, across co-tenant jitter.
+  for (const probe of ['flush-reload', 'prime-probe']) {
+    for (const jitter of [0, 30, 70, 130, 200]) {
+      const r = simulateCache(bits, { probe, jitterCycles: jitter, seed: `v:ca:c:${probe}:${jitter}` });
+      pts.push({ score: analyzeCache(r.latencies).score, label: 'covert' });
+    }
+  }
+  // Clean: ordinary workloads. The high-miss-rate cases are a deliberate
+  // false-positive trap — a streaming scan legitimately misses about as often
+  // as it hits, which is exactly the balance the detector keys on.
+  for (const missRate of [0.05, 0.12, 0.25, 0.4]) {
+    for (const s of ['a', 'b', 'c']) {
+      const lat = generateIdleLatencies(160, { missRate, seed: `v:ca:n:${missRate}:${s}` });
+      pts.push({ score: analyzeCache(lat).score, label: 'clean' });
+    }
+  }
+  return pts;
+}
+
 const GENERATORS = {
   dns: { label: 'DNS', method: 'Character-frequency divergence + label length/entropy', cases: dnsCases },
   timing: { label: 'Timing', method: 'Corrected conditional entropy + Cabuk regularity', cases: timingCases },
   storage: { label: 'Storage (TTL toggle)', method: 'Field value-support / uncommon TTL', cases: storageCases },
   http: { label: 'HTTP header order', method: 'Header-order entropy fingerprint', cases: httpCases },
   stego: { label: 'Image LSB', method: 'Chi-square attack + LSB block contrast', cases: stegoCases },
+  physical: { label: 'Air-gap optical', method: "Two-level clustering + level separation (d') + duty cycle", cases: physicalCases },
+  cache: { label: 'Shared cache', method: "Access-class balance gating hit/miss separation (d')", cases: cacheCases },
 };
 
 export const VALIDATION_NOTES = [
   'An anomaly score is NOT a probability of a covert channel. AUC measures only how well the score ORDERS covert above clean cases on this synthetic benchmark — real deployment brings distribution shift these numbers do not capture.',
   'The storage benchmark uses the DETECTABLE TTL toggle. A parity IP-ID / low-bit-sequence channel is deliberately near-undetectable by a value histogram — by design it barely disturbs the field, so no simple statistic separates it. That is a taught false-negative, not a bug.',
   'The image-LSB detector scores lowest (AUC ≈ 0.75) because the chi-square attack FALSE-POSITIVES on high-entropy carriers: uniform image noise equalises value pairs the same way embedding does, so the attack cannot tell them apart. This is a known limitation of the chi-square attack, surfaced honestly rather than tuned away.',
+  'The air-gap optical benchmark loses cases at high ambient noise: once the two luminance levels smear into one another the detector cannot see them — but neither can the receiver, so those are cases where the channel has already failed. Detectability and usability collapse together here.',
+  'The shared-cache detector scores lowest of the timing-style detectors, and the reason is deliberate. Its clean set includes high-miss-rate workloads (a streaming scan over memory larger than the cache), which use the fast and slow access classes about as evenly as a covert channel does. Because BALANCE is the discriminator — a bimodal latency histogram is normal for memory — those workloads are genuine false positives. Lowering that AUC was the honest choice over keying on a signal (bimodality) that ordinary memory access already produces.',
   'Thresholds (34 = investigate, 67 = high) are a teaching choice, not tuned operating points. The confusion matrix at 34 vs 67 shows the FPR/FNR trade move as you raise the bar.',
 ];
 
 /**
  * Validate one detector.
- * @param {'dns'|'timing'|'storage'|'http'|'stego'} channel
+ * @param {'dns'|'timing'|'storage'|'http'|'stego'|'physical'|'cache'} channel
  * @param {{ threshold?:number }} [opts]
  */
 export function validateDetector(channel, opts = {}) {

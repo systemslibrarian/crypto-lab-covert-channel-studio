@@ -83,6 +83,8 @@ const VIEW_MODULES = {
   http: ['httpView', 'renderHttpView'],
   stego: ['stegoView', 'renderStegoView'],
   metadata: ['metadataView', 'renderMetadataView'],
+  physical: ['physicalView', 'renderPhysicalView'],
+  cache: ['cacheView', 'renderCacheView'],
   detection: ['detectionView', 'renderDetectionView'],
   challenge: ['challengeView', 'renderChallengeView'],
   validation: ['validationView', 'renderValidationView'],
