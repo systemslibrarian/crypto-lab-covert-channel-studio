@@ -122,6 +122,12 @@
 /* ---- Trade-off instrument ------------------------------------------------- */
 .tradeoff-card { border-color: color-mix(in srgb, var(--covert) 22%, var(--border)); }
 .tradeoff-card .tri-meters { margin-bottom: var(--sp-3); }
+.cap-breakdown { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--sp-3); padding: var(--sp-2) var(--sp-3); background: var(--surface-inset); border-radius: var(--r-md); }
+.cap-row { display: grid; grid-template-columns: 8.5em 6.5em 1fr; gap: var(--sp-2); align-items: baseline; font-size: var(--fs-xs); }
+.cap-label { color: var(--text-dim); font-weight: 600; }
+.cap-val { color: var(--accent); text-align: right; }
+.cap-note { font-size: var(--fs-xs); }
+@media (max-width: 480px) { .cap-row { grid-template-columns: 1fr auto; } .cap-note { display: none; } }
 .chart-grid { stroke: var(--border-faint); stroke-width: 1; stroke-dasharray: 2 3; }
 .curve-xlabel { text-align: center; margin-top: 2px; }
 

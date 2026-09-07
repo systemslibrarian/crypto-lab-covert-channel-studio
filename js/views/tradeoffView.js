@@ -27,8 +27,8 @@ export function tradeoffInstrument(channel, message, params) {
 
   const meters = div({ class: 'tri-meters' },
     horizontalMeter(cap.norm, {
-      label: 'Capacity — how much it carries',
-      valueText: `${round(cap.bitsPerSecond, 0)} bits/s · ${round(cap.bitsPerEvent, 2)}/${cap.eventLabel}`,
+      label: 'Capacity — effective goodput',
+      valueText: `${round(cap.goodputBps, 0)} bits/s · ${round(cap.bitsPerEvent, 2)}/${cap.eventLabel}`,
       color: 'var(--accent)',
     }),
     horizontalMeter(rel.successRate, {
@@ -45,6 +45,7 @@ export function tradeoffInstrument(channel, message, params) {
   const children = [
     el('h3', { class: 'card-title', text: 'Trade-off — capacity · reliability · observability' }),
     meters,
+    capacityBreakdown(cap),
   ];
 
   if (cap.ceilingBits !== undefined) {
@@ -96,8 +97,8 @@ function buildNotebook(channel, message, t) {
   try { L.push(`- Captured: ${new Date().toISOString()}`); } catch { /* no clock */ }
   L.push('', '## Result');
   L.push(`- Decoded: ${JSON.stringify(run.decodedText)}${run.bitErrors != null ? ` (${run.bitErrors} bit errors)` : ''}`);
-  L.push(`- Capacity: ${round(t.capacity.bitsPerSecond, 0)} bits/s (${round(t.capacity.bitsPerEvent, 2)}/${t.capacity.eventLabel})`);
-  if (t.capacity.ceilingBits !== undefined) L.push(`- Capacity ceiling: ${t.capacity.ceilingBits} bits (⌊log2 n!⌋)`);
+  L.push(`- Capacity (${round(t.capacity.bitsPerEvent, 2)}/${t.capacity.eventLabel}) — theoretical ${round(t.capacity.theoreticalBps, 1)} b/s · raw ${round(t.capacity.rawBps, 1)} b/s · effective goodput ${round(t.capacity.goodputBps, 1)} b/s`);
+  if (t.capacity.ceilingBits !== undefined) L.push(`- Ordering capacity ceiling: ${t.capacity.ceilingBits} bits (⌊log2 n!⌋)`);
   L.push(`- Reliability: bit-error rate ${round((t.reliability.ber || 0) * 100, 0)}%`);
   L.push(`- Observability: ${t.observability.score}/100 (${t.observability.level})`);
   if (run.detector && run.detector.methods && run.detector.methods.length) {
@@ -110,6 +111,20 @@ function buildNotebook(channel, message, t) {
 
 function safeHref() {
   try { return location.href; } catch { return ''; }
+}
+
+/** Theoretical vs raw throughput vs effective goodput — three explicit numbers. */
+function capacityBreakdown(cap) {
+  const rows = [
+    ['Theoretical', cap.theoreticalBps, 'structural maximum for this carrier'],
+    ['Raw throughput', cap.rawBps, 'what this encoder emits'],
+    ['Effective goodput', cap.goodputBps, 'recovered correctly, after errors/normalisation'],
+  ];
+  return div({ class: 'cap-breakdown' },
+    ...rows.map(([label, v, note]) => div({ class: 'cap-row' },
+      span({ class: 'cap-label', text: label }),
+      span({ class: 'cap-val mono', text: `${round(v, 1)} bits/s` }),
+      span({ class: 'cap-note subtle', text: note }))));
 }
 
 function fallbackCaption(channel) {

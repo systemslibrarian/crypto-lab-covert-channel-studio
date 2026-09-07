@@ -52,7 +52,8 @@ Interactive exhibit sections, plus a glossary and a quiz:
 - **Library Records** — the librarian's-eye exhibit: routine circulation/transfer metadata as an *unintended inference channel*, and data minimisation as the defence.
 - **Detection Console** — the defender's bench: named, cited statistical detectors across every channel.
 - **Detection Challenge** — a genuinely **blind, scored** exercise: observables only, commit a call (clean / suspicious / covert), then reveal the ground truth. Includes false-positive traps.
-- **Detector Validation Lab** — every detector is run over hundreds of deterministic clean/covert cases; the section shows **ROC curves, AUC, and confusion matrices** (FPR/FNR/precision/recall), making the detectors' quality — and their honest failure modes — measurable rather than asserted.
+- **Detector Validation Lab** — every detector is run over hundreds of deterministic clean/covert cases; the section shows **ROC curves, AUC, and confusion matrices** (FPR/FNR/precision/recall), making the detectors' quality — and their honest failure modes — measurable rather than asserted. Method transparency (equation → implementation → threshold → known-answer test → failure modes) is documented in **[VALIDATION.md](VALIDATION.md)**.
+- **Capacity as three numbers** — every channel reports *theoretical* vs *raw throughput* vs *effective goodput* (after errors/normalisation), not one hand-wavy figure — aligned with the bandwidth-estimation mindset of NIST SC-31.
 - **Compare Channels** — ranked by educational clarity, reliability, and teaching value — never by "stealth."
 - **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (ICMP, VoIP, Wi-Fi, protocol hopping, cache-timing, history channels), each with a fidelity card.
 - **Shared-Resource Matrix** — Kemmerer's covert-channel-analysis method as a playable exercise.

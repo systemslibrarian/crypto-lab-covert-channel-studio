@@ -63,8 +63,12 @@ export function computeTradeoff(channel, message, params = {}) {
     case 'ordering': {
       const nEvents = msgBits * 2; // two events per bit
       const ceilingBits = permutationCapacityBits(nEvents);
-      const bitsPerSecond = 1000 / (20 * 3); // pair spacing default
-      capacity = { bitsPerEvent: 1, bitsPerSecond, ceilingBits, achievedBits: msgBits, eventLabel: 'pair' };
+      const bitsPerSecond = 1000 / (20 * 3); // toy encoder: 1 bit per pair
+      const durationSec = msgBits * (20 * 3) / 1000;
+      // The full-permutation ceiling is a HIGHER theoretical rate than this toy
+      // encoder achieves — the capacity it trades away for simplicity.
+      const theoreticalBps = durationSec > 0 ? ceilingBits / durationSec : bitsPerSecond;
+      capacity = { bitsPerEvent: 1, bitsPerSecond, theoreticalBps, ceilingBits, achievedBits: msgBits, eventLabel: 'pair' };
       reliability = { ber: run.bitErrorRate ?? 0 };
       break;
     }
@@ -80,7 +84,17 @@ export function computeTradeoff(channel, message, params = {}) {
   }
 
   reliability.successRate = clamp(1 - (reliability.ber ?? 0), 0, 1);
-  capacity.norm = throughputNorm(capacity.bitsPerSecond);
+  // Three explicit measurements, so "capacity" is never one hand-wavy number:
+  //   theoretical  — the structural maximum for this carrier
+  //   raw          — what THIS encoder actually emits
+  //   goodput      — bits/second recovered correctly, after errors/normalisation
+  // For most channels theoretical == raw; ordering's toy encoder sits below its
+  // permutation ceiling. goodput <= raw always, and collapses when a middlebox
+  // or heavy jitter drives the bit-error rate up.
+  capacity.rawBps = capacity.bitsPerSecond;
+  capacity.theoreticalBps = capacity.theoreticalBps ?? capacity.rawBps;
+  capacity.goodputBps = capacity.rawBps * reliability.successRate;
+  capacity.norm = throughputNorm(capacity.goodputBps);
 
   const observability = {
     score: run.detector.score,
