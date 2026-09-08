@@ -1,6 +1,12 @@
 // references.js — curated further-reading list for Covert Channel Studio.
 // Real, verifiable primary sources grouped by category. URLs are best-effort
 // canonical links; an empty string means no confident canonical URL is known.
+//
+// CONVENTION: author names are recorded AS PUBLISHED on the cited work, not as
+// the author spells their name today. Where an author has since restandardised a
+// romanisation, the byline on the primary record wins — a citation identifies a
+// specific published artifact, so it has to match that artifact.
+//
 // Pure data module: no imports, no DOM access, no side effects.
 
 export const REFERENCES = [
@@ -199,7 +205,11 @@ export const REFERENCES = [
       },
       {
         title: 'BitWhisper: Covert Signaling Channel between Air-Gapped Computers using Thermal Manipulations',
-        authors: 'Mordechai Guri, Matan Monitz, Yisroel Mirsky, Yuval Elovici',
+        // Published as "Mirski" — the byline on both the IEEE record and the
+        // authors' own arXiv deposit (1503.07919, March 2015). He romanises it
+        // "Mirsky" today; per the convention above, the 2015 byline stands.
+        // Not a venue typo — please do not "correct" this to Mirsky.
+        authors: 'Mordechai Guri, Matan Monitz, Yisroel Mirski, Yuval Elovici',
         year: 2015,
         venue: 'IEEE 28th Computer Security Foundations Symposium (CSF)',
         note: 'A thermal carrier: CPU load raises temperature, and the neighbouring machine reads it with its own on-board sensors. Notable for being bidirectional, and for a bit rate so low it makes the capacity/reliability trade in this exhibit vivid.',

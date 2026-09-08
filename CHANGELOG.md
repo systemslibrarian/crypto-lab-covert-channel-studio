@@ -54,6 +54,14 @@ All notable changes to Covert Channel Studio. The format is loosely based on
   models the Gaussian term only (drift and sensor clipping push measurement above it), and the cache
   module's capacity uses the symmetric formula on an asymmetric channel.
 
+### Fixed
+- BitWhisper's third author is now cited **as published** — "Yisroel Mirski", the byline on both the
+  IEEE record and the authors' own arXiv deposit (1503.07919). He romanises it "Mirsky" today, and
+  the entry previously carried that later spelling. Correcting the record explicitly: an earlier
+  commit message described the venue spelling as an *IEEE typo*. That was wrong — "Mirski" is what
+  the 2015 paper was published under, and no venue erred. `references.js` now documents the
+  cite-as-published convention at the top of the file, so the byline is not "corrected" back.
+
 ### Changed
 - The **Carrier Atlas** entry for cache/shared-resource timing moved from *described-only* to *built*,
   and its fidelity card now states that the cache is modelled rather than that a browser cannot
