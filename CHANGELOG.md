@@ -40,6 +40,15 @@ All notable changes to Covert Channel Studio. The format is loosely based on
   DOI 10.1007/978-3-319-60876-1_8), PowerHammer (arXiv:1804.04014); Yarom & Falkner — FLUSH+RELOAD
   (USENIX Security 2014); Osvik, Shamir & Tromer — Prime+Probe (CT-RSA 2006,
   DOI 10.1007/11605805_1).
+- **Model-boundary disclosure gate** (`test/disclosure.test.js`) — renders each modelled channel in
+  both view modes and asserts the boundary callout reaches the **DOM**, deriving the expected strings
+  from the copy itself. Added because that disclosure first shipped invisible: `sectionHeader()`
+  renders only title/lede/outcomes, not `copy.blocks`, so the callout existed in the content layer
+  and never reached the page while every other test stayed green. The gate is mutation-checked
+  (removing the `renderBlocks()` call turns it red with a diagnostic naming the fix, while the a11y
+  gate stays green). The DOM shim moved to `test/dom-shim.js` so both gates share one copy; its
+  `renderedText()` deliberately descends DocumentFragments, since a naive `textContent` read is
+  precisely what made a missing disclosure look like a present one.
 - **VALIDATION.md §9** documents the matched filter, the Q-function error rate, BSC capacity, and the
   two-level split, plus two honesty notes asserted in tests: the optical module's predicted BER
   models the Gaussian term only (drift and sensor clipping push measurement above it), and the cache

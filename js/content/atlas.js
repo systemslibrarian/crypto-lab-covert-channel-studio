@@ -218,7 +218,7 @@ export const CARRIERS = [
     indicators: 'A latency histogram whose fast and slow classes are used about equally — ordinary code has locality and mostly hits. Not visible at the network layer at all.',
     fidelity: {
       faithful: ['both probing protocols and their opposite polarities', 'the threshold classifier', 'repeated probing and its averaging gain', 'asymmetric eviction noise', 'measured BER and capacity arithmetic'],
-      simplified: ['THE CACHE IS MODELLED — no line is flushed, no timer is read, and no timing side channel exists in this page; "cycles" are numbers drawn from a documented distribution'],
+      simplified: ['A BROWSER PAGE STILL CANNOT MOUNT A REAL FLUSH+RELOAD — that has not changed; what this module adds is a MODEL of one', 'THE CACHE IS MODELLED — no line is flushed, no timer is read, and no timing side channel exists in this page; "cycles" are numbers drawn from a documented distribution'],
       realWorld: ['precise cycle counters, real inclusive-cache behaviour, address-to-set mapping, prefetchers, and physical co-residency'],
     },
   },
