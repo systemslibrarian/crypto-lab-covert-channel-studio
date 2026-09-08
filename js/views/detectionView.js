@@ -15,6 +15,7 @@ import { simulateDnsRun } from '../channels/dns.js';
 import { simulateTimingFromText, generateNormalGaps } from '../channels/timing.js';
 import { simulateStorageRun } from '../channels/storage.js';
 import { simulateOrderingRun } from '../channels/ordering.js';
+import { simulateIcmpRun } from '../channels/icmp.js';
 import { simulateHttpRun } from '../channels/http.js';
 import { embedMessage } from '../channels/stego.js';
 import { simulatePhysicalRun } from '../channels/physical.js';
@@ -24,6 +25,7 @@ import { analyzeDns } from '../detectors/dnsDetector.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeOrdering } from '../detectors/orderingDetector.js';
+import { analyzeIcmp } from '../detectors/icmpDetector.js';
 import { analyzeHttp } from '../detectors/httpDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
 import { analyzePhysical } from '../detectors/physicalDetector.js';
@@ -32,6 +34,7 @@ import { loadSampleCarrier } from './stegoView.js';
 
 const CHANNELS = [
   { key: 'dns', label: 'DNS' },
+  { key: 'icmp', label: 'ICMP' },
   { key: 'timing', label: 'Timing' },
   { key: 'storage', label: 'Storage' },
   { key: 'ordering', label: 'Ordering' },
@@ -101,6 +104,10 @@ function analyze(channel, state) {
     case 'ordering': {
       const run = simulateOrderingRun(state.message, { reorderProb: state.channels.ordering.reorderProb, seed: `${state.seed}:ordering` });
       return { det: analyzeOrdering(run.pairs), run };
+    }
+    case 'icmp': {
+      const run = simulateIcmpRun(state.message, { ...state.channels.icmp, seed: `${state.seed}:icmp` });
+      return { det: analyzeIcmp(run.mixed), run };
     }
     case 'http': {
       const run = simulateHttpRun(state.message, { ...state.channels.http, seed: `${state.seed}:http` });
@@ -187,6 +194,22 @@ function detailExtras(channel, det, run) {
           { name: 'Longest run', value: String(m.longestRun) },
         ]),
         para('Frequency is near a coin-flip; ordering is caught by structure, not counts.', 'subtle'));
+    case 'icmp': {
+      const focus = m.pivot || m.global;
+      return div({},
+        el('h3', { class: 'card-title', text: 'Echo conformance' }),
+        metricList([
+          { name: 'Matches the fill pattern', value: `${Math.round(focus.fillConformFraction * 100)}%`, hi: focus.fillConformFraction < 0.8 },
+          { name: 'Unique data areas', value: `${Math.round(focus.distinctDataRatio * 100)}%`, hi: focus.distinctDataRatio > 0.6 },
+          { name: 'Standard payload size', value: `${Math.round(focus.standardSizeFraction * 100)}%`, hi: focus.standardSizeFraction < 0.8 },
+          { name: 'Distinct identifiers', value: String(focus.distinctIdentifiers), hi: focus.distinctIdentifiers > 1 },
+        ]),
+        verticalBars(m.sizeHistogram.map((b) => ({
+          label: String(b.value), value: b.count,
+          color: b.value === m.standardBytes || b.value === 32 ? 'var(--accent-2)' : 'var(--covert)',
+        })), { height: 110, ariaLabel: 'ICMP payload size distribution' }),
+        para('Payload entropy is the wrong statistic here — the conventional fill is already high-entropy. Predictability is what separates them.', 'subtle'));
+    }
     case 'http':
       return div({},
         el('h3', { class: 'card-title', text: 'Header-order fingerprint' }),

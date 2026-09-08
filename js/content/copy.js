@@ -96,6 +96,34 @@ export const COPY = {
     ],
   },
 
+  icmp: {
+    title: 'The Message Is in the Ping',
+    outcomes: [
+      'explain why the ICMP echo **data area** is free space the protocol never inspects',
+      'compare a loud, high-capacity payload channel with a quiet one-bit **header** channel',
+      'show why payload **entropy** is the wrong statistic here and predictability is the right one',
+      'name two normalisers that each kill one of the two channels and neither of which kills both',
+    ],
+    lede: 'The textbook covert channel, and the one everybody asks for by name. RFC 792 says an echo reply must return whatever the request sent — so the data area is space the protocol carries faithfully and never looks at.',
+    blocks: [
+      { code: 'Echo data area   message bytes            ->  8 bits per byte, loud\nEcho Identifier  low bit of a 16-bit field ->  1 bit per echo, quiet' },
+      { callout: {
+        kind: 'note',
+        title: 'Two channels, two failure modes',
+        body: 'These are paired on purpose. The **payload** channel is fast and conspicuous; the **identifier** channel is a single bit and nearly invisible. More importantly they die to *different* defences — a size clamp erases the payload channel and leaves the identifier untouched, while a NAT rewriting the Echo Identifier erases the identifier channel and leaves the payload untouched. No one normaliser closes ICMP.',
+      } },
+      { h: 'Why entropy is the wrong statistic' },
+      'The reflex is to measure payload entropy. It does not work. A conventional ping fills its data area with an **incrementing run of distinct bytes**, so its Shannon entropy is already near the maximum for its length — higher than plenty of real message data. What actually separates them is that the fill is **predictable** and **identical in every echo**, which is a structural test rather than an entropy test. This is a clean example of a plausible statistic that measures the wrong property.',
+      { h: 'What ordinary ping looks like' },
+      'The baseline is unusually rigid, which is what makes the channel catchable at all. One session keeps **one** Echo Identifier for its whole run, numbers its sequence 1, 2, 3…, sends the **same** payload size every time, and repeats the **same** fill bytes after its timestamp. A tunnel breaks all four at once.',
+      { callout: {
+        kind: 'warn',
+        title: 'Simulated, and deliberately inert',
+        body: 'No packet is crafted, sent, or received. An "echo" here is a plain object in an array, and every address comes from the RFC 5737 documentation ranges, which are reserved for documentation and are not routable. There is nothing in this module to copy into a live network.',
+      } },
+    ],
+  },
+
   ordering: {
     title: 'The Message Is in the Order',
     outcomes: [
@@ -250,7 +278,7 @@ export const COPY = {
     title: 'Compare Channels',
     lede: 'The same message can hide many ways, and the trade-offs differ sharply. This table ranks channels by teaching value, reliability in simulation, and what a defender can look for — **not** by how well they evade anyone.',
     blocks: [
-      { note: 'ICMP, HTTPS, SSH, VoIP/RTP, Wi-Fi, and the text/linguistic carriers are described conceptually rather than built here. HTTPS and SSH tunnels conceal content but remain recognisable *as* HTTPS or SSH, so they are tunnelling rather than covert signalling.' },
+      { note: 'HTTPS, SSH, VoIP/RTP, Wi-Fi, and the text/linguistic carriers are described conceptually rather than built here. HTTPS and SSH tunnels conceal content but remain recognisable *as* HTTPS or SSH, so they are tunnelling rather than covert signalling. ICMP and protocol hopping used to sit in this list and now have modules of their own.' },
     ],
   },
 
@@ -311,6 +339,7 @@ export const CALLOUTS = {
   dns: { title: 'DNS channel', body: 'The protocol is legitimate; the structure of the requests carries the hidden representation.' },
   ordering: { title: 'Ordering channel', body: 'The information is in the sequence, not the contents.' },
   http: { title: 'HTTP header channel', body: 'Every header is valid; the order they appear in carries the bits.' },
+  icmp: { title: 'ICMP echo channel', body: 'The protocol promises to echo the data area back untouched, and never looks at it.' },
   metadata: { title: 'Metadata channel', body: 'Records never meant as a message can still carry — and leak — one.' },
   stego: { title: 'Steganography', body: 'The carrier still looks like ordinary content.' },
   physical: { title: 'Physical-medium channel', body: 'The carrier is the medium itself — light, heat, sound — so no network is involved at all.' },

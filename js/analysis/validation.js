@@ -20,12 +20,14 @@ import { simulateDnsRun, generateCoverTraffic } from '../channels/dns.js';
 import { simulateTiming, generateNormalGaps } from '../channels/timing.js';
 import { encodeBitsToPackets, generateNormalPackets } from '../channels/storage.js';
 import { simulateHttpRun, generateNormalRequests } from '../channels/http.js';
+import { simulateIcmpRun, generateNormalEchoes } from '../channels/icmp.js';
 import { simulatePhysical, generateAmbientBaseline } from '../channels/physical.js';
 import { simulateCache, generateIdleLatencies } from '../channels/cache.js';
 import { analyzeDns } from '../detectors/dnsDetector.js';
 import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeHttp } from '../detectors/httpDetector.js';
+import { analyzeIcmp } from '../detectors/icmpDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
 import { analyzePhysical } from '../detectors/physicalDetector.js';
 import { analyzeCache } from '../detectors/cacheDetector.js';
@@ -232,11 +234,52 @@ function cacheCases() {
   return pts;
 }
 
+
+function icmpCases() {
+  const pts = [];
+  // Covert: the data-area channel across chunk size and padding. Padding hides
+  // the SIZE tell while leaving the content tell, so these should span a range
+  // rather than all sitting at the top.
+  for (const chunkBytes of [1, 2, 4, 8]) {
+    for (const padToStandard of [false, true]) {
+      const run = simulateIcmpRun('HELLO WORLD', {
+        chunkBytes, padToStandard, coverCount: 20, seed: `v:ic:c:${chunkBytes}:${padToStandard}`,
+      });
+      pts.push({ score: analyzeIcmp(run.mixed).score, label: 'covert' });
+    }
+  }
+  // Covert: the identifier channel. These are DELIBERATE FALSE NEGATIVES — one
+  // bit in a field with no reference distribution leaves nothing for a content
+  // or size statistic to find. They are in the benchmark because leaving them
+  // out would inflate the AUC by hiding the detector's real blind spot.
+  for (const s of ['a', 'b', 'c']) {
+    const run = simulateIcmpRun('HELLO WORLD', { field: 'id-lowbits', coverCount: 20, seed: `v:ic:id:${s}` });
+    pts.push({ score: analyzeIcmp(run.mixed).score, label: 'covert' });
+  }
+  // Clean: ordinary ping sessions.
+  for (const n of [20, 40, 60]) {
+    for (const s of ['a', 'b', 'c', 'd']) {
+      pts.push({ score: analyzeIcmp(generateNormalEchoes(n, { seed: `v:ic:n:${n}:${s}` })).score, label: 'clean' });
+    }
+  }
+  // Clean: a diagnostic size sweep (path-MTU probing). It varies payload size
+  // deliberately while keeping the conventional fill, so it trips the size
+  // statistic and nothing else — a real false-positive source, not a strawman.
+  for (const s of ['a', 'b', 'c']) {
+    const sweep = [32, 56, 100, 500, 1200].flatMap((dataBytes, i) =>
+      generateNormalEchoes(4, { seed: `v:ic:mtu:${s}`, dataBytes })
+        .map((e, k) => ({ ...e, seq: i * 4 + k + 1 })));
+    pts.push({ score: analyzeIcmp(sweep).score, label: 'clean' });
+  }
+  return pts;
+}
+
 const GENERATORS = {
   dns: { label: 'DNS', method: 'Character-frequency divergence + label length/entropy', cases: dnsCases },
   timing: { label: 'Timing', method: 'Corrected conditional entropy + Cabuk regularity', cases: timingCases },
   storage: { label: 'Storage (TTL toggle)', method: 'Field value-support / uncommon TTL', cases: storageCases },
   http: { label: 'HTTP header order', method: 'Header-order entropy fingerprint', cases: httpCases },
+  icmp: { label: 'ICMP echo', method: 'Fill-pattern conformance + payload-size variation + data-area repetition', cases: icmpCases },
   stego: { label: 'Image LSB', method: 'Chi-square attack + LSB block contrast', cases: stegoCases },
   physical: { label: 'Air-gap optical', method: "Two-level clustering + level separation (d') + duty cycle", cases: physicalCases },
   cache: { label: 'Shared cache', method: "Access-class balance gating hit/miss separation (d')", cases: cacheCases },
@@ -248,6 +291,7 @@ export const VALIDATION_NOTES = [
   'The image-LSB detector scores lowest (AUC ≈ 0.75) because the chi-square attack FALSE-POSITIVES on high-entropy carriers: uniform image noise equalises value pairs the same way embedding does, so the attack cannot tell them apart. This is a known limitation of the chi-square attack, surfaced honestly rather than tuned away.',
   'The air-gap optical benchmark loses cases at high ambient noise: once the two luminance levels smear into one another the detector cannot see them — but neither can the receiver, so those are cases where the channel has already failed. Detectability and usability collapse together here.',
   'The shared-cache detector scores lowest of the timing-style detectors, and the reason is deliberate. Its clean set includes high-miss-rate workloads (a streaming scan over memory larger than the cache), which use the fast and slow access classes about as evenly as a covert channel does. Because BALANCE is the discriminator — a bimodal latency histogram is normal for memory — those workloads are genuine false positives. Lowering that AUC was the honest choice over keying on a signal (bimodality) that ordinary memory access already produces.',
+  'The ICMP benchmark deliberately includes the IDENTIFIER channel among its covert cases, and the detector misses those almost entirely. One bit in a header field with no reference distribution leaves nothing for a content or size statistic to find — the same taught false negative as IP-ID parity in the storage module. Excluding those cases would have produced a much better-looking AUC by hiding the detector\'s real blind spot, which is the opposite of what this lab is for.',
   'Thresholds (34 = investigate, 67 = high) are a teaching choice, not tuned operating points. The confusion matrix at 34 vs 67 shows the FPR/FNR trade move as you raise the bar.',
 ];
 

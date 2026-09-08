@@ -145,7 +145,24 @@ function observablePanel(obs) {
   if (obs.type === 'timing') return timingPanel(obs);
   if (obs.type === 'storage') return storagePanel(obs);
   if (obs.type === 'series') return seriesPanel(obs);
+  if (obs.type === 'icmp') return icmpPanel(obs);
   return null;
+}
+
+/** ICMP echoes. The head of each data area is shown after the timestamp. */
+function icmpPanel(obs) {
+  const head = el('tr', {}, ...['Seq', 'Identifier', 'Size', 'Destination', 'Data after timestamp'].map((h) => el('th', { text: h })));
+  const rows = obs.rows.map((r) => el('tr', {},
+    el('td', { class: 'mono', text: String(r.seq) }),
+    el('td', { class: 'mono', text: `0x${r.identifier.toString(16).padStart(4, '0')}` }),
+    el('td', { class: 'mono', text: `${r.bytes} B` }),
+    el('td', { class: 'mono', text: r.dest }),
+    el('td', { class: 'mono', text: r.head || '—' })));
+  const sizes = new Set(obs.rows.map((r) => r.bytes)).size;
+  return div({},
+    para(`${obs.count} echo requests observed, ${sizes} distinct payload size${sizes === 1 ? '' : 's'}. A conventional ping repeats one size, one identifier, and the same fill bytes every time — an incrementing run starting 10 11 12 13.`, 'subtle'),
+    div({ class: 'table-wrap', style: { maxHeight: '260px', overflowY: 'auto' }, attrs: { tabindex: '0', role: 'region', 'aria-label': 'ICMP echo log for this case' } },
+      el('table', { class: 'data-table' }, el('thead', {}, head), el('tbody', {}, ...rows))));
 }
 
 function dnsPanel(obs) {
@@ -209,7 +226,12 @@ function storagePanel(obs) {
 }
 
 /* ---- helpers -------------------------------------------------------------- */
-function channelLabel(ch) { return { dns: 'DNS', timing: 'Timing', storage: 'Storage' }[ch] || ch; }
+function channelLabel(ch) {
+  return {
+    dns: 'DNS', timing: 'Timing', storage: 'Storage', physical: 'Air-gap optical',
+    cache: 'Shared cache', icmp: 'ICMP echo',
+  }[ch] || ch;
+}
 function shorten(s) { return s.length > 46 ? s.slice(0, 43) + '…' : s; }
 
 const INDICATOR_KEYWORDS = {
@@ -224,6 +246,10 @@ const INDICATOR_KEYWORDS = {
   'A field stuck on two odd values': ['ttl', 'adjacent', 'two'],
   'Tiny value support': ['support', 'distinct', 'uncommon'],
   'Skewed bit pattern': ['skew', 'bias'],
+  'Payload is not the standard fill': ['fill pattern', 'not the standard'],
+  'Unusual or varying payload size': ['data areas average', 'distinct size', 'conventional sizes'],
+  'Every echo carries different data': ['unique', 'data areas'],
+  'More than one Echo Identifier': ['identifier'],
 };
 function indicatorMatches(named, fired) {
   const kws = INDICATOR_KEYWORDS[named];

@@ -35,6 +35,7 @@ const VIEW_MODULES = {
   timing: ['timingView', 'renderTimingView'],
   storage: ['storageView', 'renderStorageView'],
   ordering: ['orderingView', 'renderOrderingView'],
+  icmp: ['icmpView', 'renderIcmpView'],
   http: ['httpView', 'renderHttpView'],
   stego: ['stegoView', 'renderStegoView'],
   metadata: ['metadataView', 'renderMetadataView'],

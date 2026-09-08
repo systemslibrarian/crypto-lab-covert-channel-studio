@@ -5,10 +5,14 @@
  * named entry in the research community's hiding-pattern taxonomy, so a learner
  * can read a paper and say "this is a value-modulation pattern"; and (2) honest
  * coverage of the carrier families this lab deliberately does NOT build as tools
- * (ICMP, VoIP, Wi-Fi, protocol hopping, history channels, and the text/linguistic
+ * (VoIP/RTP, Wi-Fi, history / object-reuse channels, and the text/linguistic
  * family, which has its own sibling exhibit),
  * each with a "fidelity card" — what is faithful, what is simplified, and what a
  * real environment adds.
+ *
+ * ICMP echo and protocol hopping used to sit in that second list. Both are now
+ * built modules, so they have moved up into the built section with fidelity
+ * cards that describe what was actually implemented rather than the concept.
  *
  * Data only (no DOM).
  */
@@ -23,10 +27,10 @@ export const TAXONOMY = {
       note: 'Information lives in a value.',
       patterns: [
         { id: 'value-modulation', name: 'Value / field modulation', idea: 'Set a protocol field to a chosen value.', lab: 'Storage Channel (TTL toggle), DNS labels' },
-        { id: 'random-value', name: 'Random-value fields', idea: 'Borrow a field that is meant to look random (IP ID, initial sequence number).', lab: 'Storage Channel (IP-ID parity, TCP seq low bit)' },
+        { id: 'random-value', name: 'Random-value fields', idea: 'Borrow a field that is meant to look random (IP ID, initial sequence number).', lab: 'Storage Channel (IP-ID parity, TCP seq low bit), ICMP Channel (Echo Identifier low bit)' },
         { id: 'reserved-unused', name: 'Reserved / unused fields', idea: 'Use bits the protocol does not currently assign.', lab: 'Storage Channel (concept), TCP reserved bits' },
         { id: 'sequence', name: 'Sequence / ordering', idea: 'Encode in the order of interchangeable elements.', lab: 'Packet-Order Channel, HTTP Header Channel' },
-        { id: 'payload-structure', name: 'Payload structure / naming', idea: 'Encode in the structure or names carried in the payload.', lab: 'DNS Channel (query labels)' },
+        { id: 'payload-structure', name: 'Payload structure / naming', idea: 'Encode in the structure or names carried in the payload.', lab: 'DNS Channel (query labels), ICMP Channel (echo data area)' },
       ],
     },
     {
@@ -56,6 +60,18 @@ export const CARRIERS = [
       faithful: ['Base32 label encoding', 'label length / entropy as real detectors measure them', 'the single-parent-domain funnel'],
       simplified: ['no real resolver, cache, or NXDOMAIN behaviour', 'toy message sizes', 'A-record framing only'],
       realWorld: ['recursive resolver logs', 'response records carrying the return path', 'rate limits and RPZ blocklists'],
+    },
+  },
+  {
+    name: 'ICMP echo', layer: 'Network', family: 'Storage', pattern: 'payload-structure',
+    status: 'built', section: 'icmp',
+    idea: 'RFC 792 says an echo reply must return whatever the request sent, so the data area is space the protocol carries faithfully and never inspects. This module builds TWO carriers over it: message bytes in the **echo data area** (loud, high capacity) and one bit in the low bit of the 16-bit **Echo Identifier** (quiet, one bit per echo).',
+    breaks: 'Different defences for each carrier, and neither closes both. A normaliser that clamps the payload or rewrites it back to the conventional fill kills the data-area channel and leaves the identifier untouched; a NAT rewriting the Echo Identifier (RFC 5508 requires this so replies can be demultiplexed) kills the identifier channel and leaves the data area untouched. Rate limiting and filtering drop echoes outright.',
+    indicators: 'Ordinary ping is rigidly uniform: one Echo Identifier per session, sequence numbers stepping by one, one payload size, and the SAME fixed fill bytes in every echo. A data-area tunnel breaks all four at once. Note the statistic that does NOT work — payload entropy. The conventional fill is an incrementing run of distinct bytes, so its entropy is already near maximal; predictability separates them, entropy does not.',
+    fidelity: {
+      faithful: ['both carriers and their opposite failure modes', 'the fill-pattern conformance test, which is a structural check rather than an entropy check', 'payload-size distribution as a second, independent structural check — this lab treats varying PDU size as a size-based storage technique but does not attribute a specific named pattern for it to the 2015 survey', 'the per-peer pivot that recovers a few loaded echoes from a busy ping stream', 'the honest near-miss on the identifier channel — one bit in a field with no reference distribution is close to invisible, exactly as IP-ID parity is in the storage module'],
+      simplified: ['NO PACKET IS CRAFTED, SENT, OR RECEIVED — an "echo" is a plain object in an array, and every address comes from the RFC 5737 documentation ranges, which are reserved for documentation and are not routable', 'no real ICMP stack: no checksums, no reply matching, no rate limiting, no path MTU', 'one covert session against one cover session; a modelled timestamp prefix rather than a real clock'],
+      realWorld: ['raw sockets and elevated privileges to send at all; egress filtering, ICMP rate limits, and per-host policy usually notice; real fill patterns differ between ping implementations'],
     },
   },
   {
@@ -144,6 +160,19 @@ export const CARRIERS = [
     },
   },
 
+  {
+    name: 'Cache / shared-resource timing', layer: 'System side channel', family: 'Timing', pattern: null,
+    status: 'built', section: 'cache',
+    idea: 'Two parties on shared hardware signal by contending for a cache line or set (Flush+Reload, Prime+Probe). The concrete instance of the Shared-Resource Matrix abstraction.',
+    breaks: 'Co-tenant eviction noise, scheduler interference, and mitigations such as cache partitioning or flushing on context switch.',
+    indicators: 'A latency histogram whose fast and slow classes are used about equally — ordinary code has locality and mostly hits. Not visible at the network layer at all.',
+    fidelity: {
+      faithful: ['both probing protocols and their opposite polarities', 'the threshold classifier', 'repeated probing and its averaging gain', 'asymmetric eviction noise', 'measured BER and capacity arithmetic'],
+      simplified: ['A BROWSER PAGE STILL CANNOT MOUNT A REAL FLUSH+RELOAD — that has not changed; what this module adds is a MODEL of one', 'THE CACHE IS MODELLED — no line is flushed, no timer is read, and no timing side channel exists in this page; "cycles" are numbers drawn from a documented distribution'],
+      realWorld: ['precise cycle counters, real inclusive-cache behaviour, address-to-set mapping, prefetchers, and physical co-residency'],
+    },
+  },
+
   /* ---- Conceptual carriers: described, never built as tools ---------------- */
   {
     name: 'Text / linguistic carriers', layer: 'Application / document', family: 'Steganography', pattern: null,
@@ -160,18 +189,6 @@ export const CARRIERS = [
       url: 'https://systemslibrarian.github.io/Ghost-Ink/',
       label: 'Deep dive: the Ghost-Ink exhibit →',
       note: 'A sibling Crypto-Lab exhibit devoted to this family — invisible Unicode-tag messages, and how to catch them.',
-    },
-  },
-  {
-    name: 'ICMP tunneling', layer: 'Network', family: 'Storage', pattern: 'payload-structure',
-    status: 'concept',
-    idea: 'Carry data in the payload of ICMP echo request/reply ("ping") packets.',
-    breaks: 'Often conspicuous; many networks rate-limit or drop large/!standard ICMP.',
-    indicators: 'Oversized or high-entropy ICMP payloads; unusual echo volume.',
-    fidelity: {
-      faithful: ['the concept'],
-      simplified: ['NOT IMPLEMENTED — no ICMP is crafted or sent'],
-      realWorld: ['raw sockets and elevated privileges; egress filtering usually notices'],
     },
   },
   {
@@ -196,30 +213,6 @@ export const CARRIERS = [
       faithful: ['the concept'],
       simplified: ['NOT IMPLEMENTED — no radios, drivers, or frames'],
       realWorld: ['monitor-mode NICs, PHY effects, and RF noise'],
-    },
-  },
-  {
-    name: 'Protocol hopping / switching', layer: 'Any', family: 'Storage', pattern: 'value-modulation',
-    status: 'concept',
-    idea: 'The CHOICE of which protocol to use next encodes bits — a covert state machine over protocols.',
-    breaks: 'Traffic that must be recognisable will still be classified; the hopping pattern itself is a tell.',
-    indicators: 'Unusual protocol-transition statistics for the host.',
-    fidelity: {
-      faithful: ['the concept (a simulated state machine could model it)'],
-      simplified: ['NOT IMPLEMENTED as live traffic'],
-      realWorld: ['real classifiers and NetFlow-level behaviour analytics'],
-    },
-  },
-  {
-    name: 'Cache / shared-resource timing', layer: 'System side channel', family: 'Timing', pattern: null,
-    status: 'built', section: 'cache',
-    idea: 'Two parties on shared hardware signal by contending for a cache line or set (Flush+Reload, Prime+Probe). The concrete instance of the Shared-Resource Matrix abstraction.',
-    breaks: 'Co-tenant eviction noise, scheduler interference, and mitigations such as cache partitioning or flushing on context switch.',
-    indicators: 'A latency histogram whose fast and slow classes are used about equally — ordinary code has locality and mostly hits. Not visible at the network layer at all.',
-    fidelity: {
-      faithful: ['both probing protocols and their opposite polarities', 'the threshold classifier', 'repeated probing and its averaging gain', 'asymmetric eviction noise', 'measured BER and capacity arithmetic'],
-      simplified: ['A BROWSER PAGE STILL CANNOT MOUNT A REAL FLUSH+RELOAD — that has not changed; what this module adds is a MODEL of one', 'THE CACHE IS MODELLED — no line is flushed, no timer is read, and no timing side channel exists in this page; "cycles" are numbers drawn from a documented distribution'],
-      realWorld: ['precise cycle counters, real inclusive-cache behaviour, address-to-set mapping, prefetchers, and physical co-residency'],
     },
   },
   {

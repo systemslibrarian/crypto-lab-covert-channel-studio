@@ -21,7 +21,7 @@ function throughputNorm(bps) {
 
 /**
  * Compute the trade-off triple for one channel run.
- * @param {'dns'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
+ * @param {'dns'|'icmp'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
  * @param {string} message
  * @param {Object} params  channel controls (as in state.channels[channel]) + seed
  * @returns {{ capacity:Object, reliability:Object, observability:Object, run:Object }}
@@ -69,6 +69,16 @@ export function computeTradeoff(channel, message, params = {}) {
       // encoder achieves — the capacity it trades away for simplicity.
       const theoreticalBps = durationSec > 0 ? ceilingBits / durationSec : bitsPerSecond;
       capacity = { bitsPerEvent: 1, bitsPerSecond, theoreticalBps, ceilingBits, achievedBits: msgBits, eventLabel: 'pair' };
+      reliability = { ber: run.bitErrorRate ?? 0 };
+      break;
+    }
+    case 'icmp': {
+      // One echo carries chunkBytes×8 bits in payload mode, or a single
+      // identifier bit. The interval is the sender's own ping cadence.
+      const bitsPerEvent = run.raw.meta.bitsPerEcho;
+      const intervalSec = (run.raw.meta.intervalMs ?? 1000) / 1000;
+      const bitsPerSecond = intervalSec > 0 ? bitsPerEvent / intervalSec : bitsPerEvent;
+      capacity = { bitsPerEvent, bitsPerSecond, eventLabel: 'echo' };
       reliability = { ber: run.bitErrorRate ?? 0 };
       break;
     }
@@ -143,6 +153,10 @@ export const SWEEP = {
   ordering: { key: 'reorderProb', label: 'Reordering', values: [0, 0.05, 0.1, 0.2, 0.3, 0.45, 0.6] },
   physical: { key: 'ambientNoise', label: 'Ambient noise (lux)', values: [0, 40, 80, 120, 180, 260, 340, 420] },
   cache: { key: 'jitterCycles', label: 'Co-tenant jitter (cycles)', values: [0, 30, 60, 100, 150, 220, 300, 400] },
+  // Deliberately a FLAT curve, and that is the finding: burying the tunnel in
+  // ordinary ping traffic does not move the indicator, because the detector
+  // groups by peer before it measures anything.
+  icmp: { key: 'coverCount', label: 'Ordinary pings mixed in', values: [0, 10, 20, 40, 80, 120, 160] },
 };
 
 /**

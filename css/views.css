@@ -259,6 +259,7 @@
 #sec-storage  { --accent: #4ade80; --accent-deep: #22c55e; } /* green  */
 #sec-ordering { --accent: #a78bfa; --accent-deep: #8b5cf6; } /* violet */
 #sec-http     { --accent: #e879f9; --accent-deep: #d946ef; } /* fuchsia*/
+#sec-icmp     { --accent: #f472b6; --accent-deep: #ec4899; } /* pink   */
 #sec-stego    { --accent: #bef264; --accent-deep: #a3e635; } /* lime   */
 #sec-metadata { --accent: #5eead4; --accent-deep: #2dd4bf; } /* mint   */
 #sec-physical { --accent: #fb923c; --accent-deep: #f97316; } /* orange */
@@ -284,3 +285,10 @@
 .atlas-concept-footer { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
 .atlas-deepdive-note { margin: 0; font-size: var(--fs-xs); }
 a.atlas-deepdive { text-decoration: none; }
+
+/* ---- ICMP echo channel ---------------------------------------------------- */
+.icmp-data { max-width: 34ch; overflow: hidden; text-overflow: ellipsis; }
+.icmp-stamp { color: var(--text-faint); }
+.icmp-payload { color: var(--text-dim); }
+.icmp-payload.covert { color: var(--covert); }
+

@@ -23,6 +23,7 @@ export const VIEW_MODES = { SENDER: 'sender', DEFENDER: 'defender' };
 export const SECTIONS = [
   { id: 'overview', label: 'Overview', group: 'Start' },
   { id: 'dns', label: 'DNS Channel', group: 'Channels', icon: '\u{1F310}' },
+  { id: 'icmp', label: 'ICMP Echo Channel', group: 'Channels', icon: '\u{1F4E1}' },
   { id: 'timing', label: 'Timing Channel', group: 'Channels', icon: '\u{23F1}' },
   { id: 'storage', label: 'Storage Channel', group: 'Channels', icon: '\u{1F4E6}' },
   { id: 'ordering', label: 'Packet-Order Channel', group: 'Channels', icon: '\u{1F500}' },
@@ -61,6 +62,12 @@ const DEFAULT_STATE = {
       middlebox: { nat: false, headerNormalization: false, proxy: false, firewall: false, reorder: false },
     },
     ordering: { reorderProb: 0 },
+    icmp: {
+      field: 'payload', chunkBytes: 2, padToStandard: false,
+      // `clampBytes` null means the normaliser is off; `clampAt` remembers the
+      // size it clamps to, so toggling it off and on again keeps the setting.
+      clampBytes: null, clampAt: 12, rewriteId: false, lossProb: 0, coverCount: 20,
+    },
     http: { coverCount: 20, normalize: false },
     metadata: { minimize: false },
     physical: {

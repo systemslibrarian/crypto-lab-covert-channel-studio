@@ -20,6 +20,8 @@ import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { simulatePhysical, generateAmbientBaseline } from '../channels/physical.js';
 import { simulateCache, generateIdleLatencies } from '../channels/cache.js';
+import { simulateIcmpRun, generateNormalEchoes } from '../channels/icmp.js';
+import { analyzeIcmp } from '../detectors/icmpDetector.js';
 import { analyzePhysical } from '../detectors/physicalDetector.js';
 import { analyzeCache } from '../detectors/cacheDetector.js';
 
@@ -32,6 +34,7 @@ export const INDICATORS = {
   storage: ['A field stuck on two odd values', 'Tiny value support', 'Skewed bit pattern', 'Nothing unusual'],
   physical: ['Two tight luminance levels', 'Levels far above the noise floor', 'Near-50% duty cycle', 'Nothing unusual'],
   cache: ['Fast and slow used about equally', 'Two tight latency groups', 'Groups far apart (clean readout)', 'Nothing unusual'],
+  icmp: ['Payload is not the standard fill', 'Unusual or varying payload size', 'Every echo carries different data', 'More than one Echo Identifier', 'Nothing unusual'],
 };
 
 /**
@@ -150,6 +153,37 @@ const SCENARIOS = [
       };
     },
   },
+  {
+    channel: 'icmp', truth: 'covert', title: 'ICMP echo traffic from a jump host',
+    build(rng, seed) {
+      const run = simulateIcmpRun(pick(rng, HIDDEN), {
+        chunkBytes: rng.int(1, 6), padToStandard: rng.bool(0.4),
+        coverCount: rng.int(15, 35), seed,
+      });
+      return { observables: icmpObs(run.mixed), detector: analyzeIcmp(run.mixed), decoded: run.recoveredText };
+    },
+  },
+  {
+    channel: 'icmp', truth: 'covert', title: 'ICMP echo traffic from a workstation',
+    build(rng, seed) {
+      // Honest FALSE NEGATIVE: one bit in the Echo Identifier. Size, fill and
+      // repetition statistics all see a completely ordinary ping session.
+      const run = simulateIcmpRun(pick(rng, HIDDEN), {
+        field: 'id-lowbits', coverCount: rng.int(15, 30), seed,
+      });
+      return {
+        observables: icmpObs(run.mixed), detector: analyzeIcmp(run.mixed), decoded: run.recoveredText,
+        note: 'the payload is untouched and correctly-sized — this one is carried in a single header bit, and a content statistic cannot see it',
+      };
+    },
+  },
+  {
+    channel: 'icmp', truth: 'clean', title: 'ICMP echo traffic from a workstation',
+    build(rng, seed) {
+      const echoes = generateNormalEchoes(rng.int(25, 50), { seed });
+      return { observables: icmpObs(echoes), detector: analyzeIcmp(echoes) };
+    },
+  },
 ];
 
 /**
@@ -225,6 +259,21 @@ function storageObs(packets) {
       index: p.index, ttl: p.ttl, ipId: p.ipId, sequence: p.sequence, len: p.payloadLength,
     })),
     count: packets.length,
+  };
+}
+
+/** ICMP echoes, with the head of each data area shown as hex. */
+function icmpObs(echoes) {
+  return {
+    type: 'icmp',
+    rows: echoes.slice(0, 60).map((e) => ({
+      seq: e.seq,
+      identifier: e.identifier,
+      bytes: e.dataBytes,
+      dest: e.dest,
+      head: (e.data || []).slice(8, 8 + 8).map((b) => b.toString(16).padStart(2, '0')).join(' '),
+    })),
+    count: echoes.length,
   };
 }
 

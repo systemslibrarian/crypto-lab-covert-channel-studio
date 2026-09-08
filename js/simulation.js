@@ -14,6 +14,7 @@ import { simulateDnsRun } from './channels/dns.js';
 import { simulateTimingFromText } from './channels/timing.js';
 import { simulateStorageRun } from './channels/storage.js';
 import { simulateOrderingRun } from './channels/ordering.js';
+import { simulateIcmpRun } from './channels/icmp.js';
 import { simulateHttpRun } from './channels/http.js';
 import { simulatePhysicalRun } from './channels/physical.js';
 import { simulateCacheRun } from './channels/cache.js';
@@ -22,11 +23,12 @@ import { analyzeDns } from './detectors/dnsDetector.js';
 import { analyzeTiming } from './detectors/timingDetector.js';
 import { analyzeStorage } from './detectors/storageDetector.js';
 import { analyzeOrdering } from './detectors/orderingDetector.js';
+import { analyzeIcmp } from './detectors/icmpDetector.js';
 import { analyzeHttp } from './detectors/httpDetector.js';
 import { analyzePhysical } from './detectors/physicalDetector.js';
 import { analyzeCache } from './detectors/cacheDetector.js';
 
-export const CHANNELS = ['dns', 'timing', 'storage', 'ordering', 'http', 'physical', 'cache'];
+export const CHANNELS = ['dns', 'icmp', 'timing', 'storage', 'ordering', 'http', 'physical', 'cache'];
 
 /**
  * The text -> bytes -> bits pipeline shown in the Overview (and reused as a
@@ -53,7 +55,7 @@ export function buildMessagePipeline(text) {
  * Run one channel end-to-end and normalise the outcome. `params` are the
  * channel-specific control values from the UI.
  *
- * @param {'dns'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
+ * @param {'dns'|'icmp'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
  * @param {string} message
  * @param {Object} [params]
  * @returns {{ channel:string, message:string, raw:Object, detector:Object,
@@ -66,6 +68,7 @@ export function runChannel(channel, message, params = {}) {
     case 'timing': return runTiming(message, params);
     case 'storage': return runStorage(message, params);
     case 'ordering': return runOrdering(message, params);
+    case 'icmp': return runIcmp(message, params);
     case 'http': return runHttp(message, params);
     case 'physical': return runPhysical(message, params);
     case 'cache': return runCache(message, params);
@@ -129,6 +132,23 @@ function runOrdering(message, params) {
     summary: {
       pairs: raw.pairs.length,
       reorderProb: raw.reorderProb,
+    },
+  });
+}
+
+function runIcmp(message, params) {
+  const raw = simulateIcmpRun(message, params);
+  // A defender sees the whole ping stream, cover included — not just the tunnel.
+  const detector = analyzeIcmp(raw.mixed);
+  return normalise('icmp', message, raw, detector, {
+    decodedText: raw.recoveredText,
+    bitErrors: raw.bitErrors,
+    bitErrorRate: raw.bitErrorRate,
+    summary: {
+      field: raw.field,
+      echoes: raw.cleanEchoes.length,
+      bitsPerEcho: raw.meta.bitsPerEcho,
+      clamped: raw.clampedCount,
     },
   });
 }
