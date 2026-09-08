@@ -21,6 +21,7 @@ import { simulateTiming, generateNormalGaps } from '../channels/timing.js';
 import { encodeBitsToPackets, generateNormalPackets } from '../channels/storage.js';
 import { simulateHttpRun, generateNormalRequests } from '../channels/http.js';
 import { simulateIcmpRun, generateNormalEchoes } from '../channels/icmp.js';
+import { simulateHoppingRun, generateNormalFlows, generateMonitorFlows } from '../channels/hopping.js';
 import { simulatePhysical, generateAmbientBaseline } from '../channels/physical.js';
 import { simulateCache, generateIdleLatencies } from '../channels/cache.js';
 import { analyzeDns } from '../detectors/dnsDetector.js';
@@ -28,6 +29,7 @@ import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeHttp } from '../detectors/httpDetector.js';
 import { analyzeIcmp } from '../detectors/icmpDetector.js';
+import { analyzeHopping } from '../detectors/hoppingDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
 import { analyzePhysical } from '../detectors/physicalDetector.js';
 import { analyzeCache } from '../detectors/cacheDetector.js';
@@ -274,12 +276,47 @@ function icmpCases() {
   return pts;
 }
 
+function hoppingCases() {
+  const pts = [];
+  // Covert: the same walk buried in increasing amounts of ordinary traffic.
+  // The scores should NOT fall as cover rises — that is what the per-peer pivot
+  // buys, and the benchmark is where that claim gets checked.
+  for (const coverCount of [0, 20, 50, 90]) {
+    for (const s of ['a', 'b', 'c']) {
+      const run = simulateHoppingRun('HELLO WORLD', { coverCount, seed: `v:hp:c:${coverCount}:${s}` });
+      pts.push({ score: analyzeHopping(run.mixed).score, label: 'covert' });
+    }
+  }
+  // Clean: ordinary sticky host traffic.
+  for (const n of [60, 90, 120]) {
+    for (const s of ['a', 'b', 'c', 'd']) {
+      pts.push({ score: analyzeHopping(generateNormalFlows(n, { seed: `v:hp:n:${n}:${s}` })).score, label: 'clean' });
+    }
+  }
+  // Clean: monitoring agents that round-robin service checks against one peer.
+  // Their transition-matrix diagonal is as empty as the covert channel's, so
+  // they are genuine false positives; the longer, non-uniform rotations push
+  // their transition entropy up into the covert range and cost real AUC.
+  const rotations = [
+    ['https', 'dns', 'ntp'],
+    ['https', 'dns', 'smtp', 'ssh'],
+    ['https', 'dns', 'ntp', 'smtp', 'ssh'],
+    ['https', 'dns', 'ntp', 'https', 'smtp', 'ssh', 'dns', 'ntp'],
+    ['https', 'ssh', 'dns', 'smtp', 'https', 'ntp', 'dns', 'ssh', 'ntp', 'smtp'],
+  ];
+  rotations.forEach((rotation, i) => {
+    pts.push({ score: analyzeHopping(generateMonitorFlows(60, { rotation, dest: `203.0.113.${70 + i}` })).score, label: 'clean' });
+  });
+  return pts;
+}
+
 const GENERATORS = {
   dns: { label: 'DNS', method: 'Character-frequency divergence + label length/entropy', cases: dnsCases },
   timing: { label: 'Timing', method: 'Corrected conditional entropy + Cabuk regularity', cases: timingCases },
   storage: { label: 'Storage (TTL toggle)', method: 'Field value-support / uncommon TTL', cases: storageCases },
   http: { label: 'HTTP header order', method: 'Header-order entropy fingerprint', cases: httpCases },
   icmp: { label: 'ICMP echo', method: 'Fill-pattern conformance + payload-size variation + data-area repetition', cases: icmpCases },
+  hopping: { label: 'Protocol hopping', method: 'Transition-matrix diagonal mass + transition entropy, pivoted per peer', cases: hoppingCases },
   stego: { label: 'Image LSB', method: 'Chi-square attack + LSB block contrast', cases: stegoCases },
   physical: { label: 'Air-gap optical', method: "Two-level clustering + level separation (d') + duty cycle", cases: physicalCases },
   cache: { label: 'Shared cache', method: "Access-class balance gating hit/miss separation (d')", cases: cacheCases },
@@ -292,6 +329,8 @@ export const VALIDATION_NOTES = [
   'The air-gap optical benchmark loses cases at high ambient noise: once the two luminance levels smear into one another the detector cannot see them — but neither can the receiver, so those are cases where the channel has already failed. Detectability and usability collapse together here.',
   'The shared-cache detector scores lowest of the timing-style detectors, and the reason is deliberate. Its clean set includes high-miss-rate workloads (a streaming scan over memory larger than the cache), which use the fast and slow access classes about as evenly as a covert channel does. Because BALANCE is the discriminator — a bimodal latency histogram is normal for memory — those workloads are genuine false positives. Lowering that AUC was the honest choice over keying on a signal (bimodality) that ordinary memory access already produces.',
   'The ICMP benchmark deliberately includes the IDENTIFIER channel among its covert cases, and the detector misses those almost entirely. One bit in a header field with no reference distribution leaves nothing for a content or size statistic to find — the same taught false negative as IP-ID parity in the storage module. Excluding those cases would have produced a much better-looking AUC by hiding the detector\'s real blind spot, which is the opposite of what this lab is for.',
+  'Protocol hopping is the clearest demonstration in this lab that AUC ALONE IS NOT ENOUGH. Its AUC is a perfect 1.000 — every covert case ranks above every clean one — and its false-positive rate at the investigate threshold is still about 29%. Both numbers are correct and they are measuring different things: AUC only asks whether the ordering is right, while the confusion matrix asks what happens at the threshold you actually deploy. A detector can rank flawlessly and still page you constantly.',
+  'The protocol-hopping clean set includes monitoring agents that round-robin service checks against a single peer. Their transition-matrix diagonal is exactly as empty as a covert channel\'s, so they are genuine false positives, and the longer non-uniform rotations push their transition entropy up into covert territory. They cost real AUC. Keeping them is the honest choice: "never repeats a protocol" describes a cron job as accurately as it describes a covert state machine, and the second statistic exists precisely because the first one cannot tell them apart.',
   'Thresholds (34 = investigate, 67 = high) are a teaching choice, not tuned operating points. The confusion matrix at 34 vs 67 shows the FPR/FNR trade move as you raise the bar.',
 ];
 

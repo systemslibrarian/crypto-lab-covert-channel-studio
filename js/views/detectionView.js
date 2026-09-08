@@ -16,6 +16,7 @@ import { simulateTimingFromText, generateNormalGaps } from '../channels/timing.j
 import { simulateStorageRun } from '../channels/storage.js';
 import { simulateOrderingRun } from '../channels/ordering.js';
 import { simulateIcmpRun } from '../channels/icmp.js';
+import { simulateHoppingRun } from '../channels/hopping.js';
 import { simulateHttpRun } from '../channels/http.js';
 import { embedMessage } from '../channels/stego.js';
 import { simulatePhysicalRun } from '../channels/physical.js';
@@ -26,6 +27,7 @@ import { analyzeTiming } from '../detectors/timingDetector.js';
 import { analyzeStorage } from '../detectors/storageDetector.js';
 import { analyzeOrdering } from '../detectors/orderingDetector.js';
 import { analyzeIcmp } from '../detectors/icmpDetector.js';
+import { analyzeHopping } from '../detectors/hoppingDetector.js';
 import { analyzeHttp } from '../detectors/httpDetector.js';
 import { analyzeStego } from '../detectors/stegoDetector.js';
 import { analyzePhysical } from '../detectors/physicalDetector.js';
@@ -39,6 +41,7 @@ const CHANNELS = [
   { key: 'storage', label: 'Storage' },
   { key: 'ordering', label: 'Ordering' },
   { key: 'http', label: 'HTTP' },
+  { key: 'hopping', label: 'Hopping' },
   { key: 'stego', label: 'Image' },
   { key: 'physical', label: 'Air gap' },
   { key: 'cache', label: 'Cache' },
@@ -108,6 +111,10 @@ function analyze(channel, state) {
     case 'icmp': {
       const run = simulateIcmpRun(state.message, { ...state.channels.icmp, seed: `${state.seed}:icmp` });
       return { det: analyzeIcmp(run.mixed), run };
+    }
+    case 'hopping': {
+      const run = simulateHoppingRun(state.message, { ...state.channels.hopping, seed: `${state.seed}:hopping` });
+      return { det: analyzeHopping(run.mixed), run };
     }
     case 'http': {
       const run = simulateHttpRun(state.message, { ...state.channels.http, seed: `${state.seed}:http` });
@@ -209,6 +216,18 @@ function detailExtras(channel, det, run) {
           color: b.value === m.standardBytes || b.value === 32 ? 'var(--accent-2)' : 'var(--covert)',
         })), { height: 110, ariaLabel: 'ICMP payload size distribution' }),
         para('Payload entropy is the wrong statistic here — the conventional fill is already high-entropy. Predictability is what separates them.', 'subtle'));
+    }
+    case 'hopping': {
+      const pivot = m.pivot;
+      return div({},
+        el('h3', { class: 'card-title', text: 'Transition statistics' }),
+        metricList([
+          { name: 'Self-transitions (all peers)', value: `${Math.round(m.global.selfRatio * 100)}%` },
+          { name: pivot ? `Self-transitions (${pivot.dest})` : 'Self-transitions (per peer)', value: pivot ? `${Math.round(pivot.selfRatio * 100)}%` : 'n/a', hi: !!pivot && pivot.selfRatio < 0.1 },
+          { name: 'Transition entropy (peer)', value: pivot ? `${Math.round(pivot.normEntropy * 100)}% of ceiling` : 'n/a', hi: !!pivot && pivot.normEntropy > 0.8 },
+          { name: 'Peers observed', value: String(m.peerCount) },
+        ]),
+        para('No packet is anomalous; the sequence is. Aggregated over the host the channel vanishes — grouping by peer brings it back.', 'subtle'));
     }
     case 'http':
       return div({},

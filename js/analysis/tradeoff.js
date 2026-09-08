@@ -21,7 +21,7 @@ function throughputNorm(bps) {
 
 /**
  * Compute the trade-off triple for one channel run.
- * @param {'dns'|'icmp'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
+ * @param {'dns'|'icmp'|'timing'|'storage'|'ordering'|'http'|'hopping'|'physical'|'cache'} channel
  * @param {string} message
  * @param {Object} params  channel controls (as in state.channels[channel]) + seed
  * @returns {{ capacity:Object, reliability:Object, observability:Object, run:Object }}
@@ -79,6 +79,16 @@ export function computeTradeoff(channel, message, params = {}) {
       const intervalSec = (run.raw.meta.intervalMs ?? 1000) / 1000;
       const bitsPerSecond = intervalSec > 0 ? bitsPerEvent / intervalSec : bitsPerEvent;
       capacity = { bitsPerEvent, bitsPerSecond, eventLabel: 'echo' };
+      reliability = { ber: run.bitErrorRate ?? 0 };
+      break;
+    }
+    case 'hopping': {
+      // Capacity grows only with log2(n−1): adding protocols to the set buys
+      // very little, which is why hopping is a low-rate channel by nature.
+      const bitsPerEvent = run.raw.meta.bitsPerHop;
+      const gapSec = (run.raw.meta.gapMs ?? 900) / 1000;
+      const bitsPerSecond = gapSec > 0 ? bitsPerEvent / gapSec : bitsPerEvent;
+      capacity = { bitsPerEvent, bitsPerSecond, eventLabel: 'hop' };
       reliability = { ber: run.bitErrorRate ?? 0 };
       break;
     }
@@ -157,6 +167,7 @@ export const SWEEP = {
   // ordinary ping traffic does not move the indicator, because the detector
   // groups by peer before it measures anything.
   icmp: { key: 'coverCount', label: 'Ordinary pings mixed in', values: [0, 10, 20, 40, 80, 120, 160] },
+  hopping: { key: 'lossProb', label: 'Flow loss', values: [0, 0.02, 0.05, 0.1, 0.15, 0.25, 0.35, 0.5] },
 };
 
 /**

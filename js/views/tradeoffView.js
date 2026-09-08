@@ -10,7 +10,7 @@ import { button } from './controls.js';
 import { round } from '../utils/statistics.js';
 import { computeTradeoff, sweepTradeoff, SWEEP } from '../analysis/tradeoff.js';
 
-const CHANNEL_LABEL = { dns: 'DNS', icmp: 'ICMP echo', timing: 'Timing', storage: 'Storage', ordering: 'Packet ordering', http: 'HTTP header order', physical: 'Air-gap optical', cache: 'Shared cache' };
+const CHANNEL_LABEL = { dns: 'DNS', icmp: 'ICMP echo', timing: 'Timing', storage: 'Storage', ordering: 'Packet ordering', http: 'HTTP header order', hopping: 'Protocol hopping', physical: 'Air-gap optical', cache: 'Shared cache' };
 
 /**
  * A full trade-off card for a channel: three live meters + (where a natural knob
@@ -141,6 +141,7 @@ function curveCaption(channel) {
     case 'dns': return 'Longer labels carry more per query, but the detector score rises with them: capacity and observability move together.';
     case 'ordering': return 'More reordering means more bit errors; the ordering structure stays visible until reliability has already collapsed.';
     case 'icmp': return 'This curve is flat on purpose. Burying the tunnel in more ordinary ping traffic does not lower the indicator at all, because the detector groups by destination before it measures anything — dilution defeats an aggregate, not an analyst who pivots.';
+    case 'hopping': return 'Loss barely dents the rate but wrecks the message: the state machine resynchronises while the bit positions do not, so every symbol after a dropped flow lands in the wrong place.';
     case 'physical': return 'As ambient light rises, bit errors climb and the two luminance levels smear together — the receiver and the sensor lose the signal at much the same point.';
     case 'cache': return 'As co-tenant jitter rises, the hit and miss classes overlap: bit errors climb while the latency histogram stops looking cleanly separated.';
     default: return '';

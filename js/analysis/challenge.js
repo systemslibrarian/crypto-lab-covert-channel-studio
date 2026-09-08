@@ -21,7 +21,9 @@ import { analyzeStorage } from '../detectors/storageDetector.js';
 import { simulatePhysical, generateAmbientBaseline } from '../channels/physical.js';
 import { simulateCache, generateIdleLatencies } from '../channels/cache.js';
 import { simulateIcmpRun, generateNormalEchoes } from '../channels/icmp.js';
+import { simulateHoppingRun, generateNormalFlows, generateMonitorFlows, PROTOCOL_KEYS } from '../channels/hopping.js';
 import { analyzeIcmp } from '../detectors/icmpDetector.js';
+import { analyzeHopping } from '../detectors/hoppingDetector.js';
 import { analyzePhysical } from '../detectors/physicalDetector.js';
 import { analyzeCache } from '../detectors/cacheDetector.js';
 
@@ -34,6 +36,7 @@ export const INDICATORS = {
   storage: ['A field stuck on two odd values', 'Tiny value support', 'Skewed bit pattern', 'Nothing unusual'],
   physical: ['Two tight luminance levels', 'Levels far above the noise floor', 'Near-50% duty cycle', 'Nothing unusual'],
   cache: ['Fast and slow used about equally', 'Two tight latency groups', 'Groups far apart (clean readout)', 'Nothing unusual'],
+  hopping: ['Never repeats a protocol', 'Transitions spread evenly', 'One peer unlike the others', 'A fixed repeating rotation', 'Nothing unusual'],
   icmp: ['Payload is not the standard fill', 'Unusual or varying payload size', 'Every echo carries different data', 'More than one Echo Identifier', 'Nothing unusual'],
 };
 
@@ -154,6 +157,38 @@ const SCENARIOS = [
     },
   },
   {
+    channel: 'hopping', truth: 'covert', title: 'Outbound flows from a build server',
+    build(rng, seed) {
+      const run = simulateHoppingRun(pick(rng, HIDDEN), {
+        coverCount: rng.int(30, 90), lossProb: 0, seed,
+      });
+      return { observables: flowObs(run.mixed), detector: analyzeHopping(run.mixed), decoded: run.recoveredText };
+    },
+  },
+  {
+    channel: 'hopping', truth: 'clean', title: 'Outbound flows from a build server',
+    build(rng, seed) {
+      const flows = generateNormalFlows(rng.int(70, 130), { seed, stickiness: rng.float(0.5, 0.7) });
+      return { observables: flowObs(flows), detector: analyzeHopping(flows) };
+    },
+  },
+  {
+    channel: 'hopping', truth: 'clean', title: 'Outbound flows from a monitoring host',
+    build(rng, seed) {
+      // Honest false-positive trap, and the best one in the set: a monitoring
+      // agent that round-robins service checks has an EMPTY transition diagonal,
+      // exactly like a covert state machine. The discriminator is that it reuses
+      // a handful of transitions where a payload-carrying walk uses them all.
+      const len = rng.int(3, 5);
+      const rotation = rng.shuffle(PROTOCOL_KEYS).slice(0, len);
+      const flows = generateMonitorFlows(rng.int(50, 80), { rotation, dest: '203.0.113.77' });
+      return {
+        observables: flowObs(flows), detector: analyzeHopping(flows),
+        note: 'a scheduled service check never repeats a protocol either — look at how MANY distinct transitions are used, not just whether the diagonal is empty',
+      };
+    },
+  },
+  {
     channel: 'icmp', truth: 'covert', title: 'ICMP echo traffic from a jump host',
     build(rng, seed) {
       const run = simulateIcmpRun(pick(rng, HIDDEN), {
@@ -259,6 +294,15 @@ function storageObs(packets) {
       index: p.index, ttl: p.ttl, ipId: p.ipId, sequence: p.sequence, len: p.payloadLength,
     })),
     count: packets.length,
+  };
+}
+
+/** Protocol flows: the analyst has to find the transition structure themselves. */
+function flowObs(flows) {
+  return {
+    type: 'flows',
+    rows: flows.slice(0, 80).map((f) => ({ time: f.t, protocol: f.protocol, dest: f.dest })),
+    count: flows.length,
   };
 }
 

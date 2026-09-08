@@ -15,6 +15,7 @@ import { simulateTimingFromText } from './channels/timing.js';
 import { simulateStorageRun } from './channels/storage.js';
 import { simulateOrderingRun } from './channels/ordering.js';
 import { simulateIcmpRun } from './channels/icmp.js';
+import { simulateHoppingRun } from './channels/hopping.js';
 import { simulateHttpRun } from './channels/http.js';
 import { simulatePhysicalRun } from './channels/physical.js';
 import { simulateCacheRun } from './channels/cache.js';
@@ -24,11 +25,12 @@ import { analyzeTiming } from './detectors/timingDetector.js';
 import { analyzeStorage } from './detectors/storageDetector.js';
 import { analyzeOrdering } from './detectors/orderingDetector.js';
 import { analyzeIcmp } from './detectors/icmpDetector.js';
+import { analyzeHopping } from './detectors/hoppingDetector.js';
 import { analyzeHttp } from './detectors/httpDetector.js';
 import { analyzePhysical } from './detectors/physicalDetector.js';
 import { analyzeCache } from './detectors/cacheDetector.js';
 
-export const CHANNELS = ['dns', 'icmp', 'timing', 'storage', 'ordering', 'http', 'physical', 'cache'];
+export const CHANNELS = ['dns', 'icmp', 'timing', 'storage', 'ordering', 'http', 'hopping', 'physical', 'cache'];
 
 /**
  * The text -> bytes -> bits pipeline shown in the Overview (and reused as a
@@ -55,7 +57,7 @@ export function buildMessagePipeline(text) {
  * Run one channel end-to-end and normalise the outcome. `params` are the
  * channel-specific control values from the UI.
  *
- * @param {'dns'|'icmp'|'timing'|'storage'|'ordering'|'http'|'physical'|'cache'} channel
+ * @param {'dns'|'icmp'|'timing'|'storage'|'ordering'|'http'|'hopping'|'physical'|'cache'} channel
  * @param {string} message
  * @param {Object} [params]
  * @returns {{ channel:string, message:string, raw:Object, detector:Object,
@@ -69,6 +71,7 @@ export function runChannel(channel, message, params = {}) {
     case 'storage': return runStorage(message, params);
     case 'ordering': return runOrdering(message, params);
     case 'icmp': return runIcmp(message, params);
+    case 'hopping': return runHopping(message, params);
     case 'http': return runHttp(message, params);
     case 'physical': return runPhysical(message, params);
     case 'cache': return runCache(message, params);
@@ -149,6 +152,23 @@ function runIcmp(message, params) {
       echoes: raw.cleanEchoes.length,
       bitsPerEcho: raw.meta.bitsPerEcho,
       clamped: raw.clampedCount,
+    },
+  });
+}
+
+function runHopping(message, params) {
+  const raw = simulateHoppingRun(message, params);
+  // Likewise: the observable stream is every flow the host emitted.
+  const detector = analyzeHopping(raw.mixed);
+  return normalise('hopping', message, raw, detector, {
+    decodedText: raw.recoveredText,
+    bitErrors: raw.bitErrors,
+    bitErrorRate: raw.bitErrorRate,
+    summary: {
+      hops: raw.meta.hops,
+      bitsPerHop: raw.meta.bitsPerHop,
+      dropped: raw.droppedCount,
+      blocked: raw.blockedCount,
     },
   });
 }

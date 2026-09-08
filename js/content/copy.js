@@ -157,6 +157,37 @@ export const COPY = {
     ],
   },
 
+  hopping: {
+    title: 'The Message Is in the Choice of Protocol',
+    outcomes: [
+      'encode bits in a **state machine over protocols** rather than inside any one of them',
+      'explain why no per-packet inspector can see this channel at all',
+      'read a **transition matrix** and say why its empty diagonal is the tell',
+      'pivot from a host-level aggregate to a per-peer view, and see the channel reappear',
+      'explain why one lost flow corrupts everything after it even though the state machine resynchronises',
+    ],
+    lede: 'Every other network module here hides bits *inside* a protocol — in a field, in a gap, in an ordering. This one hides them in the **choice of protocol itself**. Each flow is entirely ordinary; the payload lives in what the host decides to speak next.',
+    blocks: [
+      { code: 'protocols:  HTTPS  DNS  NTP  SMTP  SSH        (n = 5, order is part of the key)\n\nto   = (from + 1 + symbol) mod n              symbol in {0,1,2,3}\nfrom each protocol there are n-1 successors  ->  floor(log2 4) = 2 bits per hop' },
+      { callout: {
+        kind: 'key',
+        title: 'There is no anomalous value anywhere',
+        body: 'This is the point of the module. Every packet is a valid packet of a protocol the host legitimately speaks. No signature, no field check, no payload inspection, and no entropy test on any single flow can see anything wrong — because nothing *is* wrong with any single flow. The channel exists only as a property of the **sequence**.',
+      } },
+      { h: 'The tell is a transition statistic' },
+      'A hopping grammar must change protocol on every hop or it cannot be decoded, so the **diagonal of its transition matrix is exactly empty**. Real hosts are sticky in a way that is easy to underestimate: a browsing session is a long run of HTTPS, name lookups go to one resolver, and a mail client talks SMTP in bursts. That stickiness is what the grammar forbids, and unlike an entropy estimate it is *forced by the encoding* rather than estimated — so it survives small samples.',
+      { h: 'Why you have to pivot' },
+      'Mixed into a host’s ordinary traffic the hops average away: turn the cover-traffic slider up and watch the whole-host diagonal look perfectly normal again while the channel keeps running at full rate. Grouping by **peer** is what brings it back, because the covert walk all goes to one rendezvous address — the receiver has to know which flows are the channel, and that requirement is also the weakness. The defender panel reports both views so the gap between them is visible.',
+      { callout: {
+        kind: 'warn',
+        title: 'Loss is locally survivable and globally fatal',
+        body: 'The receiver reads each transition straight off the carrier, so it never carries hidden state and the state machine **resynchronises** immediately after a lost flow. The bit *indexing* does not. Lose one flow and every symbol after it lands one position early, so the rest of the message is garbage. Two percent loss is enough to push the error rate to roughly a coin flip — a state machine with no framing has no way to recover.',
+      } },
+      { h: 'Why the capacity ceiling is so low' },
+      'Hop capacity is ⌊log₂(n−1)⌋ bits, so it grows only **logarithmically** with the protocol set. Going from 5 protocols to 9 buys exactly one more bit per hop, while making the host’s behaviour markedly stranger. That is a poor trade, and it is why protocol hopping is a low-rate signalling channel rather than an exfiltration channel.',
+    ],
+  },
+
   stego: {
     title: 'Hidden in Plain Sight',
     outcomes: [
@@ -340,6 +371,7 @@ export const CALLOUTS = {
   ordering: { title: 'Ordering channel', body: 'The information is in the sequence, not the contents.' },
   http: { title: 'HTTP header channel', body: 'Every header is valid; the order they appear in carries the bits.' },
   icmp: { title: 'ICMP echo channel', body: 'The protocol promises to echo the data area back untouched, and never looks at it.' },
+  hopping: { title: 'Protocol-hopping channel', body: 'No packet is odd. Only the sequence of protocols is.' },
   metadata: { title: 'Metadata channel', body: 'Records never meant as a message can still carry — and leak — one.' },
   stego: { title: 'Steganography', body: 'The carrier still looks like ordinary content.' },
   physical: { title: 'Physical-medium channel', body: 'The carrier is the medium itself — light, heat, sound — so no network is involved at all.' },

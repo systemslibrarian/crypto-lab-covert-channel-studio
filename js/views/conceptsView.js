@@ -15,6 +15,7 @@ const CHANNELS = [
   { key: 'timing', label: 'Timing' },
   { key: 'storage', label: 'Storage' },
   { key: 'ordering', label: 'Ordering' },
+  { key: 'hopping', label: 'Hopping' },
   { key: 'physical', label: 'Air gap' },
   { key: 'cache', label: 'Cache' },
 ];
@@ -28,6 +29,7 @@ function demoParams(channel) {
     case 'storage': return { field: 'ttl-toggle', seed };
     case 'ordering': return { reorderProb: 0, seed };
     case 'icmp': return { field: 'payload', chunkBytes: 2, coverCount: 20, seed };
+    case 'hopping': return { lossProb: 0, blocked: [], coverCount: 30, seed };
     case 'physical': return { ambientNoise: 0, ambientDrift: 0, seed };
     case 'cache': return { probe: 'flush-reload', jitterCycles: 0, evictionProb: 0, seed };
     default: return { seed };

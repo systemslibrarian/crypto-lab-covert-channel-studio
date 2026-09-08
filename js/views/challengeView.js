@@ -145,8 +145,24 @@ function observablePanel(obs) {
   if (obs.type === 'timing') return timingPanel(obs);
   if (obs.type === 'storage') return storagePanel(obs);
   if (obs.type === 'series') return seriesPanel(obs);
+  if (obs.type === 'flows') return flowsPanel(obs);
   if (obs.type === 'icmp') return icmpPanel(obs);
   return null;
+}
+
+/** Protocol flows. Deliberately a plain log: finding the transition structure
+ *  — and thinking to group by peer — is the exercise. */
+function flowsPanel(obs) {
+  const head = el('tr', {}, ...['Time', 'Protocol', 'Destination'].map((h) => el('th', { text: h })));
+  const rows = obs.rows.map((r) => el('tr', {},
+    el('td', { class: 'mono', text: formatClock(r.time) }),
+    el('td', { class: 'mono', text: r.protocol.toUpperCase() }),
+    el('td', { class: 'mono', text: r.dest })));
+  const peers = new Set(obs.rows.map((r) => r.dest)).size;
+  return div({},
+    para(`${obs.count} outbound flows observed across ${peers} peer${peers === 1 ? '' : 's'}. No single flow is unusual — read the sequence, and consider reading it per destination.`, 'subtle'),
+    div({ class: 'table-wrap', style: { maxHeight: '260px', overflowY: 'auto' }, attrs: { tabindex: '0', role: 'region', 'aria-label': 'Outbound protocol flow log for this case' } },
+      el('table', { class: 'data-table' }, el('thead', {}, head), el('tbody', {}, ...rows))));
 }
 
 /** ICMP echoes. The head of each data area is shown after the timestamp. */
@@ -229,7 +245,7 @@ function storagePanel(obs) {
 function channelLabel(ch) {
   return {
     dns: 'DNS', timing: 'Timing', storage: 'Storage', physical: 'Air-gap optical',
-    cache: 'Shared cache', icmp: 'ICMP echo',
+    cache: 'Shared cache', hopping: 'Protocol hopping', icmp: 'ICMP echo',
   }[ch] || ch;
 }
 function shorten(s) { return s.length > 46 ? s.slice(0, 43) + '…' : s; }
@@ -246,6 +262,10 @@ const INDICATOR_KEYWORDS = {
   'A field stuck on two odd values': ['ttl', 'adjacent', 'two'],
   'Tiny value support': ['support', 'distinct', 'uncommon'],
   'Skewed bit pattern': ['skew', 'bias'],
+  'Never repeats a protocol': ['never repeats', 'stay put', 'self-transition'],
+  'Transitions spread evenly': ['transition entropy', 'ceiling', 'distinct transitions'],
+  'One peer unlike the others': ['peer', 'aggregated', 'split by'],
+  'A fixed repeating rotation': ['fixed rotation', 'reuse only'],
   'Payload is not the standard fill': ['fill pattern', 'not the standard'],
   'Unusual or varying payload size': ['data areas average', 'distinct size', 'conventional sizes'],
   'Every echo carries different data': ['unique', 'data areas'],

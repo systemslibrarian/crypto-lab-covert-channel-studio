@@ -28,6 +28,7 @@ export const SECTIONS = [
   { id: 'storage', label: 'Storage Channel', group: 'Channels', icon: '\u{1F4E6}' },
   { id: 'ordering', label: 'Packet-Order Channel', group: 'Channels', icon: '\u{1F500}' },
   { id: 'http', label: 'HTTP Header Channel', group: 'Channels', icon: '\u{1F4E8}' },
+  { id: 'hopping', label: 'Protocol-Hopping Channel', group: 'Channels', icon: '\u{1F503}' },
   { id: 'stego', label: 'Image Steganography', group: 'Channels', icon: '\u{1F5BC}' },
   { id: 'metadata', label: 'Library Records', group: 'Channels', icon: '\u{1F4DA}' },
   { id: 'physical', label: 'Air-Gap Optical Channel', group: 'Channels', icon: '\u{1F4A1}' },
@@ -68,6 +69,7 @@ const DEFAULT_STATE = {
       // size it clamps to, so toggling it off and on again keeps the setting.
       clampBytes: null, clampAt: 12, rewriteId: false, lossProb: 0, coverCount: 20,
     },
+    hopping: { lossProb: 0, blocked: [], coverCount: 30 },
     http: { coverCount: 20, normalize: false },
     metadata: { minimize: false },
     physical: {
@@ -127,6 +129,13 @@ export function setChannelParam(channel, key, value) {
     },
   };
   emit({ reason: 'param', channel, key });
+}
+
+/** Toggle one protocol in the hopping channel's egress allow-list. */
+export function setHoppingBlocked(protocolKey, blocked) {
+  const cur = state.channels.hopping.blocked;
+  const next = blocked ? [...new Set([...cur, protocolKey])] : cur.filter((k) => k !== protocolKey);
+  setChannelParam('hopping', 'blocked', next);
 }
 
 /** Toggle/set one middlebox flag on the storage channel. */

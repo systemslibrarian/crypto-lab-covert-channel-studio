@@ -17,6 +17,7 @@ import { renderTimingView } from './views/timingView.js';
 import { renderStorageView } from './views/storageView.js';
 import { renderOrderingView } from './views/orderingView.js';
 import { renderIcmpView } from './views/icmpView.js';
+import { renderHoppingView } from './views/hoppingView.js';
 import { renderHttpView } from './views/httpView.js';
 import { renderStegoView } from './views/stegoView.js';
 import { renderMetadataView } from './views/metadataView.js';
@@ -40,6 +41,7 @@ const VIEWS = {
   storage: renderStorageView,
   ordering: renderOrderingView,
   icmp: renderIcmpView,
+  hopping: renderHoppingView,
   http: renderHttpView,
   stego: renderStegoView,
   metadata: renderMetadataView,
@@ -185,7 +187,7 @@ function applyHash() {
 }
 
 // Sections whose layout actually depends on the Sender/Defender view mode.
-const VIEWMODE_SENSITIVE = new Set(['dns', 'icmp', 'timing', 'storage', 'ordering', 'http', 'stego', 'metadata', 'physical', 'cache']);
+const VIEWMODE_SENSITIVE = new Set(['dns', 'icmp', 'timing', 'storage', 'ordering', 'http', 'hopping', 'stego', 'metadata', 'physical', 'cache']);
 
 function renderSection(id, opts = {}) {
   const scroll = opts.scroll !== false;

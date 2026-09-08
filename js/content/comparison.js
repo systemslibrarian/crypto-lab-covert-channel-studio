@@ -111,6 +111,18 @@ export const COMPARISON_ROWS = [
     note: 'Better described as tunneling than covert signaling — it hides content but is readily identifiable as SSH.',
   },
   {
+    channel: 'Protocol hopping',
+    carrier: 'The choice of which protocol to speak next',
+    kind: 'Storage',
+    capacity: 'Very low (2 bits per hop, and the ceiling grows only logarithmically with the protocol set)',
+    reliability: 'Fragile in an unusual way',
+    noise: 'High',
+    breaks: 'An egress allow-list that shrinks the protocol set, and ordinary loss — the state machine resynchronises after a dropped flow but the bit positions do not, so a couple of percent loss corrupts the whole remainder',
+    indicators: 'Nothing per packet: every flow is a valid flow. The tell is a transition statistic — an empty transition-matrix diagonal and a flattened transition distribution — and only after grouping traffic by peer',
+    difficulty: 'Advanced',
+    note: 'The clearest case in the exhibit of a channel no per-packet inspector can see, because no individual packet is anomalous. Also the clearest case for pivoting: aggregated over a host the channel disappears into ordinary sticky traffic.',
+  },
+  {
     channel: 'Image steganography',
     carrier: 'Pixel data (e.g. LSB)',
     kind: 'Storage (steg)',

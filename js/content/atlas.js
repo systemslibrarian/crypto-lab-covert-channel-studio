@@ -26,7 +26,7 @@ export const TAXONOMY = {
       name: 'Storage patterns',
       note: 'Information lives in a value.',
       patterns: [
-        { id: 'value-modulation', name: 'Value / field modulation', idea: 'Set a protocol field to a chosen value.', lab: 'Storage Channel (TTL toggle), DNS labels' },
+        { id: 'value-modulation', name: 'Value / field modulation', idea: 'Set a protocol field to a chosen value.', lab: 'Storage Channel (TTL toggle), DNS labels, Protocol-Hopping Channel (choice of next protocol)' },
         { id: 'random-value', name: 'Random-value fields', idea: 'Borrow a field that is meant to look random (IP ID, initial sequence number).', lab: 'Storage Channel (IP-ID parity, TCP seq low bit), ICMP Channel (Echo Identifier low bit)' },
         { id: 'reserved-unused', name: 'Reserved / unused fields', idea: 'Use bits the protocol does not currently assign.', lab: 'Storage Channel (concept), TCP reserved bits' },
         { id: 'sequence', name: 'Sequence / ordering', idea: 'Encode in the order of interchangeable elements.', lab: 'Packet-Order Channel, HTTP Header Channel' },
@@ -120,6 +120,18 @@ export const CARRIERS = [
       faithful: ['Lehmer-rank order encoding', 'stable-client fingerprint baseline', 'proxy normalisation destroying it'],
       simplified: ['one client profile', 'no TLS/JA3 layer'],
       realWorld: ['passive fingerprinting (p0f, JA3/JA4) and header-rewriting gateways'],
+    },
+  },
+  {
+    name: 'Protocol hopping / switching', layer: 'Any', family: 'Storage', pattern: 'value-modulation',
+    status: 'built', section: 'hopping',
+    idea: 'The CHOICE of which protocol to speak next encodes bits — a covert state machine over protocols rather than a channel inside any one of them. This module walks an agreed, ordered set of five (HTTPS, DNS, NTP, SMTP, SSH) with `to = (from + 1 + symbol) mod n`, so every hop must change protocol and each carries ⌊log₂(n−1)⌋ = 2 bits.',
+    breaks: 'An egress allow-list that removes protocols from the set, and — far more sharply than you would expect — ordinary loss. The receiver reads each transition straight off the carrier, so the STATE MACHINE resynchronises immediately after a dropped flow, but the BIT INDEXING does not: every symbol after the gap lands one position early. A couple of percent loss is enough to push the error rate to roughly a coin flip.',
+    indicators: 'Not a field value — a transition statistic. The grammar must change protocol every hop, so the diagonal of the transition matrix is exactly empty, while real hosts are sticky (a browsing session is a long run of HTTPS). Arbitrary payload also flattens the transition distribution toward uniform. Both are only visible after grouping traffic BY PEER: aggregated over a host, ordinary traffic refills the diagonal and the channel disappears.',
+    fidelity: {
+      faithful: ['the state-machine encoding and its ⌊log₂(n−1)⌋ ceiling, which grows only logarithmically with the protocol set', 'transition-matrix analysis: diagonal mass, transition entropy normalised against the ceiling a sample of that size can actually reach, and a chi-square against uniform', 'the per-peer pivot, and the fact that cover traffic defeats an aggregate but not an analyst who pivots', 'desynchronisation of bit positions under loss while the state machine itself recovers', 'a fixed-rotation monitoring agent kept in the benchmark as a genuine false positive — it also never repeats a protocol, and only the entropy term separates it'],
+      simplified: ['NO FLOW IS OPENED AND NO PROTOCOL IS SPOKEN — a "flow" is a plain object recording a protocol name, a destination and a time', 'one rendezvous peer and a fixed five-protocol set agreed in advance; a real hopping channel would negotiate both', 'ordinary host traffic is a MODELLED baseline (sticky peer and protocol draws), not a capture of real behaviour', 'the pattern mapping above is this lab’s own reading — value modulation over a protocol identifier — and not a claim that the 2015 survey names a distinct protocol-switching pattern'],
+      realWorld: ['real traffic classifiers, NetFlow/IPFIX-level behaviour analytics, and per-host baselining over long windows; hosts whose protocol mix is far messier than any model of it'],
     },
   },
   {

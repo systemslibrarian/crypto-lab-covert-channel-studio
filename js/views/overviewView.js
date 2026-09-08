@@ -9,6 +9,7 @@ import { sectionHeader, renderBlocks, messagePipeline, bitRibbon, flowArrow, par
 import { COPY } from '../content/copy.js';
 import { buildMessagePipeline } from '../simulation.js';
 import { encodeMessageToQueries } from '../channels/dns.js';
+import { successor, protocolInfo, START_PROTOCOL } from '../channels/hopping.js';
 
 export function renderOverview(state) {
   const copy = COPY.overview;
@@ -49,7 +50,7 @@ function buildDynamic(state) {
       el('h3', { class: 'card-title', text: 'From text to bits' }),
       messagePipeline(pipeline, { full: true }),
       flowArrow(),
-      el('h3', { class: 'card-title', text: 'The same bits, five carriers' }),
+      el('h3', { class: 'card-title', text: 'The same bits, six carriers' }),
       representations(pipeline)));
 }
 
@@ -65,6 +66,7 @@ function representations(pipeline) {
     repRow('Timing', 'short vs long gap', timingRep(bits8)),
     repRow('Ordering', 'A→B or B→A', orderingRep(bits8)),
     repRow('Protocol (DNS)', 'base32 label under example.test', el('span', { class: 'mono rep-dns' }, `${label}.example.test`)),
+    repRow('Protocol hopping', '2 bits pick the next protocol', hoppingRep(bits8)),
     repRow('Steganography', 'flip pixel LSBs', el('span', { class: 'subtle', text: 'the carrier image is unchanged to the eye — see the module' })),
   ];
   return div({ class: 'rep-list' },
@@ -88,6 +90,18 @@ function timingRep(bits) {
   return div({ class: 'rep-inline' }, ...bits.map((b) =>
     span({ class: `rep-cell gap b${b}`, attrs: { title: `bit ${b} → ${b ? 'long' : 'short'} gap` } },
       span({ class: 'gap-bar', style: { width: b ? '26px' : '10px' } }))));
+}
+/** The first byte as a walk over the protocol state machine: 8 bits = 4 hops. */
+function hoppingRep(bits) {
+  const chain = [START_PROTOCOL];
+  for (let i = 0; i + 1 < bits.length; i += 2) {
+    chain.push(successor(chain[chain.length - 1], (bits[i] << 1) | bits[i + 1]));
+  }
+  return div({ class: 'rep-inline' }, ...chain.map((k, i) =>
+    span({
+      class: `rep-cell hop${i === 0 ? ' sync' : ''}`,
+      attrs: { title: i === 0 ? 'agreed starting state — carries no bits' : `bits ${bits[(i - 1) * 2]}${bits[(i - 1) * 2 + 1]} → ${protocolInfo(k).label}` },
+    }, protocolInfo(k).label)));
 }
 function orderingRep(bits) {
   return div({ class: 'rep-inline' }, ...bits.map((b) =>

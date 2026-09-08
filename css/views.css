@@ -260,6 +260,7 @@
 #sec-ordering { --accent: #a78bfa; --accent-deep: #8b5cf6; } /* violet */
 #sec-http     { --accent: #e879f9; --accent-deep: #d946ef; } /* fuchsia*/
 #sec-icmp     { --accent: #f472b6; --accent-deep: #ec4899; } /* pink   */
+#sec-hopping  { --accent: #818cf8; --accent-deep: #6366f1; } /* indigo */
 #sec-stego    { --accent: #bef264; --accent-deep: #a3e635; } /* lime   */
 #sec-metadata { --accent: #5eead4; --accent-deep: #2dd4bf; } /* mint   */
 #sec-physical { --accent: #fb923c; --accent-deep: #f97316; } /* orange */
@@ -292,3 +293,34 @@ a.atlas-deepdive { text-decoration: none; }
 .icmp-payload { color: var(--text-dim); }
 .icmp-payload.covert { color: var(--covert); }
 
+/* ---- Protocol-hopping channel --------------------------------------------- */
+.hop-stream { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.hop-flow {
+  display: flex; flex-direction: column; gap: 2px; min-width: 92px;
+  padding: var(--sp-2); border: 1px solid var(--border-faint);
+  border-radius: var(--r-md); background: var(--surface-1);
+}
+.hop-flow.covert { border-color: color-mix(in srgb, var(--covert) 40%, transparent); background: color-mix(in srgb, var(--covert) 8%, var(--surface-1)); }
+.hop-flow.sync { border-style: dashed; }
+.hop-proto { font-size: var(--fs-sm); font-weight: 650; }
+.hop-dest { font-size: var(--fs-xs); color: var(--text-faint); }
+.hop-bits { font-size: var(--fs-xs); color: var(--covert); letter-spacing: 0.08em; }
+.hop-bits.empty { color: var(--text-faint); }
+
+/* Transition matrix. The count is always rendered as text; the tint is a
+   redundant cue only, so the table stays readable without colour. */
+.transition-matrix td { text-align: center; }
+.transition-matrix th[scope="row"] { color: var(--text-dim); font-weight: 600; }
+.transition-matrix .tm-cell.used {
+  background: color-mix(in srgb, var(--accent) calc(var(--tm-fill, 0) * 26%), transparent);
+}
+.transition-matrix .tm-cell.diag {
+  background: repeating-linear-gradient(45deg,
+    transparent, transparent 4px,
+    color-mix(in srgb, var(--text-faint) 18%, transparent) 4px,
+    color-mix(in srgb, var(--text-faint) 18%, transparent) 8px);
+  color: var(--text-faint);
+}
+
+.rep-cell.hop { font-size: var(--fs-xs); font-weight: 650; color: var(--covert); }
+.rep-cell.hop.sync { color: var(--text-faint); font-weight: 500; }
