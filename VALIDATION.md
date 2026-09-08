@@ -8,6 +8,9 @@ simplifications are visible rather than hidden. It complements two things alread
 - **The Detector Validation Lab** — `js/analysis/validation.js` + the in-app *Detector Validation
   Lab* section, which measures ROC/AUC and confusion matrices over hundreds of deterministic
   clean/covert cases.
+- **The learned-detector experiment** — `js/analysis/learned.js` (§10), which fits a detector on the
+  same features the hand-built one uses and measures what fitting buys, and what it costs under
+  distribution shift.
 
 A recurring, load-bearing caveat: **an anomaly score is not a probability of a covert channel.**
 Scores order cases; thresholds are a teaching choice; benign traffic can trip the same wires.
@@ -133,10 +136,44 @@ cases (parameter sweeps × seeds, no `Date`/`Math.random`) and computes:
 - **ROC** — TPR vs FPR as the decision threshold sweeps.
 - **Confusion matrix** + FPR/FNR/precision/recall at thresholds 34 and 67.
 
-Representative measured AUCs (deterministic; see `test/validation.test.js` for the asserted ranges):
-DNS ≈ 1.00, Timing ≈ 0.99, Storage (TTL toggle) ≈ 1.00, HTTP ≈ 1.00, Air-gap optical ≈ 0.92,
-Image-LSB ≈ 0.75, Shared cache ≈ 0.70. Four honest limitations are built into the benchmark and
-reported rather than hidden:
+Measured results across all nine detectors (deterministic; see `test/validation.test.js` for the
+asserted ranges). FPR/FNR are at the **investigate** threshold of 34:
+
+| Detector | AUC | Cases | FPR | FNR |
+| --- | --- | --- | --- | --- |
+| DNS | 1.000 | 66 | 0% | 28% |
+| Timing | 0.992 | 32 | 0% | 20% |
+| Storage (TTL toggle) | 1.000 | 18 | 0% | 0% |
+| HTTP header order | 1.000 | 21 | 0% | 0% |
+| ICMP echo | 0.897 | 26 | 0% | 27% |
+| Protocol hopping | 1.000 | 29 | 29% | 0% |
+| Image LSB | 0.750 | 12 | 50% | 0% |
+| Air-gap optical | 0.917 | 32 | 42% | 10% |
+| Shared cache | 0.700 | 22 | 50% | 0% |
+
+### Read the AUC and the confusion matrix together — protocol hopping is why
+
+The hopping row is the sharpest methodological point in the lab, and it is worth stopping on. Its
+**AUC is a perfect 1.000**: every covert case scores above every clean case, so the ranking is
+flawless. At the investigate threshold it still **false-positives on 29% of the clean set**.
+
+Both numbers are correct, and they are not in tension — they answer different questions. AUC asks
+*"is the ordering right?"* and is invariant to where you put the line. A confusion matrix asks *"what
+happens at the line you actually deploy?"* A detector can order perfectly and still be unusable if
+the clean cases pile up just under the covert ones.
+
+The cause is specific and was put in the benchmark on purpose. The clean set contains **monitoring
+agents that round-robin service checks against a single peer**. Their transition-matrix diagonal is
+*exactly as empty as the covert channel's* — a rotation never repeats a protocol either — so the
+strongest indicator fires on them at full strength. What separates them is transition entropy: a
+fixed rotation uses only a handful of the 20 admissible transitions, while arbitrary payload uses
+them all about equally. That second statistic recovers the ordering (hence AUC 1.000) but does not
+pull the rotations far enough below the threshold to clear them.
+
+The teaching move: a student who reports "AUC 1.000, therefore this detector is solved" has read half
+the evidence. Ask them what the SOC's morning queue looks like.
+
+Five honest limitations are built into the benchmark and reported rather than hidden:
 
 - a **parity IP-ID / low-bit-sequence** storage channel barely disturbs its field, so no simple
   histogram separates it — a taught false negative (the benchmark validates the *detectable* TTL
@@ -150,7 +187,16 @@ reported rather than hidden:
   high-miss-rate workloads (a streaming scan over an array larger than the cache), which use the
   fast and slow access classes about as evenly as a covert channel does. Since balance is the
   discriminator (see §9), those are genuine false positives. Accepting the lower AUC was preferred
-  over keying on a signal that ordinary memory access already produces.
+  over keying on a signal that ordinary memory access already produces;
+- the **ICMP** detector misses nearly all of one whole covert class, giving it a 27% false-negative
+  rate. The benchmark deliberately includes the **Echo Identifier low-bit channel** among its covert
+  cases, and no content, size, or repetition statistic can see it — one bit in a field with no
+  reference distribution leaves nothing to measure. It is the same taught false negative as IP-ID
+  parity in the storage module. Dropping those cases would have bought a markedly better AUC by
+  concealing the detector's real blind spot, which is the opposite of what this document is for. The
+  clean set likewise includes a **path-MTU diagnostic sweep**, which varies payload size deliberately
+  while keeping the conventional fill — it trips the size statistic and nothing else, which is a real
+  false-positive source rather than a strawman.
 
 ## 9. Two-level recovery, matched filtering, and BSC capacity (air-gap optical, shared cache)
 
@@ -181,6 +227,139 @@ Two honesty notes are asserted in the tests rather than left implicit:
   cannot conjure one it never touched — so errors land almost entirely on one symbol. Its capacity
   figure therefore uses the symmetric (BSC) formula on the *average* error rate: exact when eviction
   is off, mildly pessimistic otherwise. This approximation is stated in the module and in the UI.
+
+## 10. The learned detector: overfitting and distribution shift
+
+`js/detectors/learnedDetector.js` + `js/analysis/learned.js` add a **fitted** detector alongside the
+hand-built ones, for one reason: "statistics vs machine learning" is worth turning into a measurement
+instead of an argument.
+
+- **Model:** two-feature logistic regression, `P(covert | x) = σ(w·z + b)` over standardised features
+  `z`. A linear boundary in two dimensions — chosen to be inspectable, not competitive.
+- **Features — deliberately the same two the classical detector already computes:**
+  `x₁` corrected conditional entropy of the inter-arrival series (§1), and `x₂` the coefficient of
+  variation of the same series. This is the load-bearing design choice. The learned model has **no
+  more information** than the hand-built one; the only difference is that the weighting of the two
+  features is *fitted from labelled examples* rather than chosen by a person. Whatever it gains or
+  loses, it gains or loses from fitting alone.
+- **Undefined features:** CCE is `NaN` for short series (§1). A short window is not evidence of a
+  covert channel, so an undefined value maps to a neutral mid-range constant rather than to something
+  the model could learn to treat as a signal.
+
+### Determinism
+
+Every number is reproducible from a clean checkout, with no `Date` and no `Math.random`:
+
+- weights initialised to **zero**, not randomly;
+- **full-batch** gradient descent (no shuffling, no mini-batches) with a fixed learning rate and a
+  fixed epoch count;
+- all cases generated by the seeded generators in `js/channels/timing.js`;
+- the train/test split is taken **on the seed index**, not at random, so it is reproducible *and*
+  keeps every parameter setting represented on both sides of the split.
+
+### Why standardisation is fitted on the training split only
+
+Feature means and standard deviations are computed from the **training rows only** and then applied
+unchanged to the test and shift sets. Fitting them across all the data would let information about
+the held-out cases leak into the model's input scaling, inflating the held-out score and
+under-reporting exactly the gap this experiment exists to show. It is a small mistake with a large
+effect on the reported numbers, and a teaching implementation is the wrong place to make it quietly.
+
+### The three sets
+
+| Set | Construction | What it answers |
+| --- | --- | --- |
+| **Fit** | The rows the model was trained on (a 12-case subsample for the small model; the full training split for the other). | How well can the model separate what it has already seen? |
+| **Test** | Held-out cases from the **same** generative processes — two-level timing channels across a jitter sweep, and exponential background traffic across several mean rates. | Does it generalise to new samples of a distribution it knows? |
+| **Shift** | Cases from processes in **neither** training set: scheduled health-check pollers (clean, but metronomic) and narrow-separation timing channels (covert, but subtle). | Does it generalise to a distribution it has never seen — which is what deployment is? |
+
+The **fit → test** gap is overfitting, made countable. Two models are fitted — one on a small
+subsample, one on the full training split — so the gap can be watched shrink as the model loses its
+ability to memorise. The **test → shift** drop is distribution shift, which more training data on the
+same distribution does not fix.
+
+The classical CCE + Cabuk detector (§1, §2) is scored on **the same three sets**. That is the fair
+comparison: it was never fitted to anything, so it has nothing to shift away from — but it is also
+stuck with whatever weighting a person guessed.
+
+### Why AUC is comparable across the two but raw scores are not
+
+A learned score and a classical score do not mean the same thing even though both are 0–100. This
+model emits a probability that is calibrated on its training distribution **and nowhere else**; the
+classical score never claimed to be a probability at all (§6). Comparing them by **AUC is fair**,
+because AUC uses only the *ranking* of cases and is invariant to any monotone rescaling of either
+score. Comparing them by their raw numbers, or by a shared threshold, would not be — and the UI says
+so rather than putting the two scores on one axis.
+
+### Measured results
+
+Produced by `evaluateLearnedDetector()` in `js/analysis/learned.js`. Sets: **33 train · 33 held-out ·
+24 shifted**.
+
+| Detector | Fit | Held-out | Shifted | Fit − held-out | Weights (CCE, CV) |
+| --- | --- | --- | --- | --- | --- |
+| Fitted on 12 cases | 1.000 | 0.974 | **0.000** | 0.026 | 0.24, −5.74 |
+| Fitted on 12 cases, L2-regularised | 1.000 | 0.978 | **0.000** | 0.022 | −0.11, −0.59 |
+| Fitted on all 33 training cases | 0.993 | 0.978 | **0.000** | 0.015 | −1.23, −5.39 |
+| Classical (CCE + Cabuk regularity) | 0.611 | 0.767 | **1.000** | — | not fitted |
+
+> **Read the `Fit` column carefully — it does not mean the same thing across rows.** For a fitted
+> model it is that model's own training data. For the classical detector it is simply its score on
+> the same 12 cases, since it was never fitted to anything. Compare *down* the held-out and shifted
+> columns, not *across* the fit column.
+
+Three findings, in order of how uncomfortable they are:
+
+**1. Fitting beats guessing — in-distribution, clearly.** The learned models reach 0.974–0.978 on
+held-out cases against the hand-built detector's 0.767. Both had access to precisely the same two
+numbers; the difference is entirely that one weighting was fitted from labelled data and the other
+was chosen by a person. This is not a "machine learning is bad" story, and it should not be taught as
+one. When the deployment distribution matches the training distribution, fitting the weights is the
+better engineering decision, and the benchmark says so plainly.
+
+**2. Under shift, the fitted models do not merely degrade — they invert.** Every learned model scores
+**0.000** on the shift set: it ranks *every* covert case below *every* clean one. The classical
+detector scores 1.000 on the same cases. The reason is specific and is the point of the whole section:
+
+- The classical detector keys on a **structural** property — *are there two distinct timing levels?*
+  A narrow-separation channel still has two levels, and a scheduled poller still has one, so the
+  property survives the change of distribution intact.
+- The fitted models leaned on a **correlational** one — *is the variability low?* In training, covert
+  channels happened to be the low-variability class. In the shift set that association reverses: the
+  metronomic poller has the lowest variability of anything in the lab and is perfectly clean, while a
+  narrow-separation channel is comparatively noisy. The learned rule fires exactly backwards.
+
+Note what is *not* the explanation. CCE — the structural feature — was available to every model. The
+fit did not ignore it out of ignorance; in-distribution, CV simply separated the classes better, so
+the optimiser weighted CV heavily (−5.74 against 0.24) and that was the correct choice *for the data
+it was shown*. The failure is not a bug in the fit. It is what optimising for an available
+distribution does when the deployed distribution is a different one.
+
+**3. Regularisation does not rescue it.** The L2 model's weights are roughly ten times smaller
+(−0.11, −0.59 against 0.24, −5.74) and its held-out AUC is a hair better — and its shift AUC is
+**identical at 0.000**, because shrinking both weights preserved their *ratio*. Distribution shift is
+not an overfitting problem that regularisation fixes. The model learned the wrong invariant, and a
+smaller wrong invariant is still wrong. Reach for a feature that survives the shift, not a smaller
+coefficient on one that does not.
+
+The fit − held-out gaps (0.026 → 0.022 → 0.015) do behave exactly as textbook overfitting should:
+they shrink as the training set grows and as regularisation is added. That gap is real, it is
+measurable, and it is also **not the interesting failure here** — every model with a small
+generalisation gap still inverted completely under shift. Watching the two phenomena come apart in
+one table is the reason both are on it.
+
+### Honest limits
+
+This is a **toy**, and calling it anything else would undercut the point it is making:
+
+- two features and a linear boundary — a real detector has orders of magnitude more of both;
+- a few hundred synthetic cases, where labelled covert traffic is the scarcest resource in real
+  detection work;
+- the benchmark was built by the same person who built the channels, so the "covert" class is exactly
+  the covert traffic this lab knows how to generate. That is a much friendlier world than a real one.
+
+It exists to make overfitting and distribution shift visible on data a student can trace by hand. It
+is not a claim that a logistic regression detects covert channels.
 
 ---
 

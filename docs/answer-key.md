@@ -83,10 +83,12 @@ communication itself or abuses an unintended mechanism.
 
 ### Reflection
 
-**"Same bits, five carriers" — what does the preview demonstrate?**
-*Talking points:* One short message maps to identical bits, then rides five completely different carriers. The
+**"Same bits, six carriers" — what does the preview demonstrate?**
+*Talking points:* One short message maps to identical bits, then rides six completely different carriers. The
 takeaway is that the *carrier is a choice independent of the message*, and each carrier has its own capacity,
-reliability, and detection story. There is no "best" carrier — only trade-offs (Lesson 5).
+reliability, and detection story. There is no "best" carrier — only trade-offs (Lesson 5). The protocol-hopping
+row is worth pausing on: the bits do not go *into* anything, they choose which protocol comes next — so a student
+looking for "where is the data" in that row will not find it in any single flow.
 
 ---
 
@@ -429,10 +431,16 @@ Reproduce: `#atlas?seed=crypto-lab`.
 Wendzel et al. (2015) categorisation; the timing module maps to an *inter-packet-times* pattern. Any correct
 module→pattern pairing from the Atlas is acceptable.
 
-**Task — Pick a described-only carrier (ICMP, VoIP, Wi-Fi, protocol hopping, history channels, text/linguistic) and
-say what its fidelity card admits.**
+**Task — Pick a described-only carrier (VoIP/RTP, Wi-Fi, history channels, text/linguistic) and say what its
+fidelity card admits.**
 *Model answer:* The fidelity card states honestly that the carrier is **described conceptually, not simulated** —
 so students understand the mechanism without the lab implying an operational capability it does not provide.
+
+*Note for instructors:* ICMP and protocol hopping used to be on this list and are now built modules. That is worth
+saying out loud, because it makes the point that the described/built line is a **deliberate and revisable
+judgement**, not a statement about which carriers are real. Nothing changed about ICMP; what changed is that a
+simulation was written that teaches it without adding operational surface. A good follow-up question: *what would
+have to be true for VoIP/RTP to move across that line — and what would it cost in fidelity to get there?*
 
 ### Reflection
 

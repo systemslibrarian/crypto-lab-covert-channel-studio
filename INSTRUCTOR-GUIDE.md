@@ -125,8 +125,9 @@ https://systemslibrarian.github.io/crypto-lab-covert-channel-studio/#dns?seed=cr
 
 ### 3. Have students export a lab notebook
 
-Each of the five network-channel sections — **DNS, Timing, Storage, Packet-Order, and HTTP Header** —
-carries a **live trade-off instrument** (capacity · reliability · observability) with an expandable
+Each of the nine channel sections that carry a **live trade-off instrument** (capacity ·
+reliability · observability) — **DNS, ICMP Echo, Timing, Storage, Packet-Order, HTTP Header,
+Protocol-Hopping, Air-Gap Optical, and Shared-Cache** — has an expandable
 **"Lab notebook — export this run"** panel. Clicking **Copy Markdown** puts a reproducible record on
 the clipboard:
 
@@ -226,14 +227,15 @@ Library Records → Shared-Resource Matrix → Carrier Atlas → Detection Chall
 
 | Time | Activity | Section / link |
 | --- | --- | --- |
-| 0–8 min | Frame the thesis, taxonomy, and the "same bits, five carriers" preview. | `#overview` |
-| 8–30 min | **Station rotation (build & break).** Groups pick 3 of: DNS, Timing, Storage, Packet-Order, HTTP Header. Build in Sender view, break with the natural knob (jitter / middlebox / reordering / normalising proxy), export a notebook each. | `#dns`, `#timing`, `#storage`, `#ordering`, `#http` (add `?seed=…`) |
+| 0–8 min | Frame the thesis, taxonomy, and the "same bits, six carriers" preview. | `#overview` |
+| 8–30 min | **Station rotation (build & break).** Groups pick 3 of: DNS, ICMP Echo, Timing, Storage, Packet-Order, HTTP Header, Protocol-Hopping. Build in Sender view, break with the natural knob (jitter / middlebox / reordering / normalising proxy / size clamp / flow loss), export a notebook each. | `#dns`, `#icmp`, `#timing`, `#storage`, `#ordering`, `#http`, `#hopping` (add `?seed=…`) |
 | 30–42 min | **Beyond the network (optional swap).** Air-Gap Optical: raise ambient noise, then raise samples-per-bit and watch the matched filter win the message back; then raise *drift* with noise at zero to show a systematic offset averaging cannot remove. Shared Cache: switch Flush+Reload to Prime+Probe and note the polarity inverts. Both are explicit **models** of their medium. | `#physical`, `#cache` |
 | 30–42 min | **Media & metadata.** Image Steganography: embed, view the bit-plane and the chi-square attack, then note lossy re-compression destroys the payload. Library Records: routine metadata as an unintended inference channel, and **data minimisation** as the defence. | `#stego`, `#metadata` |
 | 42–55 min | **Systematic method.** Work the **Shared-Resource Matrix** (Kemmerer 1983) as an interactive exercise — read/alter relationships that reveal storage and timing channels. | `#srm` |
-| 55–63 min | **Carrier Atlas.** Map each module to a named hiding pattern (Wendzel et al.), and read the fidelity cards for carriers the lab only *describes* (ICMP, VoIP, Wi-Fi, history, and the text/linguistic family, which links out to the sibling Ghost-Ink exhibit). | `#atlas` |
+| 55–63 min | **Carrier Atlas.** Map each module to a named hiding pattern (Wendzel et al.), and read the fidelity cards for carriers the lab only *describes* (VoIP/RTP, Wi-Fi / link layer, history channels, and the text/linguistic family, which links out to the sibling Ghost-Ink exhibit). Good moment to note that **ICMP and protocol hopping used to be on that list** and are now built — a described-only card is a backlog item, not a verdict. | `#atlas` |
 | 63–80 min | **Blind Detection Challenge**, distinct seeds per group; then compare tallies as a class. | `#challenge?seed=team-a`, `…team-b`, … |
-| 80–88 min | **Defensive Takeaways** — combine weak indicators, respect false positives, know your middleboxes, understand the limits. | `#defense` |
+| 80–86 min | **Active Warden Lab** — flip one normaliser at a time and predict the verdict before revealing it. Land the three results: storage channels die cleanly, the timing channel only degrades to a residual, and two carriers are structurally out of path. Then point at the observability column: several channels are closed *while their anomaly score falls*. | `#warden` |
+| 86–88 min | **Defensive Takeaways** — combine weak indicators, respect false positives, know your middleboxes, understand the limits. | `#defense` |
 | 88–90 min | Assign the graded reflection + the two exported notebooks. | — |
 
 **Discussion prompts**
@@ -245,6 +247,22 @@ Library Records → Shared-Resource Matrix → Carrier Atlas → Detection Chall
   How does minimisation remove *both* the covert channel and the privacy risk?
 - Shared-Resource Matrix: how does a systematic method find channels that ad-hoc inspection misses?
 - Carrier Atlas: pick one "described only" carrier and argue what a defender would monitor for it.
+- Protocol hopping: with the cover-traffic slider at zero the channel is obvious; at 100 flows the
+  whole-host statistics look ordinary and the indicator has not moved at all. What did the detector
+  do that the aggregate did not, and what does that imply about how you *store* traffic data?
+- ICMP: you get to deploy exactly one normaliser. Which carrier does it close, and what is still
+  running afterwards? (There is no answer that closes both.)
+- Active Warden: the warden closed four channels and the anomaly score went *down* on all four. Your
+  network is now safer and your SOC has no alerts. Is that a good outcome? Argue both sides.
+- **Should you alert on this?** In `#validation`, the hopping detector has a *perfect* AUC of 1.000 —
+  every covert case outranks every clean one — and still flags 29% of the clean set at the
+  investigate threshold. The clean cases it flags are **monitoring agents that round-robin service
+  checks against one peer**: their transition-matrix diagonal is exactly as empty as the covert
+  channel's, because a fixed rotation never repeats a protocol either. Give students the two numbers
+  and make them argue it: do you ship this detector? If not, what would you need — a different
+  threshold, a third statistic, an allow-list of known monitoring hosts, or something else? And what
+  does a perfect AUC *not* tell you? (This is the release's sharpest methodological point: AUC asks
+  whether the ordering is right, a confusion matrix asks what happens at the line you deploy.)
 
 **What to assess:**
 
@@ -261,23 +279,29 @@ where they are assessed. Section links use the hash ids from the [appendix](#app
 
 | Section (`#id`) | Learning outcomes | How it's assessed |
 | --- | --- | --- |
-| **Overview** (`#overview`) | State the covert-channel thesis; distinguish covert channel from encryption and tunnelling; name the five carriers. | Exit ticket (Plan A); reflection prompt 1. |
+| **Overview** (`#overview`) | State the covert-channel thesis; distinguish covert channel from encryption and tunnelling; name the six carriers previewed there (storage, timing, ordering, DNS, protocol hopping, steganography). | Exit ticket (Plan A); reflection prompt 1. |
 | **DNS Channel** (`#dns`) | Explain how DNS *query structure* — not payload — carries data; name the monitor's indicators (label length, character-frequency divergence, unique-name ratio, cadence); describe capacity-vs-observability tension. | Exported lab notebook; Detection Challenge DNS cases; quiz `dns-label-entropy`. |
+| **ICMP Echo Channel** (`#icmp`) | Explain why the echo data area is free space the protocol never inspects; contrast a loud high-capacity payload carrier with a quiet one-bit header carrier; show that payload *entropy* is the wrong statistic and predictability is the right one; name two normalisers that each close one carrier and neither of which closes both. | Orthogonal-defence experiment (flip both path switches against both carriers); exported lab notebook. |
 | **Timing Channel** (`#timing`) | Explain how identical packets carry bits in inter-arrival gaps; predict how jitter/noise/loss raise bit-error rate; recognise the entropy/regularity signature and why it fades with jitter. | Live demo prediction; Detection Challenge timing cases; quiz `timing-vs-content`, `timing-fails-internet`. |
 | **Storage Channel** (`#storage`) | Encode bits in a field value (IP-ID parity, TTL, TCP-seq low bit); explain why NAT/proxy/normaliser destroys the channel; see why a parity channel can evade a naive histogram (false-negative lesson). | Middlebox experiment; exported notebook; quiz `field-parity-storage`, `nat-breaks-storage`. |
 | **Packet-Order Channel** (`#ordering`) | Encode a bit in the order of two interchangeable events; explain why network reordering collapses it. | Reordering demo; reflection prompt on fragility. |
 | **HTTP Header Channel** (`#http`) | Compute permutation capacity ⌊log₂ n!⌋; explain why a stable client fingerprint makes header-order variety suspicious; connect the normalising-proxy defence to the storage middlebox lesson. | Capacity calculation check; normalising-proxy demo. |
+| **Protocol-Hopping Channel** (`#hopping`) | Encode bits in a state machine *over* protocols rather than inside one; explain why per-packet inspection is structurally blind to it; read a transition matrix and say why an empty diagonal is the tell; pivot from a host aggregate to a per-peer view and watch the channel reappear; explain why one lost flow corrupts everything after it even though the state machine resynchronises. | Cover-traffic dilution experiment (aggregate vs per-peer); loss-desync prediction; monitoring-rotation discussion prompt. |
 | **Image Steganography** (`#stego`) | Embed and recover a message in image LSBs; explain why lossy re-compression destroys the payload; read the chi-square steganalysis attack and its limits on small payloads. | Bit-plane / chi-square walkthrough; quiz `stego-vs-network-channel`. |
 | **Library Records** (`#metadata`) | Explain how routine metadata becomes an unintended inference channel; connect covert channels to everyday privacy risk; apply data minimisation as a defence. | Minimisation demo; reflection prompt on privacy. |
+| **Air-Gap Optical Channel** (`#physical`) | Explain that removing the network does not remove the carrier; apply a matched filter and see the √N processing gain; separate random noise (which averaging removes) from systematic drift (which it cannot); read a measured BER against the Shannon capacity of the same channel. | Noise-then-samples-per-bit demo; drift-at-zero-noise demo; exported lab notebook. |
+| **Shared-Cache Channel** (`#cache`) | Explain how two processes that cannot address each other still share the cache; describe Flush+Reload and Prime+Probe and why their polarities invert; recognise that a bimodal latency histogram is *normal* and that balance is the real indicator; connect a concrete channel back to the Shared-Resource Matrix. | Probe-protocol swap (polarity inverts); balance-vs-shape reading in Defender view. |
 | **Detection Console** (`#detection`) | Read named, cited detector metrics across channels; explain why detection is probabilistic (what fired, why, what else could cause it). | Guided reading; quiz `detection-probabilistic`. |
 | **Detection Challenge** (`#challenge`) | Make a clean/suspicious/covert call from **observables alone**; name the indicator to investigate; weigh false positives against misses. | Scored blind challenge — [Rubric 1](#rubric-1--blind-detection-challenge). |
+| **Detector Validation Lab** (`#validation`) | Read a ROC curve, AUC, and a confusion matrix for a detector; explain why a perfect AUC can coexist with a 29% false-positive rate, and what each measure actually asks; explain why an anomaly score is not a probability of a covert channel; distinguish a *structural* feature that survives distribution shift from a *correlational* one that does not. | Threshold-comparison exercise (FPR/FNR at 34 vs 67); the "should you alert on this?" prompt; reflection prompt on measurement. |
+| **Active Warden Lab** (`#warden`) | Distinguish **detection** from **disruption**; predict which channels a normaliser closes and which it only degrades; read a residual channel as Shannon capacity rather than surviving goodput; name the channels a network warden cannot reach and say why. | Predict-then-flip exercise (one switch at a time); silent-kill discussion; reflection prompt on defence-in-depth. |
 | **Compare Channels** (`#compare`) | Compare channels by teaching value, reliability, and what a defender looks for — never by stealth. | Discussion; reflection prompt on trade-offs. |
-| **Carrier Atlas** (`#atlas`) | Map each module to a named hiding pattern; reason about carriers described only conceptually (ICMP, VoIP, Wi-Fi, …). | Deep-lab discussion prompt. |
+| **Carrier Atlas** (`#atlas`) | Map each module to a named hiding pattern; reason about carriers described only conceptually (VoIP/RTP, Wi-Fi, history channels, text/linguistic). | Deep-lab discussion prompt. |
 | **Shared-Resource Matrix** (`#srm`) | Apply Kemmerer's method to systematically identify storage and timing channels. | Worked matrix exercise (Plan C). |
 | **What Makes a Channel Covert?** (`#concepts`) | Distinguish storage from timing, and covert channels from tunnels/encryption; explain why an encrypted tunnel is usually not covert; reason about the capacity/reliability/observability trade-off. | Reflection prompts 1–3; quiz `capacity-vs-observability`, `cover-traffic`. |
 | **Defensive Takeaways** (`#defense`) | Watch shape not payload; combine weak indicators; respect false positives; know your middleboxes; understand the limits. | Reflection prompt on defence; Detection Challenge reasoning. |
-| **Glossary** (`#glossary`) | Use the field's vocabulary precisely (33 cited terms). | Referenced throughout; optional term-match check. |
-| **Knowledge Check** (`#quiz`) | Self-assess the core distinctions across 10 items. | Formative self-check; can be collected. |
+| **Glossary** (`#glossary`) | Use the field's vocabulary precisely (51 cited terms). | Referenced throughout; optional term-match check. |
+| **Knowledge Check** (`#quiz`) | Self-assess the core distinctions across 18 items. | Formative self-check; can be collected. |
 
 ---
 
@@ -319,6 +343,13 @@ Assign a short reflection (roughly 400–700 words). Suggested prompts (choose o
    respectively.
 4. Using the Library Records section, explain how **data minimisation** defends against both a covert
    channel and an everyday privacy exposure.
+5. The Active Warden Lab closes several channels while their anomaly scores *fall*. Explain the
+   difference between **detection** and **disruption**, and argue whether a defender should want
+   both. Name at least one carrier a network normaliser cannot reach, and say why not.
+6. In the learned-detector experiment, a fitted model beats the hand-built detector on held-out data
+   and then scores 0.000 — worse than chance — on shifted data, where the hand-built detector scores
+   1.000. Explain what the fitted model learned and why it reversed, and say why adding
+   regularisation did not help.
 
 | Criterion | Excellent (full) | Proficient | Developing | Beginning |
 | --- | --- | --- | --- | --- |
@@ -396,6 +427,57 @@ baselines and context, and still **investigates before concluding**.
 *Correction move:* Detection Console (`#detection`) and Defensive Takeaways (`#defense`) — every
 indicator names what else could cause it.
 
+**9. "Deep packet inspection would catch this."**
+*Why it's wrong:* not for a channel that lives in the **sequence**. In the Protocol-Hopping section
+every single flow is a valid flow of a protocol the host legitimately speaks — there is no anomalous
+field, no odd payload, no signature to match. Nothing is wrong with any packet, so no per-packet
+inspector can be wrong about one. The channel exists only as a property of the *order*.
+*Correction move:* open `#hopping` in Defender view and ask students which packet they would flag.
+Then show the transition matrix: the tell is the **empty diagonal**, which is a statement about the
+whole conversation and about no packet in it.
+
+**10. "Mix it into enough normal traffic and it disappears."**
+*Why it's wrong:* dilution defeats an **aggregate**, not an analyst who groups by conversation. In
+`#hopping`, pushing cover traffic from 0 to 100 flows moves the whole-host self-transition ratio from
+0% to 44% — the host looks entirely ordinary — while the indicator does not move at all, because it
+pivots per peer before it measures anything.
+*Correction move:* drag the cover-traffic slider with the Defender panel open and watch the two
+numbers move in opposite directions. Then ask what this implies about retention: you cannot pivot on
+data you aggregated away at collection time.
+
+**11. "One normaliser closes a protocol."**
+*Why it's wrong:* the ICMP module is built to refute this. The data-area channel and the Echo
+Identifier channel die to **orthogonal** defences — a size clamp or payload scrub erases the first
+and leaves the second untouched; a NAT rewriting the identifier does exactly the reverse. Closing
+"ICMP" means enumerating its carriers, not deploying a control and declaring the protocol handled.
+*Correction move:* in `#icmp`, have students flip both path switches against both carrier settings —
+four combinations, and no single switch closes both. It takes about ninety seconds and it sticks.
+
+**12. "If we normalise the traffic, we don't need detection."**
+*Why it's wrong:* normalisation is **disruption**, not detection, and the difference has consequences.
+In `#warden`, four channels are closed *while their anomaly score falls* — the attempt fails and
+there is no record that anyone made it. You also cannot normalise what you are not in the path of:
+the air-gap optical and shared-cache rows never move no matter what is switched on, because a
+normaliser rewrites packets and neither of those carriers is made of packets.
+*Correction move:* run `#warden` with everything enabled and read the observability column aloud
+alongside the verdict column. Then ask what the incident report says.
+
+**13. "A learned detector beats a hand-built one."**
+*Why it's wrong:* it depends entirely on whether the deployed traffic looks like the training traffic
+— and the honest version of this lesson cuts both ways. In `#validation`'s learned-detector
+experiment, the fitted models genuinely **beat** the hand-built detector on held-out data from the
+same distribution (≈0.98 vs 0.77 AUC), using the identical two features. Then, on traffic drawn from
+processes they were never trained on, they score **0.000** — ranking every covert case below every
+clean one — while the hand-built detector scores 1.000. The classical detector keyed on a
+*structural* property (are there two timing levels?) that survives the change; the fit leaned on a
+*correlational* one (is variability low?) that reverses.
+*Correction move:* two questions worth asking. First: is this an overfitting problem? (No — the
+generalisation gaps are tiny, and the L2-regularised model has smaller weights and the *same* 0.000
+shift score, because shrinking both weights kept their ratio. A smaller wrong invariant is still
+wrong.) Second: was the fit *mistaken* to weight variability so heavily? (No — on the data it was
+shown, that was the better split. The failure is what optimising for an available distribution does
+when the deployed one differs.)
+
 **A note on vocabulary you should model:** never rank the channels by "stealth," and never say any
 channel is "undetectable" or "invisible." The honest framing is always the **trade-off**. The exhibit
 holds this line throughout; hold it in your language too, and correct it gently when students reach
@@ -437,14 +519,20 @@ If you find a security concern with the exhibit itself, see [SECURITY.md](SECURI
 | --- | --- | --- |
 | Start | Overview | `overview` |
 | Channels | DNS Channel | `dns` |
+| Channels | ICMP Echo Channel | `icmp` |
 | Channels | Timing Channel | `timing` |
 | Channels | Storage Channel | `storage` |
 | Channels | Packet-Order Channel | `ordering` |
 | Channels | HTTP Header Channel | `http` |
+| Channels | Protocol-Hopping Channel | `hopping` |
 | Channels | Image Steganography | `stego` |
 | Channels | Library Records | `metadata` |
+| Channels | Air-Gap Optical Channel | `physical` |
+| Channels | Shared-Cache Channel | `cache` |
 | Analysis | Detection Console | `detection` |
 | Analysis | Detection Challenge | `challenge` |
+| Analysis | Detector Validation Lab | `validation` |
+| Analysis | Active Warden Lab | `warden` |
 | Analysis | Compare Channels | `compare` |
 | Analysis | Carrier Atlas | `atlas` |
 | Analysis | Shared-Resource Matrix | `srm` |
@@ -469,8 +557,9 @@ If you find a security concern with the exhibit itself, see [SECURITY.md](SECURI
 - A blind challenge set unique to your section:
   `…/#challenge?seed=fall2026-sec2`
 
-**Lab notebook** — available on the five network-channel sections (`dns`, `timing`, `storage`,
-`ordering`, `http`) under **"Lab notebook — export this run."** Click **Copy Markdown** to capture a
+**Lab notebook** — available on the nine channel sections that carry the trade-off instrument
+(`dns`, `icmp`, `timing`, `storage`, `ordering`, `http`, `hopping`, `physical`, `cache`) under
+**"Lab notebook — export this run."** Click **Copy Markdown** to capture a
 reproducible record (link, seed, settings, decoded result, capacity/BER/observability, detector
 methods) for submissions or answer keys.
 

@@ -42,12 +42,14 @@ The exhibit teaches both the **sender/receiver** perspective and the **defender/
 
 Interactive exhibit sections, plus a glossary and a quiz:
 
-- **Overview** — the thesis, the taxonomy, and a "same bits, five carriers" preview.
+- **Overview** — the thesis, the taxonomy, and a "same bits, six carriers" preview.
 - **DNS Channel** — a name-lookup protocol abused as a carrier; toy messages encoded into simulated query labels under the reserved `.test` TLD.
+- **ICMP Echo Channel** — the textbook "ping tunnel," built as a *pair* of deliberately mismatched carriers: the echo data area (loud, high capacity) and the low bit of the Echo Identifier (quiet, one bit per echo). They die to **orthogonal** defences — a size clamp kills the payload channel and leaves the identifier alone, while a NAT rewriting the identifier does the reverse — so no single normaliser closes ICMP. Also the module where payload *entropy* is shown to be the wrong statistic: the conventional ping fill is already near-maximal entropy, and what actually separates them is that it is predictable and identical in every echo.
 - **Timing Channel** — bits in inter-event gaps; jitter degrades reliability *and* detectability, made visible on a live trade-off curve.
 - **Storage Channel** — bits in simulated IP/TCP field values (IP-ID parity, TTL toggle, TCP-seq low bit), with a middlebox experiment that rewrites the field and breaks the channel.
 - **Packet-Order Channel** — information in the *ordering* of interchangeable events, with the ⌊log₂ n!⌋ capacity ceiling.
 - **HTTP Header Channel** — an application-layer channel: permuting reorderable request headers hides 9 bits/request; a normalizing proxy destroys it.
+- **Protocol-Hopping Channel** — the choice of protocol *is* the message. A covert state machine walks an ordered five-protocol set (HTTPS, DNS, NTP, SMTP, SSH) at ⌊log₂(n−1)⌋ = 2 bits per hop. The first module where **no packet is anomalous at all** — every flow is valid, and the channel exists only as a property of the *sequence*, so per-packet inspection is structurally blind to it. The tell is a **transition matrix** whose diagonal the grammar forces empty; the lesson is that a whole-host aggregate hides it and **grouping by peer** brings it back.
 - **Image Steganography** — LSB embedding with a visual diff, bit-plane view, and the chi-square steganalysis attack.
 - **Library Records** — the librarian's-eye exhibit: routine circulation/transfer metadata as an *unintended inference channel*, and data minimisation as the defence.
 - **Air-Gap Optical Channel** — with no network at all, the carrier becomes the medium: an LED blinked as on/off keying, recovered by a matched filter against an explicit ambient-noise process, with measured BER against Shannon capacity. **The medium is modelled, not measured** — no hardware is touched.
@@ -55,9 +57,10 @@ Interactive exhibit sections, plus a glossary and a quiz:
 - **Detection Console** — the defender's bench: named, cited statistical detectors across every channel.
 - **Detection Challenge** — a genuinely **blind, scored** exercise: observables only, commit a call (clean / suspicious / covert), then reveal the ground truth. Includes false-positive traps.
 - **Detector Validation Lab** — every detector is run over hundreds of deterministic clean/covert cases; the section shows **ROC curves, AUC, and confusion matrices** (FPR/FNR/precision/recall), making the detectors' quality — and their honest failure modes — measurable rather than asserted. Method transparency (equation → implementation → threshold → known-answer test → failure modes) is documented in **[VALIDATION.md](VALIDATION.md)**.
+- **Active Warden Lab** — a section about **disruption** rather than detection. Seven normaliser actions (header scrubbing, header canonicalisation, packet resequencing, traffic shaping, ICMP normalisation, a protocol egress allow-list, a DNS label policy) are each applied to the *actual simulation* and every channel is re-run, so the verdicts are measured rather than looked up. Three results carry the section: storage-style channels die cleanly; the **timing channel does not die** — shaping leaves a residual Shannon capacity, and it is the only defence here with an ongoing cost; and the air-gap and shared-cache channels are **structurally out of path**, because a normaliser rewrites packets and neither of those carriers is made of packets. It also makes the uncomfortable point that **normalisation is disruption, not detection** — several channels are closed while their anomaly score *falls*, leaving no record that anyone tried.
 - **Capacity as three numbers** — every channel reports *theoretical* vs *raw throughput* vs *effective goodput* (after errors/normalisation), not one hand-wavy figure — aligned with the bandwidth-estimation mindset of NIST SC-31.
 - **Compare Channels** — ranked by educational clarity, reliability, and teaching value — never by "stealth."
-- **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (ICMP, VoIP, Wi-Fi, protocol hopping, history channels, and the text/linguistic family), each with a fidelity card. The text/linguistic entry links out to the sibling exhibit [**Ghost-Ink**](https://systemslibrarian.github.io/Ghost-Ink/), which covers that family in depth rather than duplicating it here.
+- **Carrier Atlas** — each module mapped to a named hiding pattern (Wendzel et al.), plus the carriers this lab only *describes* (VoIP/RTP, Wi-Fi / link layer, history channels, and the text/linguistic family), each with a fidelity card. ICMP and protocol hopping moved from described-only to **built** in 1.4.0. The text/linguistic entry links out to the sibling exhibit [**Ghost-Ink**](https://systemslibrarian.github.io/Ghost-Ink/), which covers that family in depth rather than duplicating it here.
 - **Shared-Resource Matrix** — Kemmerer's covert-channel-analysis method as a playable exercise.
 - **What Makes a Channel Covert?** — the conceptual core plus the trade-off triangle, computed live.
 - **Defensive Takeaways**, **Glossary**, and an interactive **Quiz**.
@@ -67,6 +70,7 @@ Cross-cutting features:
 - **Blind, scored detection challenge** — analysis, not recognition of a labelled example.
 - **Live capacity / reliability / observability instrument** — computed from the actual seeded run (not presets) on every channel, with a sweep curve showing the trade-off move.
 - **Named, cited detectors** — corrected conditional entropy (Gianvecchio & Wang 2007), Cabuk regularity (Cabuk et al. 2004), character-frequency divergence (Born & Gustafson 2010), the Westfeld–Pfitzmann chi-square attack, and permutation-capacity bounds — each with a known-answer test.
+- **A learned detector beside the classical ones** — a two-feature logistic regression fitted on the *same two features* the hand-built timing detector already computes, so any difference comes from fitting alone. It makes **overfitting** countable (the gap between fit and held-out AUC) and **distribution shift** visible (a set of scheduled pollers and narrow-separation channels neither model was trained on), with the classical detector scored on identical sets as the fair comparison. Deterministic, and documented as a toy — see [VALIDATION.md](VALIDATION.md) §10.
 - **Sender/receiver vs. defender view modes** on every channel.
 - **Shareable, reproducible links** — the seed and view mode live in the URL hash (`#dns?seed=crypto-lab&mode=defender`), so an instructor can hand out an exact state.
 - **Exportable lab notebook** — every channel section can copy the current run (link, seed, settings, decoded result, capacity/BER/observability, detector methods) as Markdown for a take-home or answer key.
@@ -78,7 +82,7 @@ Cross-cutting features:
 Run the lab locally (see below) and drop your own captures into `docs/screenshots/`
 to illustrate this section. Good candidates:
 
-- **Overview** — the text → bytes → bits pipeline and the "same bits, five carriers" preview.
+- **Overview** — the text → bytes → bits pipeline and the "same bits, six carriers" preview.
 - **Timing Channel** — the arrival timeline with the "the message is in *when* they arrived" reveal.
 - **DNS Channel** — the simulated query log alongside the defender's anomaly panel.
 - **Detection Console** — the at-a-glance anomaly gauges across all channels.
@@ -110,18 +114,22 @@ A fully static site: vanilla JavaScript ES modules, no framework, no build step,
     app.js            — bootstrap + hash routing (seed/mode carried in the URL)
     state.js          — central seeded app state + pub/sub
     simulation.js     — deterministic orchestrator (encode -> channel -> decode -> detect)
-    /channels  dns.js, timing.js, storage.js, ordering.js, http.js, stego.js,
-               metadata.js, physical.js, cache.js
-    /detectors anomaly.js, dnsDetector.js, timingDetector.js, storageDetector.js,
-               orderingDetector.js, httpDetector.js, stegoDetector.js,
-               physicalDetector.js, cacheDetector.js
+    /channels  dns.js, icmp.js, timing.js, storage.js, ordering.js, http.js,
+               hopping.js, stego.js, metadata.js, physical.js, cache.js
+    /detectors anomaly.js, dnsDetector.js, icmpDetector.js, timingDetector.js,
+               storageDetector.js, orderingDetector.js, httpDetector.js,
+               hoppingDetector.js, stegoDetector.js, physicalDetector.js,
+               cacheDetector.js, learnedDetector.js (fitted, not hand-built)
     /analysis  tradeoff.js (live capacity/reliability/observability),
-               challenge.js (blind detection cases)
-    /views     one *View.js per section (overview, dns, timing, storage, ordering,
-               http, stego, metadata, physical, cache, detection, challenge,
-               compare, atlas, srm, concepts, defense, glossary, quiz,
-               tradeoffView) plus shared helpers
-               (dom.js, blocks.js, charts.js, controls.js, widgets.js)
+               challenge.js (blind detection cases),
+               validation.js (ROC/AUC benchmark),
+               warden.js (active-warden / normalizer lab),
+               learned.js (overfitting & distribution-shift experiment)
+    /views     one *View.js per section (overview, dns, icmp, timing, storage,
+               ordering, http, hopping, stego, metadata, physical, cache,
+               detection, challenge, validation, warden, compare, atlas, srm,
+               concepts, defense, glossary, quiz, tradeoffView) plus shared
+               helpers (dom.js, blocks.js, charts.js, controls.js, widgets.js)
     /content   glossary.js, quiz.js, comparison.js, references.js, atlas.js, copy.js
     /utils     utf8.js, bits.js, seededRandom.js, statistics.js (incl. published
                detection methods: CCE, Cabuk regularity, KL divergence, chi-square)
@@ -165,7 +173,7 @@ This project **does not transmit covert network traffic and does not provide an 
 
 - No raw sockets, packet crafting, or packet injection.
 - No live DNS tunneling — no real DNS queries encode any data, ever.
-- No ICMP tunneling or any real ICMP traffic.
+- No ICMP tunneling or any real ICMP traffic. The ICMP Echo Channel is a simulated log of plain JavaScript objects addressed to RFC 5737 documentation ranges; no packet is crafted, sent, or received.
 - No command-and-control (C2) functionality of any kind.
 - No data exfiltration capability — nothing leaves the browser.
 - No remote destinations, endpoints, listeners, or receiver servers.

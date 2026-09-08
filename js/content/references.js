@@ -56,7 +56,7 @@ export const REFERENCES = [
     ]
   },
   {
-    category: 'Standards (DNS & IP)',
+    category: 'Standards (DNS, IP & ICMP)',
     items: [
       {
         title: 'RFC 791: Internet Protocol',
@@ -65,6 +65,14 @@ export const REFERENCES = [
         venue: 'IETF RFC 791',
         note: 'Defines the IPv4 header fields (such as Identification and TTL) whose legitimate purposes the storage-channel section shows being repurposed to carry hidden values.',
         url: 'https://www.rfc-editor.org/rfc/rfc791'
+      },
+      {
+        title: 'RFC 792: Internet Control Message Protocol',
+        authors: 'Jon Postel',
+        year: 1981,
+        venue: 'IETF RFC 792 (STD 5)',
+        note: 'Specifies the echo request/reply exchange the ICMP module is built on, including the Identifier and Sequence Number fields and the rule that makes the channel possible: whatever data an echo request carries must be returned unchanged in the reply, and nothing in the protocol inspects it.',
+        url: 'https://www.rfc-editor.org/rfc/rfc792'
       },
       {
         title: 'RFC 793: Transmission Control Protocol',
@@ -89,6 +97,22 @@ export const REFERENCES = [
         venue: 'IETF RFC 2606 (BCP 32)',
         note: 'Reserves the .test TLD used throughout this exhibit, which is why the simulated domains can never resolve on the real Internet.',
         url: 'https://www.rfc-editor.org/rfc/rfc2606'
+      },
+      {
+        title: 'RFC 5508: NAT Behavioral Requirements for ICMP',
+        authors: 'Pyda Srisuresh, Bryan Ford, Senthil Sivakumar, Saikat Guha',
+        year: 2009,
+        venue: 'IETF RFC 5508 (BCP 148)',
+        note: 'Requires a NAT to rewrite the ICMP Query Identifier so it can match replies back to the session that sent them. That routine behavior destroys an identifier-based covert channel for free, and is the source of the paired-defence lesson in the ICMP module: this closes one carrier and leaves the other untouched.',
+        url: 'https://www.rfc-editor.org/rfc/rfc5508'
+      },
+      {
+        title: 'RFC 5737: IPv4 Address Blocks Reserved for Documentation',
+        authors: 'Jari Arkko, Michelle Cotton, Leo Vegoda',
+        year: 2010,
+        venue: 'IETF RFC 5737',
+        note: 'Reserves 192.0.2.0/24, 198.51.100.0/24 and 203.0.113.0/24 for documentation. Every address in the ICMP and protocol-hopping modules comes from these ranges, which is why nothing shown there can be pointed at a real host by copying a value out of the interface — the same role .test plays for the DNS module.',
+        url: 'https://www.rfc-editor.org/rfc/rfc5737'
       }
     ]
   },
@@ -162,6 +186,14 @@ export const REFERENCES = [
         url: ''
       },
       {
+        title: 'On the Limits of Steganography',
+        authors: 'Ross J. Anderson, Fabien A. P. Petitcolas',
+        year: 1998,
+        venue: 'IEEE Journal on Selected Areas in Communications, 16(4)',
+        note: 'Develops the warden framing this exhibit borrows for its Active Warden lab: a passive warden only observes, while an ACTIVE warden alters what passes through in the hope of destroying any hidden channel without needing to detect it first. Also a careful account of what steganography can and cannot promise.',
+        url: ''
+      },
+      {
         title: 'Attacks on Steganographic Systems',
         authors: 'Andreas Westfeld, Andreas Pfitzmann',
         year: 1999,
@@ -181,6 +213,14 @@ export const REFERENCES = [
         venue: 'NIST Special Publication 800-53, Revision 5',
         note: 'Includes the Covert Channel Analysis control (SC-31, in the System and Communications Protection family), showing that covert-channel review is an established, standardized defensive practice rather than an exotic concern.',
         url: 'https://doi.org/10.6028/NIST.SP.800-53r5'
+      },
+      {
+        title: 'Network Intrusion Detection: Evasion, Traffic Normalization, and End-to-End Protocol Semantics',
+        authors: 'Mark Handley, Vern Paxson, Christian Kreibich',
+        year: 2001,
+        venue: 'Proceedings of the 10th USENIX Security Symposium',
+        note: 'The network form of the active warden, and the source of the traffic-normalization idea the Active Warden lab implements: a normalizer sitting in the path rewrites traffic into canonical form so that ambiguity an attacker could exploit is removed before it reaches the destination. The lab measures what that does and does not close, including the residual timing channel it cannot reach.',
+        url: ''
       },
       {
         title: 'MITRE ATT&CK Technique T1071.004: Application Layer Protocol: DNS',

@@ -146,5 +146,117 @@ export const QUIZ = [
     answerIndex: 1,
     explanation:
       'Cover traffic hides the signal among plausible, everyday events so it stands out less to an observer, reducing observability. The price is that most of the traffic carries no payload, so effective capacity drops and overhead rises. This is another face of the tradeoff triangle, and the exhibit notes that blending reduces — never eliminates — the chance of detection.'
+  },
+  {
+    id: 'hopping-transition-tell',
+    question:
+      'A host encodes bits by choosing which protocol to speak next: each flow is a perfectly ordinary HTTPS, DNS, NTP, SMTP, or SSH flow, and the payload lives in the sequence of those choices. Which observation is most likely to expose it?',
+    choices: [
+      'Deep packet inspection of each flow, since one of them must contain the encoded payload',
+      'That the transition matrix of protocol-to-protocol hops has an empty diagonal — the host never repeats a protocol, while real hosts are sticky',
+      'An unusually high entropy in the payload bytes of the SSH flows',
+      'The total volume of traffic, which must rise to carry the hidden bits'
+    ],
+    answerIndex: 1,
+    explanation:
+      'Nothing is wrong with any individual flow, so no per-packet inspector — no signature, no field check, no payload entropy test — can see anything: that is the whole point of the channel. The encoding must change protocol on every hop to stay decodable, which forces the diagonal of the transition matrix to be exactly empty, while ordinary hosts spend long runs on one protocol. The tell is a property of the SEQUENCE, not of any packet, and because it is forced by the encoding rather than estimated it holds up on small samples. Capacity is also tiny here, so volume barely moves.'
+  },
+  {
+    id: 'hopping-pivot',
+    question:
+      'The same protocol-hopping channel is running, but its flows are mixed into a busy host\'s ordinary traffic. Aggregated across the whole host, the transition statistics look completely normal. What should the analyst do?',
+    choices: [
+      'Conclude the channel has stopped, since the aggregate statistics are clean',
+      'Group the traffic by peer and re-run the statistics on each conversation separately',
+      'Increase the observation window until the aggregate becomes anomalous',
+      'Switch to inspecting packet payloads, since the sequence view has been exhausted'
+    ],
+    answerIndex: 1,
+    explanation:
+      'The covert walk all goes to one rendezvous peer, because the receiver has to be able to tell which flows are the channel. Ordinary traffic to other peers refills the diagonal and washes the signal out of any host-level average, so more observation of the aggregate does not help — the dilution is not a sampling problem. Grouping by conversation restores the signal immediately. The exhibit surfaces both views side by side to make that gap visible, and it is also why the cover-traffic slider does not move the anomaly score.'
+  },
+  {
+    id: 'icmp-entropy-wrong-statistic',
+    question:
+      'A defender proposes flagging ICMP echo requests whose payload entropy is high, reasoning that encoded data looks random. Why does this statistic fail on ICMP specifically?',
+    choices: [
+      'ICMP payloads are encrypted, so entropy is always high',
+      'A conventional ping fills its data area with an incrementing run of distinct bytes, whose entropy is already near-maximal — so entropy cannot separate it from message data',
+      'ICMP payloads are too short for entropy to be computed at all',
+      'Entropy only works on timing data, never on payload bytes'
+    ],
+    answerIndex: 1,
+    explanation:
+      'The reflex is to reach for entropy, and on ICMP it measures the wrong property. Ordinary ping fills the data area after its timestamp with a fixed incrementing pattern of distinct bytes, so its Shannon entropy is higher than plenty of real message data. What actually distinguishes them is that the conventional fill is PREDICTABLE and IDENTICAL in every echo — a structural test rather than a statistical one. The exhibit keeps this case because it is a clean example of a plausible statistic that measures something other than what the analyst intended.'
+  },
+  {
+    id: 'icmp-two-carriers',
+    question:
+      'The ICMP module carries data two ways: message bytes in the echo data area, and one bit in the low bit of the Echo Identifier. A network deploys a normaliser that rewrites oversized payloads back to the conventional fill pattern. What happens?',
+    choices: [
+      'Both channels close, because both live inside the ICMP packet',
+      'The data-area channel closes and the identifier channel keeps running untouched',
+      'The identifier channel closes and the data-area channel keeps running untouched',
+      'Neither closes, because a normaliser only inspects headers'
+    ],
+    answerIndex: 1,
+    explanation:
+      'The two carriers were paired precisely to make this point. Scrubbing the data area destroys the payload channel and does nothing at all to a bit hidden in a header field. The defence that closes the identifier channel is a different one — a NAT rewriting the Echo Identifier, which RFC 5508 requires so replies can be demultiplexed — and that in turn leaves the data area alone. No single normaliser closes ICMP, which is the general lesson: defences are carrier-specific, and enumerating the carriers has to come before choosing the control.'
+  },
+  {
+    id: 'warden-disruption-not-detection',
+    question:
+      'An active warden normalises traffic at the network boundary and successfully closes several covert channels. What does the defender give up in exchange?',
+    choices: [
+      'Nothing — normalisation is a strictly better defence than detection',
+      'Knowledge that anyone tried: when the channel is destroyed the anomaly indicator usually falls too, leaving no alert and no record of the attempt',
+      'The ability to use encryption, since normalisation requires plaintext',
+      'Reliability for legitimate users, but the defender still gets a full alert for every closed channel'
+    ],
+    answerIndex: 1,
+    explanation:
+      'Normalisation is disruption, not detection. Rewriting traffic to canonical form removes the degree of freedom the channel depended on, and with it the artifact a detector would have keyed on — so the attempt fails silently and nothing reaches an analyst. That is a genuine trade rather than a free win, which is why the Active Warden lab shows the anomaly score before and after in the same table. Detection and disruption are different defensive tools, and a defender who wants to know that someone tried needs both.'
+  },
+  {
+    id: 'warden-out-of-path',
+    question:
+      'With every normaliser action switched on, the air-gap optical and shared-cache rows in the Active Warden lab do not move at all. Why?',
+    choices: [
+      'Those channels are too high-capacity for a normaliser to affect',
+      'A normaliser rewrites packets on a network path, and neither of those carriers is on one — light across a room and cache occupancy inside one machine are not made of packets',
+      'The simulation does not model those two channels under a warden',
+      'They are encrypted, so the warden cannot read them to rewrite them'
+    ],
+    answerIndex: 1,
+    explanation:
+      'This is a structural blind spot, not a gap in the model. A network warden can only act on traffic that routes through it, and an air-gap optical channel carried by light, or a shared-cache channel carried by cache-line occupancy inside a single machine, never crosses that boundary. It is the exhibit\'s strongest argument against treating normalisation as a complete answer: it closes the channels that pass through it, is silent about the ones it closes, and cannot see the ones that do not.'
+  },
+  {
+    id: 'residual-timing-channel',
+    question:
+      'A traffic shaper is applied to a covert timing channel. Its bit-error rate rises sharply but does not reach a coin flip. How should the defender describe the result?',
+    choices: [
+      'The channel is closed, because the error rate is now too high to be usable',
+      'The channel is degraded but not closed — a residual channel remains, with real Shannon capacity C = 1 - H2(p) that ideal coding could still use',
+      'The channel is unaffected, because shaping only changes latency',
+      'The channel has become a storage channel, since timing no longer carries information'
+    ],
+    answerIndex: 1,
+    explanation:
+      'A shaper cannot delete a gap between packets, only blur it, so it raises the error rate without erasing the signal. Measuring what survives as Shannon capacity rather than as surviving goodput is the honest framing: the question is how much information could still cross with ideal coding, not how many bits happen to arrive intact. Timing channels degrade gracefully for this reason, and buying more suppression means buying more buffering and more latency for everyone — the one defence in the warden lab with an ongoing cost, and it still does not reach zero.'
+  },
+  {
+    id: 'learned-detector-overfit',
+    question:
+      'A two-feature logistic regression is fitted on twelve labelled timing traces and separates them perfectly. What does that perfect score tell you about how it will perform in deployment?',
+    choices: [
+      'It will perform equally well, since the model has been validated on real data',
+      'Very little on its own — the number that matters is how it scores on held-out cases, and especially on traffic drawn from a process it never saw',
+      'It will perform better in deployment, because real traffic has more signal than training data',
+      'Nothing can be said, because logistic regression cannot be evaluated'
+    ],
+    answerIndex: 1,
+    explanation:
+      'A score on the data a model was fitted to measures memorisation as much as generalisation, and two parameters over twelve cases are already enough to produce a gap between the fit score and a held-out score. The harder test is distribution shift: traffic from a generative process the model never saw, such as a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. The exhibit scores the hand-built detector on identical sets for the fair comparison — it was never fitted to anything, so it has nothing to shift away from, but it is also stuck with whatever weighting a person guessed.'
   }
 ]

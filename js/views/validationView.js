@@ -9,6 +9,7 @@ import { el, div, span, svg } from './dom.js';
 import { sectionHeader, para, inline } from './blocks.js';
 import { round } from '../utils/statistics.js';
 import { validateAll, VALIDATION_NOTES } from '../analysis/validation.js';
+import { evaluateLearnedDetector } from '../analysis/learned.js';
 
 export function renderValidationView(state) {
   const results = validateAll();
@@ -27,9 +28,60 @@ export function renderValidationView(state) {
       el('h3', { class: 'card-title', text: 'Reading this lab' }),
       para('For every detector, the chain is explicit: a **published statistic** → **this implementation** → a **chosen threshold** → **measured behaviour** on a synthetic benchmark. AUC is the probability the score ranks a random covert case above a random clean one; the confusion matrix fixes a decision threshold and counts the outcomes.', undefined),
       el('ul', { class: 'block-list' }, ...VALIDATION_NOTES.map((n) => el('li', {}, ...inline(n))))),
-    div({ class: 'validation-grid' }, ...results.map(detectorCard)));
+    div({ class: 'validation-grid' }, ...results.map(detectorCard)),
+    learnedSection());
 
   return { node, refresh() {} };
+}
+
+/* ---- the learned detector, next to the classical ones --------------------- */
+
+/**
+ * A fitted model beside the hand-built ones. The comparison is only fair
+ * because both are scored by AUC, which uses the RANKING alone — the raw scores
+ * do not mean the same thing and are never compared directly.
+ */
+function learnedSection() {
+  const r = evaluateLearnedDetector();
+  return el('div', { class: 'card learned-card' },
+    el('h3', { class: 'card-title', text: 'A learned detector, measured the same way' }),
+    para(`The detectors above are hand-built: a person chose the statistics and chose how to weigh them. This one fits the weighting from labelled examples instead — using the **same two features** as the timing detector (${r.features.join(' and ')}), so any difference comes from fitting alone.`, undefined),
+    para(`Three sets: **${r.sets.train.n} training** cases, **${r.sets.test.n} held-out** cases from the same distribution, and **${r.sets.shift.n} shifted** cases drawn from processes no model was trained on — scheduled pollers, which are clean but metronomic, and narrow-separation channels, which are covert but subtle.`, 'subtle'),
+    learnedTable(r),
+    para('The first column means different things per row: for a fitted model it is performance on its own training data, and for the classical detector it is simply the same 12 cases, since it was never fitted to anything. Compare columns down, not the first column across.', 'subtle'),
+    el('ul', { class: 'block-list' }, ...r.notes.map((n) => el('li', {}, ...inline(n)))));
+}
+
+function learnedTable(r) {
+  const aucCell = (v, tone) => el('td', { class: `mono val-auc-cell ${tone || ''}` }, String(v.toFixed(3)));
+  const toneFor = (v) => (v >= 0.9 ? 'good' : v >= 0.75 ? 'warn' : 'bad');
+  const modelRow = (m) => el('tr', {},
+    el('th', { scope: 'row' }, span({ text: m.label })),
+    aucCell(m.auc.fit, toneFor(m.auc.fit)),
+    aucCell(m.auc.test, toneFor(m.auc.test)),
+    aucCell(m.auc.shift, toneFor(m.auc.shift)),
+    el('td', { class: 'mono', text: m.generalisationGap.toFixed(3) }),
+    el('td', { class: 'mono', text: m.weights.map((w) => round(w.weight, 2)).join(', ') }));
+  return div({
+    class: 'table-wrap',
+    attrs: { tabindex: '0', role: 'region', 'aria-label': 'Learned detector versus the classical detector: area under curve on the training, held-out and shifted sets' },
+  }, el('table', { class: 'data-table learned-table' },
+    el('thead', {}, el('tr', {},
+      el('th', { scope: 'col', text: 'Detector' }),
+      el('th', { scope: 'col', text: 'AUC (fit set)' }),
+      el('th', { scope: 'col', text: 'AUC (held out)' }),
+      el('th', { scope: 'col', text: 'AUC (shifted)' }),
+      el('th', { scope: 'col', text: 'Fit − held-out' }),
+      el('th', { scope: 'col', text: 'Weights' }))),
+    el('tbody', {},
+      ...r.models.map(modelRow),
+      el('tr', { class: 'classical-row' },
+        el('th', { scope: 'row' }, span({ text: r.classical.label })),
+        aucCell(r.classical.auc.fit, toneFor(r.classical.auc.fit)),
+        aucCell(r.classical.auc.test, toneFor(r.classical.auc.test)),
+        aucCell(r.classical.auc.shift, toneFor(r.classical.auc.shift)),
+        el('td', { class: 'mono', text: '—' }),
+        el('td', { class: 'mono', text: 'not fitted' })))));
 }
 
 function detectorCard(r) {

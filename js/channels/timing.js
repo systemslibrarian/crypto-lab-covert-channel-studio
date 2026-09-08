@@ -154,3 +154,25 @@ export function generateNormalGaps(count, opts = {}) {
   }
   return gaps;
 }
+
+/**
+ * A scheduled health-check poller: a fixed interval with a little scheduling
+ * jitter. This is the classic false-positive trap for every timing-channel
+ * detector, because "suspiciously regular" is exactly what a cron job looks
+ * like — and unlike the exponential baseline above, it is NOT drawn from the
+ * same distribution as ordinary bursty traffic.
+ *
+ * Kept separate from `generateNormalGaps` on purpose: the detector benchmark in
+ * analysis/validation.js is a published set of numbers, and this generator is
+ * used for the distribution-shift experiment rather than added to it.
+ *
+ * @param {number} count
+ * @param {{ intervalMs?:number, jitterMs?:number, seed?:string|number }} [opts]
+ * @returns {number[]}
+ */
+export function generatePollerGaps(count, opts = {}) {
+  const intervalMs = opts.intervalMs ?? 200;
+  const jitterMs = Math.max(0, opts.jitterMs ?? 4);
+  const rng = createRng(opts.seed ?? 'timing-poller');
+  return Array.from({ length: count }, () => Math.max(1, intervalMs + rng.gaussian(0, jitterMs)));
+}

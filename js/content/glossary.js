@@ -210,4 +210,54 @@ export const GLOSSARY = [
     definition: 'How many standard deviations of noise separate two signal classes, computed as the distance between their means divided by the pooled within-class standard deviation. A large value means a threshold receiver can tell the two classes apart almost perfectly — which is what both a covert receiver and a defender are measuring.',
     seeAlso: ['Bit-error rate (BER)', 'Anomaly', 'Baseline']
   },
+  {
+    term: 'Protocol hopping',
+    definition: 'Also called protocol switching: a covert channel in which the payload is carried by the CHOICE of which protocol to speak next, rather than by anything inside any one protocol. If a hop must always change protocol, an agreed set of n protocols offers n-1 admissible successors and so ⌊log₂(n-1)⌋ bits per hop — a ceiling that grows only logarithmically, which is why hopping is a signalling channel rather than an exfiltration channel.',
+    seeAlso: ['Covert storage channel', 'Transition matrix', 'Capacity', 'Hiding pattern']
+  },
+  {
+    term: 'Transition matrix',
+    definition: 'A table counting how often a sequence moves from each state to each other state — here, from each protocol to the next one a host speaks. Its diagonal counts staying put, and that is what gives a hopping channel away: a grammar that must change protocol every hop leaves the diagonal exactly empty, while real hosts are sticky and put most of their mass there. Being forced by the encoding rather than estimated, it survives small samples better than an entropy measure does.',
+    seeAlso: ['Protocol hopping', 'Entropy', 'Anomaly', 'Baseline']
+  },
+  {
+    term: 'Echo Identifier',
+    definition: 'A 16-bit field in an ICMP echo request that lets a sender match replies to the session that asked for them; one ping session normally holds one value for its whole run. Its low bit will carry a covert bit, and almost nothing detects that — but a NAT rewrites the field as a matter of course (RFC 5508), so the channel dies for free on any translated path.',
+    seeAlso: ['NAT', 'Covert storage channel', 'Size modulation', 'Middlebox']
+  },
+  {
+    term: 'Size modulation',
+    definition: 'Carrying information in the SIZE of a protocol data unit rather than in its contents. It shows up clearly in ICMP, where ordinary ping holds one payload size for a whole session, so a varying or unconventional size is a choice somebody made. Note on attribution: size-based hiding is well established, but this lab does not claim that the 2015 network hiding-pattern survey names a distinct pattern for it — the term here is descriptive, not a citation.',
+    seeAlso: ['Hiding pattern', 'Echo Identifier', 'Anomaly']
+  },
+  {
+    term: 'Active warden',
+    definition: 'A defender that rewrites traffic into canonical form on the way past instead of trying to decide whether a message is hidden in it, on the theory that a channel depending on a degree of freedom cannot survive losing that freedom. Contrast a PASSIVE warden, which only observes and reports. An active warden disrupts without detecting: when it closes a channel the anomaly score usually falls with it, so the defender is left with no record that anyone tried.',
+    seeAlso: ['Traffic normalisation', 'Residual channel', 'Middlebox', 'Observability']
+  },
+  {
+    term: 'Traffic normalisation',
+    definition: 'Rewriting traffic to a canonical form at a network boundary — uniform TTLs, canonical header order, a restored ICMP fill pattern — so that ambiguity an attacker could exploit is removed before the traffic reaches its destination (Handley, Paxson & Kreibich, 2001). It is a good defence and a poor strategy: it closes the channels routed through it, says nothing about the ones it closes, and is structurally blind to carriers that are not made of packets at all.',
+    seeAlso: ['Active warden', 'Middlebox', 'NAT', 'Residual channel']
+  },
+  {
+    term: 'Residual channel',
+    definition: 'What still carries information after a defence that degrades a channel without closing it. Measured as Shannon capacity C = 1 - H2(p) bits per symbol at bit-error rate p, rather than as surviving goodput, because the honest question is how much could still cross with ideal coding. Timing channels are the standard example: a shaper cannot delete a gap, only blur it, and blurring harder costs latency and buffering for everyone.',
+    seeAlso: ['Active warden', 'Capacity', 'Bit-error rate (BER)', 'Covert timing channel']
+  },
+  {
+    term: 'Overfitting',
+    definition: 'When a fitted detector learns the particular examples it was trained on rather than the property they share, so it scores far better on its training set than on held-out cases from the same distribution. The gap between those two scores is the measurement; a two-feature model on a dozen cases is already enough to produce one.',
+    seeAlso: ['Distribution shift', 'Learned detector', 'Anomaly']
+  },
+  {
+    term: 'Distribution shift',
+    definition: 'When deployed traffic is drawn from a different generative process than the one a detector was fitted to — a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. A fitted model can degrade sharply here while a hand-built statistic, never fitted to anything, has nothing to shift away from. It is why in-distribution accuracy is a weak promise about deployment.',
+    seeAlso: ['Overfitting', 'Learned detector', 'Baseline', 'Anomaly']
+  },
+  {
+    term: 'Learned detector',
+    definition: 'A detector whose weighting of features is fitted from labelled examples rather than chosen by a person. In this exhibit it is a two-feature logistic regression over the SAME statistics the hand-built timing detector uses, so any difference in behaviour comes from fitting alone. Note that its score means something different: it is a probability calibrated on its training distribution and nowhere else, whereas a classical anomaly score never claimed to be a probability at all.',
+    seeAlso: ['Overfitting', 'Distribution shift', 'Corrected conditional entropy', 'Anomaly']
+  },
 ];

@@ -12,11 +12,14 @@ url: >-
 abstract: >-
   An educational, fully-simulated Crypto-Lab exhibit on covert channels: hidden
   communication in protocols, timing, and media. It teaches storage vs. timing
-  channels, DNS/HTTP/IP-field/ordering/steganography carriers, the
-  capacity/reliability/observability trade-off, and how defenders detect them
-  using named, cited statistical methods — with a blind detection challenge and
-  a detector validation lab. It runs entirely client-side and generates no real
-  network traffic.
+  channels; DNS, ICMP, IP-field, ordering, HTTP-header, protocol-hopping,
+  air-gap optical, shared-cache and steganographic carriers; the
+  capacity/reliability/observability trade-off; and how defenders both detect
+  covert channels (named, cited statistical methods, a blind detection
+  challenge, a detector validation lab, and a learned detector measured for
+  overfitting and distribution shift) and disrupt them (an active-warden
+  normalizer lab). It runs entirely client-side and generates no real network
+  traffic.
 keywords:
   - covert channels
   - security education
@@ -27,8 +30,8 @@ keywords:
   - detection
   - crypto-lab
 license: MIT
-version: 1.3.0
-date-released: '2026-09-06'
+version: 1.4.0
+date-released: '2026-09-08'
 references:
   - type: article
     title: >-
