@@ -36,6 +36,7 @@ export const SECTIONS = [
   { id: 'detection', label: 'Detection Console', group: 'Analysis' },
   { id: 'challenge', label: 'Detection Challenge', group: 'Analysis' },
   { id: 'validation', label: 'Detector Validation Lab', group: 'Analysis' },
+  { id: 'warden', label: 'Active Warden Lab', group: 'Analysis' },
   { id: 'compare', label: 'Compare Channels', group: 'Analysis' },
   { id: 'atlas', label: 'Carrier Atlas', group: 'Analysis' },
   { id: 'srm', label: 'Shared-Resource Matrix', group: 'Analysis' },

@@ -322,5 +322,13 @@ a.atlas-deepdive { text-decoration: none; }
   color: var(--text-faint);
 }
 
+/* ---- Active Warden lab ----------------------------------------------------- */
+#sec-warden { --accent: #38bdf8; --accent-deep: #0ea5e9; } /* sky */
+.warden-switches .control-group { display: grid; gap: var(--sp-3); }
+.warden-buttons { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); flex-wrap: wrap; }
+.warden-table th[scope="row"] { color: var(--text); font-weight: 650; }
+.warden-table .obs-drop { color: var(--ok); }
+.warden-why { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--text-faint); white-space: normal; max-width: 40ch; }
+
 .rep-cell.hop { font-size: var(--fs-xs); font-weight: 650; color: var(--covert); }
 .rep-cell.hop.sync { color: var(--text-faint); font-weight: 500; }

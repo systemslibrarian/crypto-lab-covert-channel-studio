@@ -45,6 +45,7 @@ const VIEW_MODULES = {
   detection: ['detectionView', 'renderDetectionView'],
   challenge: ['challengeView', 'renderChallengeView'],
   validation: ['validationView', 'renderValidationView'],
+  warden: ['wardenView', 'renderWardenView'],
   compare: ['comparisonView', 'renderComparisonView'],
   atlas: ['atlasView', 'renderAtlasView'],
   srm: ['srmView', 'renderSrmView'],

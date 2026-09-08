@@ -305,6 +305,37 @@ export const COPY = {
     ],
   },
 
+  warden: {
+    title: 'The Active Warden',
+    lede: 'A different kind of defence. An active warden never decides whether a message is hidden — it **rewrites traffic into canonical form** on the way past, on the theory that a channel depending on a degree of freedom cannot survive losing that freedom.',
+    outcomes: [
+      'distinguish **detection** from **disruption**, and see why a defender may want both',
+      'predict which channels a normaliser closes and which it only degrades',
+      'read a **residual channel** as Shannon capacity rather than as surviving goodput',
+      'name the channels a network warden cannot reach at all, and say why',
+    ],
+    blocks: [
+      { callout: {
+        kind: 'key',
+        title: 'Normalisation is disruption, not detection',
+        body: 'When a warden closes a channel, the anomaly score usually falls with it. The defender ends up with a network where the attempt failed and **no record that anyone tried** — which is a real trade, not a free win. Watch the observability column: several channels here are closed *and* made quieter at the same time.',
+      } },
+      { h: 'What the table measures' },
+      'Each switch is applied to the actual simulation and every channel is re-run, so nothing here is asserted. The capacity column is **residual Shannon capacity** — C = 1 − H₂(BER) bits per symbol — rather than surviving goodput, because the honest question is how much information could still cross with ideal coding, not how many bits happen to arrive intact. Anything at or past a coin flip is reported as zero.',
+      { h: 'Three results worth the module' },
+      { ol: [
+        'Storage channels **die cleanly**. They depend on one specific value reaching the far end, and removing that guarantee is precisely a normaliser’s job.',
+        'The timing channel **does not die**. Shaping raises its error rate without erasing it, and what is left is a residual channel with measurable capacity. Buying more suppression means buying more buffering and more latency for everyone — the only defence here with a running cost.',
+        'Two channels are **not in the path at all**. The air-gap optical channel is light across a room and the shared-cache channel is occupancy inside one machine. No amount of rewriting packets touches a carrier that is not made of packets.',
+      ] },
+      { callout: {
+        kind: 'warn',
+        title: 'The honest limit',
+        body: 'A normaliser is a good defence and a poor strategy. It closes the channels that route through it, it is silent about the ones it closes, and it is structurally blind to the ones that do not. Pair it with detection and with reducing the carrier set — the allow-list switch is the only one here that changes what the organisation is *allowed* to do, and it is also the one with the highest cost.',
+      } },
+    ],
+  },
+
   compare: {
     title: 'Compare Channels',
     lede: 'The same message can hide many ways, and the trade-offs differ sharply. This table ranks channels by teaching value, reliability in simulation, and what a defender can look for — **not** by how well they evade anyone.',

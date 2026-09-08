@@ -26,6 +26,7 @@ import { renderCacheView } from './views/cacheView.js';
 import { renderDetectionView } from './views/detectionView.js';
 import { renderChallengeView } from './views/challengeView.js';
 import { renderValidationView } from './views/validationView.js';
+import { renderWardenView } from './views/wardenView.js';
 import { renderComparisonView } from './views/comparisonView.js';
 import { renderAtlasView } from './views/atlasView.js';
 import { renderSrmView } from './views/srmView.js';
@@ -50,6 +51,7 @@ const VIEWS = {
   detection: renderDetectionView,
   challenge: renderChallengeView,
   validation: renderValidationView,
+  warden: renderWardenView,
   compare: renderComparisonView,
   atlas: renderAtlasView,
   srm: renderSrmView,
