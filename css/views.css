@@ -294,6 +294,9 @@ a.atlas-deepdive { text-decoration: none; }
 .icmp-payload.covert { color: var(--covert); }
 
 /* ---- Protocol-hopping channel --------------------------------------------- */
+/* The flow list sits directly inside a .table-wrap, which is built for tables
+   and gives its child no padding — so it needs its own. */
+.hop-stream-wrap { padding: var(--sp-3); }
 .hop-stream { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .hop-flow {
   display: flex; flex-direction: column; gap: 2px; min-width: 92px;
@@ -339,3 +342,4 @@ a.atlas-deepdive { text-decoration: none; }
 .val-auc-cell.bad  { color: var(--danger); }
 .rep-cell.hop { font-size: var(--fs-xs); font-weight: 650; color: var(--covert); }
 .rep-cell.hop.sync { color: var(--text-faint); font-weight: 500; }
+

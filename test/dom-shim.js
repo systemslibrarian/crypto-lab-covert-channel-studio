@@ -19,7 +19,17 @@ export function installDomShim(GLOBAL_TARGET = globalThis) {
     };
   }
   function mk(tag, ns) {
-    const n = { nodeType: 1, tagName: String(tag).toUpperCase(), _ns: ns || null, childNodes: [], attributes: {}, _text: '', style: {}, dataset: {}, _listeners: {}, value: '', checked: false, files: [] };
+    // Model just enough of CSSStyleDeclaration that code using custom properties
+  // takes the same path here as it does in a browser.
+  function makeStyle() {
+    const st = {};
+    Object.defineProperty(st, 'setProperty', {
+      enumerable: false,
+      value(prop, val) { st[prop] = String(val); },
+    });
+    return st;
+  }
+  const n = { nodeType: 1, tagName: String(tag).toUpperCase(), _ns: ns || null, childNodes: [], attributes: {}, _text: '', style: makeStyle(), dataset: {}, _listeners: {}, value: '', checked: false, files: [] };
     n.classList = classList(n);
     n.appendChild = (c) => { n.childNodes.push(c); c.parentNode = n; return c; };
     n.removeChild = (c) => { const i = n.childNodes.indexOf(c); if (i >= 0) n.childNodes.splice(i, 1); return c; };

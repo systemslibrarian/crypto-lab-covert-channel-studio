@@ -42,11 +42,33 @@ function applyProps(node, props) {
     if (k === 'class' || k === 'className') node.className = v;
     else if (k === 'text') node.textContent = v;
     else if (k === 'dataset') Object.assign(node.dataset, v);
-    else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+    else if (k === 'style' && typeof v === 'object') applyStyle(node, v);
     else if (k === 'on') { for (const [ev, fn] of Object.entries(v)) node.addEventListener(ev, fn); }
     else if (k === 'attrs') { for (const [a, val] of Object.entries(v)) if (val != null && val !== false) node.setAttribute(a, val === true ? '' : String(val)); }
     else if (v === true) node.setAttribute(k, '');
     else node.setAttribute(k, String(v));
+  }
+}
+
+/**
+ * Apply a style object.
+ *
+ * Custom properties have to go through setProperty: assigning `--x` onto a
+ * CSSStyleDeclaration creates an ordinary JS property that the CSS engine never
+ * reads, so it fails silently and the rule that consumes it falls back. That is
+ * exactly how the transition-matrix tint was lost, so the split is kept explicit
+ * rather than relying on Object.assign.
+ */
+function applyStyle(node, styles) {
+  for (const [prop, val] of Object.entries(styles)) {
+    if (val == null) continue;
+    if (prop.startsWith('--')) {
+      // The test DOM shim models style as a plain object; fall back for it.
+      if (typeof node.style.setProperty === 'function') node.style.setProperty(prop, String(val));
+      else node.style[prop] = String(val);
+    } else {
+      node.style[prop] = val;
+    }
   }
 }
 
