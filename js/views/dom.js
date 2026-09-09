@@ -104,6 +104,33 @@ export function card(titleText, ...children) {
     ...children);
 }
 
+/**
+ * Write text into a persistent notice/live region, showing it only when it has
+ * something to say.
+ *
+ * The region has to EXIST before the mutation or assistive technology never
+ * announces it — but `.ctrl` is a flex column with a gap, so an always-present
+ * empty <p> would open a permanent hole under every field it sits below.
+ * `.visually-hidden` is position:absolute, so an empty notice is out of flow and
+ * contributes no gap, while still being a registered live region.
+ */
+export function setNotice(node, text) {
+  const s = text || '';
+  node.textContent = s;
+  node.classList.toggle('visually-hidden', !s);
+}
+
+/**
+ * A visually-hidden <caption>. Every table in the exhibit sits inside a
+ * `.table-wrap` that is already a labelled region — but that names the SCROLL
+ * CONTAINER, not the table, so a screen reader's table-listing command showed a
+ * dozen anonymous tables. Pass the same string the wrapper uses, and put it
+ * first: a <caption> is only valid as the table's first child.
+ */
+export function tableCaption(text) {
+  return el('caption', { class: 'visually-hidden', text });
+}
+
 /** Format a millisecond time-of-day value as HH:MM:SS. */
 export function formatClock(ms) {
   const totalSec = Math.floor(ms / 1000);

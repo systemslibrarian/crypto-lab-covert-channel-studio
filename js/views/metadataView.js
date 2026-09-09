@@ -2,10 +2,10 @@
  * views/metadataView.js — the "records as an unintended channel" exhibit.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, tableCaption } from './dom.js';
 import { sectionHeader, renderBlocks, para, calloutChip, callout } from './blocks.js';
 import { panel, controlGroup, toggle, button, segmented } from './controls.js';
-import { recoveredBox, modeBanner, statTiles } from './widgets.js';
+import { recoveredBox, modeBanner, statTiles, statusRegion, recoveredPhrase } from './widgets.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateRecordsRun } from '../channels/metadata.js';
 import { round } from '../utils/statistics.js';
@@ -29,7 +29,11 @@ export function renderMetadataView(state) {
       el('h3', { class: 'card-title', text: 'Item transfer log' }), seg),
     bodyArea));
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-metadata' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Inference' }),
     modeBanner(state.viewMode),
     div({ class: 'prose-wide', style: { marginBottom: 'var(--sp-4)' } }, renderBlocks(copy.blocks)),
@@ -47,6 +51,10 @@ export function renderMetadataView(state) {
         recordTable(run.records, reveal));
     }
     replace(right, rightContent(cur, run));
+    status.announce(run.minimize
+      ? 'Data minimisation on: only daily aggregates retained, nothing recovered.'
+      : `${recoveredPhrase(run.decoded.text)} from ${run.records.length} records, `
+        + `${Math.round(run.branchBalance * 100)}% routed to Riverside.`);
   }
   function refresh(s) { cur = s; renderInner(); }
   refresh(state);
@@ -68,7 +76,7 @@ function leftPanel(state) {
 
 function recordTable(records, reveal) {
   const shown = records.slice(0, 40);
-  const head = el('tr', {}, ...['#', 'Day', 'Item class', 'Routed to', ...(reveal ? ['Bit', 'Char'] : [])].map((h) => el('th', { class: reveal && h === 'Routed to' ? 'covert-col' : '', text: h })));
+  const head = el('tr', {}, ...['#', 'Day', 'Item class', 'Routed to', ...(reveal ? ['Bit', 'Char'] : [])].map((h) => el('th', { scope: 'col', class: reveal && h === 'Routed to' ? 'covert-col' : '', text: h })));
   const rows = shown.map((r, i) => {
     const complete = (i + 1) % 8 === 0;
     let ch = '';
@@ -85,18 +93,22 @@ function recordTable(records, reveal) {
       reveal ? el('td', { class: 'mono', text: ch }) : null);
   });
   return div({ class: 'table-wrap', style: { maxHeight: '340px', overflowY: 'auto' }, attrs: { tabindex: '0', role: 'region', 'aria-label': 'Item transfer log' } },
-    el('table', { class: 'data-table' }, el('thead', {}, head), el('tbody', {}, ...rows)));
+    el('table', { class: 'data-table' },
+      tableCaption('Item transfer log'),
+      el('thead', {}, head), el('tbody', {}, ...rows)));
 }
 
 function aggregateTable(aggregates) {
-  const head = el('tr', {}, ...['Day', 'Transfers', 'Central', 'Riverside'].map((h) => el('th', { text: h })));
+  const head = el('tr', {}, ...['Day', 'Transfers', 'Central', 'Riverside'].map((h) => el('th', { scope: 'col', text: h })));
   const rows = aggregates.slice(0, 40).map((a) => el('tr', {},
     el('td', { class: 'mono', text: String(a.day) }),
     el('td', { class: 'mono', text: String(a.total) }),
     el('td', { class: 'mono', text: String(a.central) }),
     el('td', { class: 'mono', text: String(a.riverside) })));
   return div({ class: 'table-wrap', style: { maxHeight: '340px', overflowY: 'auto' }, attrs: { tabindex: '0', role: 'region', 'aria-label': 'Daily aggregate transfer counts' } },
-    el('table', { class: 'data-table' }, el('thead', {}, head), el('tbody', {}, ...rows)));
+    el('table', { class: 'data-table' },
+      tableCaption('Daily aggregate transfer counts'),
+      el('thead', {}, head), el('tbody', {}, ...rows)));
 }
 
 function rightContent(state, run) {

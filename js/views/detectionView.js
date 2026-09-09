@@ -7,7 +7,7 @@ import { el, div, span, replace } from './dom.js';
 import { sectionHeader, renderBlocks, para, callout } from './blocks.js';
 import { segmented } from './controls.js';
 import { anomalyGauge, verticalBars, dualHistogram } from './charts.js';
-import { metricList, observationList } from './widgets.js';
+import { metricList, observationList, statusRegion, anomalyPhrase } from './widgets.js';
 import { COPY } from '../content/copy.js';
 import { round } from '../utils/statistics.js';
 
@@ -56,7 +56,11 @@ export function renderDetectionView(state) {
   const detail = div({ class: 'det-detail' });
   let cur = state;
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-detection' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Analysis' }),
     div({ class: 'prose-wide' }, renderBlocks(copy.blocks)),
     el('div', { class: 'card det-console' },
@@ -68,21 +72,33 @@ export function renderDetectionView(state) {
         segmented({
           name: 'det-channel', label: 'Inspect channel', value: selected,
           options: CHANNELS.map((c) => ({ value: c.key, label: c.label })),
-          onChange: (v) => { selected = v; replace(overview, overviewRow(cur)); replace(detail, detailFor(cur, v)); },
+          onChange: (v) => {
+            selected = v;
+            replace(overview, overviewRow(cur));
+            replace(detail, detailFor(cur, v));
+            announceSelected(cur);
+          },
         })),
       detail));
+
+  function announceSelected(s) {
+    const { det } = selected === 'stego' ? { det: stegoCache } : analyze(selected, s);
+    if (!det) return;
+    status.announce(`${labelFor(selected)}: ${anomalyPhrase(det).replace(/^Anomaly/, 'anomaly')}.`);
+  }
 
   function refresh(s) {
     cur = s;
     replace(overview, overviewRow(s));
     replace(detail, detailFor(s, selected));
+    announceSelected(s);
     // Stego needs the carrier image; compute async then patch overview + detail,
     // but only if a newer refresh hasn't superseded this one.
     computeStego(s).then((det) => {
       if (cur !== s) return;
       stegoCache = det;
       replace(overview, overviewRow(cur));
-      if (selected === 'stego') replace(detail, detailFor(cur, 'stego'));
+      if (selected === 'stego') { replace(detail, detailFor(cur, 'stego')); announceSelected(cur); }
     });
   }
   refresh(state);

@@ -133,8 +133,14 @@ export function legend(items) {
 export function horizontalMeter(value, opts = {}) {
   const v = Math.max(0, Math.min(1, value));
   const color = opts.color ?? 'var(--accent)';
+  // When the head shows nothing the meter does not already expose — its own
+  // label plus "NN%" against the meter's accessible name plus aria-valuenow —
+  // it is pure duplication and gets read twice. Hide it in that case ONLY:
+  // callers that pass a richer `valueText` ("BER 12%") are carrying information
+  // the meter itself has no room for, and that must stay announced.
+  const headIsDuplicate = !opts.valueText && (!opts.ariaLabel || opts.ariaLabel === opts.label);
   return div({ class: 'meter' },
-    opts.label ? div({ class: 'meter-head' },
+    opts.label ? div({ class: 'meter-head', 'aria-hidden': headIsDuplicate ? 'true' : null },
       el('span', { class: 'meter-label', text: opts.label }),
       el('span', { class: 'meter-value mono', text: opts.valueText ?? `${Math.round(v * 100)}%` })) : null,
     div({ class: 'meter-track', role: 'meter', attrs: { 'aria-valuenow': Math.round(v * 100), 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-label': opts.ariaLabel ?? opts.label ?? 'meter' } },
@@ -152,7 +158,12 @@ export function anomalyGauge(score, level, opts = {}) {
   const s = Math.max(0, Math.min(100, score));
   const levelText = level === 'high' ? 'HIGH ANOMALY' : level === 'moderate' ? 'MODERATE ANOMALY' : 'LOW ANOMALY';
   return div({ class: `anomaly-gauge level-${level}` },
-    div({ class: 'anomaly-head' },
+    // The meter's accessible name below is a verbatim restatement of this head
+    // ("Educational anomaly score 72 of 100, HIGH ANOMALY"), and the gauge
+    // appears in every defender panel, the Detection Console and every challenge
+    // reveal — so leaving both exposed makes a reader hear the verdict three
+    // times, everywhere. Nothing is lost by hiding the visual head from AT.
+    div({ class: 'anomaly-head', 'aria-hidden': 'true' },
       el('span', { class: 'anomaly-level', text: levelText }),
       el('span', { class: 'anomaly-score mono', text: `${Math.round(s)}/100` })),
     div({ class: 'anomaly-track', role: 'meter', attrs: { 'aria-valuenow': Math.round(s), 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-label': `Educational anomaly score ${Math.round(s)} of 100, ${levelText}` } },

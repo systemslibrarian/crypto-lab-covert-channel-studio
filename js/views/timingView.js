@@ -7,7 +7,10 @@ import { el, div, span, replace } from './dom.js';
 import { sectionHeader, para, bitRibbon, calloutChip } from './blocks.js';
 import { panel, controlGroup, slider, button } from './controls.js';
 import { dualHistogram, horizontalMeter } from './charts.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateTimingFromText, generateNormalGaps } from '../channels/timing.js';
@@ -20,7 +23,11 @@ export function renderTimingView(state) {
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-timing' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Timing' }),
     modeBanner(state.viewMode),
     div({ class: 'workbench' }, leftPanel(state), center, right));
@@ -29,6 +36,10 @@ export function renderTimingView(state) {
     const run = simulateTimingFromText(s.message, { ...s.channels.timing, seed: `${s.seed}:timing` });
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeTiming(run.observedGaps, { decoderConfidence: run.confidence }))}.`
+      : `${recoveredPhrase(run.recoveredText)}, ${errorPhrase(run.bitErrors, run.bits.length)}, `
+        + `decode confidence ${Math.round(run.confidence * 100)}%.`);
   }
   refresh(state);
   return { node, refresh };

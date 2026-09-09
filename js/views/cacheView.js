@@ -4,11 +4,14 @@
  * The cache itself is MODELLED.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, tableCaption } from './dom.js';
 import { sectionHeader, renderBlocks, para, bitRibbon, calloutChip } from './blocks.js';
 import { panel, controlGroup, slider, button, select } from './controls.js';
 import { dualHistogram, horizontalMeter } from './charts.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles, simChip } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles, simChip,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateCacheRun, generateIdleLatencies, PROBES } from '../channels/cache.js';
@@ -21,7 +24,11 @@ export function renderCacheView(state) {
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-cache' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Shared resource' }),
     div({ class: 'prose-wide', style: { marginBottom: 'var(--sp-4)' } }, renderBlocks(copy.blocks)),
     modeBanner(state.viewMode),
@@ -31,6 +38,10 @@ export function renderCacheView(state) {
     const run = simulateCacheRun(s.message, { ...s.channels.cache, seed: `${s.seed}:cache` });
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeCache(run.latencies, { decoderConfidence: run.confidence, probe: run.probe }))}.`
+      : `${recoveredPhrase(run.recoveredText)}, ${errorPhrase(run.bitErrors, run.bits.length)}, `
+        + `decode confidence ${Math.round(run.confidence * 100)}%.`);
   }
   refresh(state);
   return { node, refresh };
@@ -101,14 +112,15 @@ function probeTable(run) {
 
   return div({ class: 'table-wrap', attrs: { tabindex: '0', role: 'region', 'aria-label': 'Probe-by-probe cache latencies and the bit each one decodes to' } },
     el('table', { class: 'data-table' },
+      tableCaption('Probe-by-probe cache latencies and the bit each one decodes to'),
       el('thead', {}, el('tr', {},
-        el('th', { text: '#' }),
-        el('th', { text: 'sent' }),
-        el('th', { text: 'sender' }),
-        el('th', { text: 'state' }),
-        el('th', { text: 'cycles' }),
-        el('th', { text: 'read' }),
-        el('th', { text: 'noise' }))),
+        el('th', { scope: 'col', text: '#' }),
+        el('th', { scope: 'col', text: 'sent' }),
+        el('th', { scope: 'col', text: 'sender' }),
+        el('th', { scope: 'col', text: 'state' }),
+        el('th', { scope: 'col', text: 'cycles' }),
+        el('th', { scope: 'col', text: 'read' }),
+        el('th', { scope: 'col', text: 'noise' }))),
       el('tbody', {}, ...rows)));
 }
 

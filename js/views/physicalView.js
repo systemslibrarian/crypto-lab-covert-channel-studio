@@ -7,7 +7,10 @@ import { el, div, span, replace } from './dom.js';
 import { sectionHeader, renderBlocks, para, bitRibbon, calloutChip } from './blocks.js';
 import { panel, controlGroup, slider, button } from './controls.js';
 import { dualHistogram, horizontalMeter, stemLine } from './charts.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles, simChip } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles, simChip,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulatePhysicalRun, generateAmbientBaseline } from '../channels/physical.js';
@@ -20,7 +23,11 @@ export function renderPhysicalView(state) {
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-physical' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Air gap' }),
     div({ class: 'prose-wide', style: { marginBottom: 'var(--sp-4)' } }, renderBlocks(copy.blocks)),
     modeBanner(state.viewMode),
@@ -30,6 +37,10 @@ export function renderPhysicalView(state) {
     const run = simulatePhysicalRun(s.message, { ...s.channels.physical, seed: `${s.seed}:physical` });
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzePhysical(run.filteredLevels, { decoderConfidence: run.confidence }))}.`
+      : `${recoveredPhrase(run.recoveredText)}, ${errorPhrase(run.bitErrors, run.bits.length)}, `
+        + `decode confidence ${Math.round(run.confidence * 100)}%.`);
   }
   refresh(state);
   return { node, refresh };

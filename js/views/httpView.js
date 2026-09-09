@@ -5,7 +5,10 @@
 import { el, div, span, replace } from './dom.js';
 import { sectionHeader, para, calloutChip, inline } from './blocks.js';
 import { panel, controlGroup, slider, toggle, button } from './controls.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateHttpRun, REORDERABLE } from '../channels/http.js';
@@ -18,7 +21,11 @@ export function renderHttpView(state) {
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-http' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Protocol structure' }),
     modeBanner(state.viewMode),
     div({ class: 'workbench' }, leftPanel(state), center, right));
@@ -27,6 +34,10 @@ export function renderHttpView(state) {
     const run = simulateHttpRun(s.message, { ...s.channels.http, seed: `${s.seed}:http` });
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeHttp(run.normalize ? run.processedRequests : run.covertRequests))}.`
+      : `${recoveredPhrase(run.decoded.text)}, ${errorPhrase(run.bitErrors)}`
+        + `${run.normalize ? ', headers normalised by the proxy' : ''}.`);
   }
   refresh(state);
   return { node, refresh };

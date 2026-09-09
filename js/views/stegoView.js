@@ -3,10 +3,13 @@
  * The chosen image is never uploaded anywhere; all pixel work happens in-browser.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, setNotice } from './dom.js';
 import { sectionHeader, para, calloutChip, inline } from './blocks.js';
 import { panel, controlGroup, slider, button } from './controls.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase,
+} from './widgets.js';
 import { messageInput } from './controls.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import {
@@ -28,17 +31,37 @@ export function renderStegoView(state) {
   const center = div({ class: 'panel panel-center' }, div({ class: 'empty-note', text: 'Loading carrier image…' }));
   const right = div({ class: 'panel panel-right' });
   let cur = state;
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+  // The capacity error ("Message needs 30 bytes; image holds 24") is rendered in
+  // the CENTRE panel, a column away from the field that caused it. The error was
+  // described but the item in error was never identified (3.3.1), so the same
+  // sentence now also lands under the input — permanently in its
+  // aria-describedby (the reliable half) and, while invalid, in aria-invalid +
+  // aria-errormessage as well.
+  const payloadErr = el('p', {
+    class: 'ctrl-help stego-payload-error visually-hidden',
+    id: PAYLOAD_ERROR_ID,
+    style: { color: 'var(--danger)' },
+    attrs: { role: 'status', 'aria-live': 'polite' },
+  });
+  const msgRef = {};
 
   const node = el('section', { class: 'section', id: 'sec-stego' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Steganography' }),
     modeBanner(state.viewMode),
-    div({ class: 'workbench' }, leftPanel(state), center, right));
+    div({ class: 'workbench' }, leftPanel(state, { payloadErr, msgRef }), center, right));
 
   async function refresh(s) {
     cur = s;
     const carrier = await getCarrier(s);
     if (cur !== s) return; // a newer refresh superseded this one
-    if (!carrier) { replace(center, div({ class: 'empty-note', text: 'Could not load a carrier image.' })); return; }
+    if (!carrier) {
+      replace(center, div({ class: 'empty-note', text: 'Could not load a carrier image.' }));
+      status.announce('Could not load a carrier image.');
+      return;
+    }
     render(s, carrier);
   }
 
@@ -47,30 +70,70 @@ export function renderStegoView(state) {
     let embedded; let error = null;
     try { embedded = embedMessage(carrier, s.stego.message).raster; }
     catch (e) { error = e.message; embedded = carrier; }
+    setNotice(payloadErr, error || '');
+    if (msgRef.input) {
+      if (error) {
+        msgRef.input.setAttribute('aria-invalid', 'true');
+        msgRef.input.setAttribute('aria-errormessage', PAYLOAD_ERROR_ID);
+      } else {
+        msgRef.input.removeAttribute('aria-invalid');
+        msgRef.input.removeAttribute('aria-errormessage');
+      }
+    }
     replace(center, centerContent(s, carrier, embedded, error));
     replace(right, rightContent(s, carrier, embedded, capBytes, error));
+    if (error) { status.announce(error); return; }
+    if (s.viewMode === VIEW_MODES.DEFENDER) {
+      status.announce(`${anomalyPhrase(analyzeStego(embedded))}.`);
+    } else {
+      const rec = extractMessage(embedded);
+      status.announce(`${recoveredPhrase(rec.text)}, carrier capacity ${capBytes} bytes.`);
+    }
   }
 
   refresh(state);
   return { node, refresh };
 }
 
-function leftPanel(state) {
+const PAYLOAD_ERROR_ID = 'stego-payload-error';
+const FILE_HELP_ID = 'stego-file-help';
+const FILE_ERROR_ID = 'stego-file-error';
+
+function leftPanel(state, { payloadErr, msgRef }) {
+  // The file picker used to fail completely silently: a HEIC, an SVG or a
+  // mislabelled PDF lands in onFile's catch, setStego is never called, nothing
+  // re-renders, and the reader cannot tell rejection from "the file never
+  // registered" (3.3.1). role="alert" rather than status because the reader is
+  // not looking at this spot when it fires.
+  const fileErr = el('p', {
+    class: 'ctrl-help stego-file-error visually-hidden', id: FILE_ERROR_ID,
+    style: { color: 'var(--danger)' },
+    attrs: { role: 'alert' },
+  });
   return panel('left',
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Carrier & payload' }),
       messageInput({
-        value: state.stego.message, maxBytes: 24, label: 'Hidden message',
+        value: state.stego.message, maxBytes: 24,
+        // Not "Hidden message": the persistent header field already uses that
+        // exact label, so listing form fields on this section gave two
+        // indistinguishable targets driving different state (2.4.6).
+        label: 'Message to embed in the image',
         hint: 'Kept intentionally tiny. The carrier image never leaves your browser.',
+        describedBy: PAYLOAD_ERROR_ID,
+        ref: msgRef,
         onInput: (v) => setStego('message', v),
       }),
+      payloadErr,
       div({ class: 'ctrl' },
         el('label', { class: 'file-label' }, span({ text: 'Use your own image (optional)' }),
           el('input', {
             type: 'file', accept: 'image/*', class: 'file-input',
-            on: { change: onFile },
+            attrs: { 'aria-describedby': `${FILE_HELP_ID} ${FILE_ERROR_ID}` },
+            on: { change: (e) => onFile(e, fileErr) },
           })),
-        el('p', { class: 'ctrl-help', text: 'Loaded locally and downscaled; nothing is uploaded.' })),
+        el('p', { class: 'ctrl-help', id: FILE_HELP_ID, text: 'Loaded locally and downscaled; nothing is uploaded.' }),
+        fileErr),
       slider({ label: 'Lossy transform strength', min: 2, max: 32, step: 1, value: state.stego.step,
         help: 'Simulated re-compression: quantises colours and destroys LSB data.',
         onInput: (v) => setStego('step', v) }),
@@ -78,15 +141,21 @@ function leftPanel(state) {
     calloutChip(CALLOUTS.stego));
 }
 
-async function onFile(e) {
+async function onFile(e, errNode) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   try {
     const bitmap = await createImageBitmap(file);
     uploadedRaster = bitmapToRaster(bitmap);
+    if (errNode) setNotice(errNode, '');
     setStego('carrier', 'custom');
   } catch {
     uploadedRaster = null;
+    // accept="image/*" does not save us here: HEIC and SVG both match it and
+    // neither decodes. Say so instead of doing nothing at all.
+    if (errNode) {
+      setNotice(errNode, 'That file could not be decoded as an image in this browser. Try a PNG or JPEG.');
+    }
   }
 }
 

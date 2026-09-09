@@ -18,7 +18,15 @@
 .sr-link { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 120px; }
 .sr-track { position: relative; width: 100%; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: var(--r-pill); overflow: visible; }
 .sr-link-label { font-size: var(--fs-xs); color: var(--text-faint); }
-.sr-dot { top: -5px; left: 0; animation: srtravel 2.4s var(--ease) infinite; }
+/* Three passes, not `infinite`. This dot starts on its own, sits beside the
+   Overview's body text, and used to run forever with no way to pause, stop or
+   hide it — the exact profile WCAG 2.2.2 Pause, Stop, Hide is written for. It is
+   decorative and aria-hidden, and the prefers-reduced-motion block in base.css
+   already stops it dead for anyone who has set that OS preference, so the SC is
+   arguable either way; a conformance claim that does not have to argue is worth
+   more than 7.2 seconds of perpetual motion. Three passes still says "a signal
+   travels this link" and then stops. */
+.sr-dot { top: -5px; left: 0; animation: srtravel 2.4s var(--ease) 3; }
 @keyframes srtravel { 0% { left: 0; } 100% { left: calc(100% - 12px); } }
 
 .rep-list { display: flex; flex-direction: column; gap: var(--sp-2); }
@@ -78,14 +86,14 @@
 /* ---- Stego ---------------------------------------------------------------- */
 .file-label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm); color: var(--text-dim); }
 .file-input { font-size: var(--fs-xs); color: var(--text-faint); }
-.file-input::file-selector-button { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 4px 10px; margin-right: 8px; cursor: pointer; }
+.file-input::file-selector-button { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-control); border-radius: var(--r-sm); padding: 4px 10px; margin-right: 8px; cursor: pointer; }
 .degrade-result { justify-content: flex-start; }
 
 /* ---- Detection Console ---------------------------------------------------- */
 .det-console { background: linear-gradient(180deg, var(--surface-1), var(--surface-0)); }
 .det-console-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); margin-bottom: var(--sp-3); }
 .det-overview { margin-bottom: var(--sp-4); }
-.gauge-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--sp-3); }
+.gauge-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: var(--sp-3); }
 .gauge-tile { border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3); background: var(--surface-inset); }
 .gauge-tile.selected { border-color: var(--accent); box-shadow: var(--glow-accent); }
 .gauge-tile.level-high { border-left: 3px solid var(--anom-high); }
@@ -102,10 +110,17 @@
 .compare-note { font-size: var(--fs-xs); color: var(--text-faint); margin-top: 4px; }
 
 /* ---- Defense / references ------------------------------------------------- */
-.refs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sp-5); }
+.refs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--sp-5); }
 .ref-cat { font-size: var(--fs-sm); color: var(--accent); margin-bottom: var(--sp-2); }
-.ref-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
-.ref-item { border-left: 2px solid var(--border-strong); padding-left: var(--sp-3); }
+/* Not `display: flex`. Making the <li>s flex items blockifies their `display`
+   away from `list-item`, which drops the listitem role in Chromium and costs the
+   Further Reading list its "list of N items" announcement (1.3.1). Margin gives
+   the same spacing and keeps the semantics. `list-style: none` still suppresses
+   the role in Safari/VoiceOver — that half needs role="list" / role="listitem"
+   in defenseView.js, which this stylesheet cannot add. */
+.ref-list { list-style: none; padding: 0; margin: 0; }
+.ref-item { border-left: 2px solid var(--border-strong); padding-left: var(--sp-3); margin: 0; }
+.ref-item + .ref-item { margin-top: var(--sp-3); }
 .ref-title { font-weight: 600; color: var(--text); font-size: var(--fs-sm); }
 .ref-cite { font-size: var(--fs-xs); color: var(--text-faint); margin-top: 2px; }
 .ref-note { font-size: var(--fs-xs); color: var(--text-dim); margin-top: 2px; }
@@ -128,20 +143,37 @@
 .cap-val { color: var(--accent); text-align: right; }
 .cap-note { font-size: var(--fs-xs); }
 @media (max-width: 480px) { .cap-row { grid-template-columns: 1fr auto; } .cap-note { display: none; } }
-.chart-grid { stroke: var(--border-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+/* Still decorative reference, and deliberately below the axis in weight — but
+   --border-faint was 1.11:1 against a card, which is not a grid so much as a
+   rumour. --border-strong is 1.79:1 and stays subordinate to the 3.55:1 axis. */
+.chart-grid { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 3; }
 .curve-xlabel { text-align: center; margin-top: 2px; }
 
 /* ---- Lab notebook (export) ------------------------------------------------ */
 .notebook { margin-top: var(--sp-4); border-top: 1px solid var(--border-faint); padding-top: var(--sp-3); }
-.notebook-summary { cursor: pointer; font-size: var(--fs-sm); color: var(--accent); font-weight: 600; }
+/* 2px of padding takes the <summary>'s 21px line box past the 24px minimum of
+   WCAG 2.2 SC 2.5.8, so it does not have to lean on the Spacing exception. */
+.notebook-summary { cursor: pointer; font-size: var(--fs-sm); color: var(--accent); font-weight: 600; padding: 2px 0; }
 .notebook-summary:hover { text-decoration: underline; }
 .notebook-body { margin-top: var(--sp-3); }
 .notebook-actions { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-2); }
-.notebook-md { background: var(--surface-inset); border: 1px solid var(--border-faint); border-radius: var(--r-md); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-xs); color: var(--text-dim); max-height: 260px; overflow-y: auto; }
-.notebook-md code { background: none; border: none; padding: 0; color: inherit; white-space: pre; }
+/* The notebook used to be a scroll container on BOTH axes — `max-height: 260px`
+   against 340-400px of content, and `white-space: pre` on lines as long as the
+   shareable link — on a <pre> with no tabindex. Safari does not add scroll
+   containers to the sequential focus order, so a keyboard-only user could not
+   reach the bottom of the exhibit's own take-home artefact (2.1.1). Rather than
+   make it a focusable region (markup this stylesheet cannot add), stop it being
+   a scroll container: the lines wrap, and the notebook is inside a <details> the
+   reader opened deliberately, so it can simply be as tall as it is. */
+.notebook-md { background: var(--surface-inset); border: 1px solid var(--border-faint); border-radius: var(--r-md); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-xs); color: var(--text-dim); }
+.notebook-md code { background: none; border: none; padding: 0; color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ---- Detector Validation Lab ---------------------------------------------- */
-.validation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--sp-4); }
+/* minmax()'s first argument is a hard floor: auto-fill collapses to one track,
+   but the track keeps its 320px base size and overflows a 288px content column,
+   scrolling the whole page sideways at the 320x256 viewport the reflow test uses
+   (1.4.10). min(320px, 100%) lets the floor collapse instead. */
+.validation-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: var(--sp-4); }
 .val-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 .val-auc { display: flex; flex-direction: column; align-items: center; line-height: 1; }
 .val-auc-num { font-size: var(--fs-xl); font-weight: 800; }
@@ -199,14 +231,21 @@
 .http-req-line { color: var(--accent); font-size: var(--fs-sm); margin-bottom: var(--sp-2); }
 .http-headers { display: flex; flex-direction: column; gap: 1px; }
 .http-header { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-xs); padding: 1px 4px; border-radius: var(--r-sm); }
+/* `.hh-val` holds the actual header values — the content this module asks the
+   reader to inspect — and it used to be --text-faint at `opacity: 0.7`, which
+   composites to 3.00:1 on --surface-inset and 2.67:1 on a highlighted covert
+   row (1.4.3). --text-faint was already only 4.95:1 there before the multiplier,
+   so the opacity is what broke it. De-emphasis now runs the other way round:
+   the name is the quiet part and the value is legible everywhere — 9.46:1 on
+   --surface-inset, 7.64:1 on a covert row. */
 .http-header .hh-name { color: var(--text-faint); }
-.http-header .hh-val { color: var(--text-faint); opacity: 0.7; }
+.http-header .hh-val { color: var(--text-dim); }
 .http-header.reorderable { background: color-mix(in srgb, var(--covert) 12%, transparent); }
 .http-header.reorderable .hh-name { color: var(--covert); font-weight: 650; }
 
 /* ---- Carrier Atlas -------------------------------------------------------- */
 .atlas-group-title { font-size: var(--fs-lg); margin: var(--sp-6) 0 var(--sp-3); }
-.atlas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--sp-4); }
+.atlas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: var(--sp-4); }
 .atlas-card.concept { border-style: dashed; }
 .atlas-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .atlas-card-title { font-size: var(--fs-md); }
@@ -234,7 +273,7 @@
 .srm-level { color: var(--text-faint); font-size: var(--fs-xs); }
 .srm-cell { text-align: center; }
 .srm-rm-pair { display: inline-flex; gap: 4px; }
-.srm-rm { width: 28px; height: 28px; border-radius: var(--r-sm); border: 1px solid var(--border-strong); background: var(--surface-inset); color: var(--text-faint); font-family: var(--font-mono); font-weight: 700; cursor: pointer; }
+.srm-rm { width: 28px; height: 28px; border-radius: var(--r-sm); border: 1px solid var(--border-control); background: var(--surface-inset); color: var(--text-faint); font-family: var(--font-mono); font-weight: 700; cursor: pointer; }
 .srm-rm:hover { border-color: var(--accent); }
 .srm-rm.on { background: var(--accent); color: var(--text-invert); border-color: transparent; }
 .srm-channel-row td { background: color-mix(in srgb, var(--covert) 10%, transparent); }
@@ -273,7 +312,16 @@
 .ook-sym.err { outline: 1.5px solid var(--bit-err); }
 .ook-lamp { font-size: var(--fs-md); line-height: 1; color: var(--text-faint); }
 .ook-sym.lit .ook-lamp { color: var(--accent); text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent); }
-.ook-lux { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-faint); }
+/* The lux reading is a measured value, and on a lit symbol it sits on
+   `color-mix(--accent 18%, --surface-inset)` — a tint bright enough to take
+   --text-faint under 4.5:1 in every section (4.24:1 on physical's orange, 3.20:1
+   on stego's lime, measured with --text-faint at #7c8da2). --text-dim clears it
+   everywhere: 6.12:1 at worst, 9.46:1 on an unlit symbol. */
+.ook-lux { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-dim); }
+/* The lit lamp tints its own background warm, which drags --text-faint under 4.5:1
+   there even though it clears on every flat surface. Scoped, so the unlit lamp keeps
+   the quieter token and the two states stay visually distinct. */
+.ook-sym.lit .ook-lux { color: var(--text-dim); }
 .ook-bit { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-xs); padding: 1px 4px; border-radius: var(--r-sm); }
 .ook-bit.b0 { color: var(--bit-0); }
 .ook-bit.b1 { color: var(--bit-1); }
@@ -288,8 +336,14 @@
 a.atlas-deepdive { text-decoration: none; }
 
 /* ---- ICMP echo channel ---------------------------------------------------- */
-.icmp-data { max-width: 34ch; overflow: hidden; text-overflow: ellipsis; }
-.icmp-stamp { color: var(--text-faint); }
+/* `ch` tracks font-size but not letter-spacing or word-spacing, so applying the
+   WCAG 1.4.12 Text Spacing test values widened this hex string inside a box that
+   did not widen with it and clipped bytes that nothing else could recover — the
+   cell has no title and no expander, and icmpView.js has already truncated the
+   payload before it gets here. Wrapping keeps the width budget and loses
+   nothing at any spacing. */
+.icmp-data { max-width: 34ch; white-space: normal; overflow-wrap: anywhere; }
+.icmp-stamp { color: var(--text-dim); }
 .icmp-payload { color: var(--text-dim); }
 .icmp-payload.covert { color: var(--covert); }
 
@@ -306,9 +360,15 @@ a.atlas-deepdive { text-decoration: none; }
 .hop-flow.covert { border-color: color-mix(in srgb, var(--covert) 40%, transparent); background: color-mix(in srgb, var(--covert) 8%, var(--surface-1)); }
 .hop-flow.sync { border-style: dashed; }
 .hop-proto { font-size: var(--fs-sm); font-weight: 650; }
-.hop-dest { font-size: var(--fs-xs); color: var(--text-faint); }
+/* --text-faint is only 4.51:1 on --surface-1 to begin with, so it fails under
+   the covert tint a hopping flow is drawn on: `color-mix(--covert 8%,
+   --surface-1)` takes it to 3.87:1 (1.4.3). Both of these appear on covert
+   flows — .hop-bits.empty is what the rendezvous flow shows, and that flow is
+   always covert — so both move to --text-dim: 7.40:1 on the tint, 8.62:1 off it,
+   and still clearly subordinate to the --covert bits and the --text protocol. */
+.hop-dest { font-size: var(--fs-xs); color: var(--text-dim); }
 .hop-bits { font-size: var(--fs-xs); color: var(--covert); letter-spacing: 0.08em; }
-.hop-bits.empty { color: var(--text-faint); }
+.hop-bits.empty { color: var(--text-dim); }
 
 /* Transition matrix. The count is always rendered as text; the tint is a
    redundant cue only, so the table stays readable without colour. */
@@ -317,12 +377,17 @@ a.atlas-deepdive { text-decoration: none; }
 .transition-matrix .tm-cell.used {
   background: color-mix(in srgb, var(--accent) calc(var(--tm-fill, 0) * 26%), transparent);
 }
+/* The comment above is right that the count is always text — and that text was
+   the thing failing. --text-faint over the striped half of the hatch measured
+   3.59:1 (1.4.3): the hatch lightens the background just enough to eat the 0.2%
+   of margin --text-faint has on --surface-1. --text-dim over the same stripe is
+   6.87:1, and still reads as recessed against the plain --text of a live cell. */
 .transition-matrix .tm-cell.diag {
   background: repeating-linear-gradient(45deg,
     transparent, transparent 4px,
     color-mix(in srgb, var(--text-faint) 18%, transparent) 4px,
     color-mix(in srgb, var(--text-faint) 18%, transparent) 8px);
-  color: var(--text-faint);
+  color: var(--text-dim);
 }
 
 /* ---- Active Warden lab ----------------------------------------------------- */
@@ -331,7 +396,7 @@ a.atlas-deepdive { text-decoration: none; }
 .warden-buttons { display: flex; gap: var(--sp-2); margin-top: var(--sp-3); flex-wrap: wrap; }
 .warden-table th[scope="row"] { color: var(--text); font-weight: 650; }
 .warden-table .obs-drop { color: var(--ok); }
-.warden-why { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--text-faint); white-space: normal; max-width: 40ch; }
+.warden-why { display: block; margin-top: 4px; font-size: var(--fs-xs); color: var(--text-dim); white-space: normal; max-width: 40ch; }
 
 /* ---- Learned-detector comparison ------------------------------------------ */
 .learned-card { margin-top: var(--sp-5); }
@@ -341,7 +406,7 @@ a.atlas-deepdive { text-decoration: none; }
 .val-auc-cell.warn { color: var(--warn); }
 .val-auc-cell.bad  { color: var(--danger); }
 .rep-cell.hop { font-size: var(--fs-xs); font-weight: 650; color: var(--covert); }
-.rep-cell.hop.sync { color: var(--text-faint); font-weight: 500; }
+.rep-cell.hop.sync { color: var(--text-dim); font-weight: 500; }
 
 /* ---- Case Studies ---------------------------------------------------------- */
 #sec-cases { --accent: #fb7185; --accent-deep: #f43f5e; } /* rose */
@@ -353,9 +418,9 @@ a.atlas-deepdive { text-decoration: none; }
 .case-card.case-none { border-style: dashed; }
 .case-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
 .case-head .card-title { margin-bottom: 2px; }
-.case-when { font-size: var(--fs-xs); color: var(--text-faint); }
+.case-when { font-size: var(--fs-xs); color: var(--text-dim); }
 .case-sub {
-  font-size: var(--fs-xs); color: var(--text-faint); font-weight: 650;
+  font-size: var(--fs-xs); color: var(--text-dim); font-weight: 650;
   text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--sp-2);
 }
 .case-source { font-size: var(--fs-xs); color: var(--text-dim); }

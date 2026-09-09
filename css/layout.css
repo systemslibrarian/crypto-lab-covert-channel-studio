@@ -51,9 +51,9 @@
 /* ---- Sidebar nav ---------------------------------------------------------- */
 .sidebar {
   position: sticky;
-  top: 66px;
+  top: var(--header-h);
   align-self: start;
-  height: calc(100vh - 66px);
+  height: calc(100vh - var(--header-h));
   overflow-y: auto;
   padding: var(--sp-5) var(--sp-3) var(--sp-6) var(--sp-5);
   border-right: 1px solid var(--border-faint);
@@ -116,8 +116,8 @@
 }
 .workbench > .panel { min-width: 0; }
 .panel { display: flex; flex-direction: column; gap: var(--sp-4); }
-.panel-left { position: sticky; top: 82px; }
-.panel-right { position: sticky; top: 82px; }
+.panel-left { position: sticky; top: calc(var(--header-h) + var(--sp-4)); }
+.panel-right { position: sticky; top: calc(var(--header-h) + var(--sp-4)); }
 
 /* Two-column fallback layouts for prose-heavy sections */
 .prose-wide { max-width: 80ch; display: flex; flex-direction: column; gap: var(--sp-4); }
@@ -128,16 +128,56 @@
   .workbench { grid-template-columns: minmax(0,1fr); }
   .panel-left, .panel-right { position: static; }
 }
+
+/* A pinned panel taller than the space below the header cannot be scrolled to
+   its own bottom — scrolling is what pins it — so its last control (usually
+   Reset) sits below the fold with focus able to land on it unseen. Above 1180px
+   the tallest left panel (DNS: six sliders, a toggle and a button) runs to about
+   700px, so only stick when the viewport can actually hold it. Capping the panel
+   and scrolling it instead would work too, but that turns it into a scroll
+   container, which this project labels as a focusable region — markup this
+   stylesheet cannot add. */
+@media (max-height: 800px) {
+  .panel-left, .panel-right { position: static; }
+}
+
 @media (max-width: 960px) {
+  /* Below this width the header's three control fields no longer fit beside the
+     brand and wrap onto their own rows; at a 320px viewport (the 400%-zoom
+     reflow test) they stack three deep and the header becomes taller than the
+     whole viewport. Pinned, it would then leave no reachable content at all —
+     WCAG 1.4.10 Reflow. Letting it scroll away costs nothing: the sidebar is
+     already a static strip at this width, so nothing depends on the header
+     staying put. --header-h goes to 0 so the offsets above collapse with it. */
+  :root { --header-h: 0px; }
+  .app-header { position: static; }
+
   .app-body { grid-template-columns: 1fr; }
+
+  /* The desktop nav is four vertical columns. Laying those columns out
+     side-by-side and panning them horizontally (the old `overflow-x: auto` +
+     `min-width: max-content`) put roughly 810px of navigation in a 288px box and
+     made the strip ~480px tall, with two of the four groups off-screen to the
+     right and no affordance saying so — content that requires two-dimensional
+     scrolling, which is what 1.4.10 forbids. Reflow it instead: each group
+     becomes its own wrapping row of chips, so the nav gets shorter as well as
+     scroll-free. */
   .sidebar {
     position: static; height: auto; width: 100%;
     border-right: none; border-bottom: 1px solid var(--border-faint);
-    display: flex; gap: var(--sp-4); overflow-x: auto;
+    display: flex; flex-wrap: wrap; gap: var(--sp-2); overflow-x: visible;
     padding: var(--sp-3) var(--sp-4);
   }
-  .nav-group { min-width: max-content; }
+  .nav-group {
+    flex: 1 1 100%; min-width: 0;
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2);
+  }
   .nav-group + .nav-group { margin-top: 0; }
+  .nav-group-title { flex: none; margin-bottom: 0; padding: 0; }
+  /* 4px + 4px + a 1.6 line box on --fs-sm clears the 24px minimum target of
+     WCAG 2.2 SC 2.5.8 without the chips needing extra spacing. */
+  .nav-link { width: auto; padding: var(--sp-1) var(--sp-2); }
+
   .split-2 { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {

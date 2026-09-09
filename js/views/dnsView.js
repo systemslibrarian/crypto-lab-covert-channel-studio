@@ -2,11 +2,14 @@
  * views/dnsView.js — the DNS-as-a-carrier module.
  */
 
-import { el, div, span, replace, formatClock } from './dom.js';
+import { el, div, span, replace, formatClock, tableCaption } from './dom.js';
 import { sectionHeader, renderBlocks, callout, calloutChip, para, inline } from './blocks.js';
 import { panel, controlGroup, slider, toggle, button } from './controls.js';
 import { verticalBars } from './charts.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateDnsRun } from '../channels/dns.js';
@@ -18,8 +21,11 @@ export function renderDnsView(state) {
   const copy = COPY.dns;
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
 
   const node = el('section', { class: 'section', id: 'sec-dns' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Protocol structure' }),
     modeBanner(state.viewMode),
     div({ class: 'workbench' },
@@ -31,6 +37,17 @@ export function renderDnsView(state) {
     const run = simulateDnsRun(s.message, { ...s.channels.dns, seed: `${s.seed}:dns` });
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    status.announce(summarise(s, run));
+  }
+
+  function summarise(s, run) {
+    if (s.viewMode === VIEW_MODES.DEFENDER) {
+      const det = analyzeDns(run.mixed.filter((q) => q.forwarded !== false));
+      return `${anomalyPhrase(det)}.`;
+    }
+    const lost = countLost(run);
+    return `${recoveredPhrase(run.decoded.text)}, ${run.covertQueries.length} covert queries`
+      + `${lost ? `, ${lost} lost` : ''}.`;
   }
   refresh(state);
   return { node, refresh };
@@ -98,7 +115,7 @@ function encStep(label, content) {
 function dnsLog(queries, { markCovert }) {
   const rows = queries.slice(0, 80);
   const head = el('tr', {}, ...['Time', 'Client', 'Query', 'Type', 'Len', 'Entropy', 'Status']
-    .map((h) => el('th', { text: h })));
+    .map((h) => el('th', { scope: 'col', text: h })));
   const body = rows.map((q) => {
     const entWord = q.entropy < 0.5 ? 'Low' : q.entropy < 0.75 ? 'Med' : 'High';
     const flagCovert = markCovert && q.covert;
@@ -108,7 +125,7 @@ function dnsLog(queries, { markCovert }) {
       el('td', { class: 'mono', attrs: { title: q.fqdn } },
         flagCovert ? span({ class: 'pill pill-covert', text: 'covert' }) : null,
         flagCovert ? ' ' : null,
-        truncName(q.fqdn)),
+        truncName(q.fqdn)),   // visually clipped; the whole name stays in the a11y tree
       el('td', { class: 'mono', text: q.type }),
       el('td', { class: 'mono', text: String(q.length) }),
       el('td', {}, entBar(q.entropy, entWord)),
@@ -116,12 +133,23 @@ function dnsLog(queries, { markCovert }) {
   });
   return div({ class: 'table-wrap', style: { maxHeight: '340px', overflowY: 'auto' },
     attrs: { tabindex: '0', role: 'region', 'aria-label': 'Simulated DNS query log' } },
-    el('table', { class: 'data-table' }, el('thead', {}, head), el('tbody', {}, ...body)));
+    el('table', { class: 'data-table' },
+      tableCaption('Simulated DNS query log'),
+      el('thead', {}, head), el('tbody', {}, ...body)));
 }
 
+/**
+ * A visually clipped FQDN whose FULL value is still exposed to assistive tech.
+ * The `title` alone was a mouse-only affordance: browsers do not show it on
+ * focus, touch has no hover, and on a cell that already has text it becomes an
+ * accessible description most screen readers skip. So the ellipsised form is
+ * marked aria-hidden and the whole name sits beside it, visually hidden.
+ */
 function truncName(fqdn) {
-  if (fqdn.length <= 30) return fqdn;
-  return `${fqdn.slice(0, 27)}…`;
+  if (fqdn.length <= 30) return span({ text: fqdn });
+  return span({},
+    span({ 'aria-hidden': 'true', text: `${fqdn.slice(0, 27)}…` }),
+    span({ class: 'visually-hidden', text: fqdn }));
 }
 function entBar(v, word) {
   return div({ class: 'ent-bar' },
@@ -150,7 +178,7 @@ function splitCompare(run) {
 function queryList(list, kind) {
   if (!list.length) return div({ class: 'empty-note', text: 'no queries — raise the relevant control' });
   return div({ class: 'query-list' }, ...list.map((q) =>
-    span({ class: `query-chip mono ${kind === 'covert' ? 'q-covert' : ''}`, attrs: { title: q.fqdn }, text: truncName(q.fqdn) })));
+    span({ class: `query-chip mono ${kind === 'covert' ? 'q-covert' : ''}`, attrs: { title: q.fqdn } }, truncName(q.fqdn))));
 }
 function charList(items) {
   return el('ul', { class: 'char-list' }, ...items.map((t) => el('li', { text: t })));

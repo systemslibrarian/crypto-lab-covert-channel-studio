@@ -5,7 +5,10 @@
 import { el, div, span, replace } from './dom.js';
 import { sectionHeader, para, bitRibbon, calloutChip } from './blocks.js';
 import { panel, controlGroup, slider, button } from './controls.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateOrderingRun } from '../channels/ordering.js';
@@ -18,7 +21,11 @@ export function renderOrderingView(state) {
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-ordering' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Ordering' }),
     modeBanner(state.viewMode),
     div({ class: 'workbench' }, leftPanel(state), center, right));
@@ -27,6 +34,9 @@ export function renderOrderingView(state) {
     const run = simulateOrderingRun(s.message, { reorderProb: s.channels.ordering.reorderProb, seed: `${s.seed}:ordering` });
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeOrdering(run.pairs))}.`
+      : `${recoveredPhrase(run.recoveredText)}, ${errorPhrase(run.bitErrors, run.bits.length)}.`);
   }
   refresh(state);
   return { node, refresh };
@@ -85,9 +95,9 @@ function senderPanel(run) {
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Sent vs recovered' }),
       el('p', { class: 'subtle', text: 'Intended' }),
-      bitRibbon(run.bits, { max: 64 }),
+      bitRibbon(run.bits, { max: 64, ariaLabel: 'intended bits' }),
       el('p', { class: 'subtle', text: 'Recovered' }),
-      bitRibbon(run.bits, { decoded: run.decodedBits, max: 64 })),
+      bitRibbon(run.bits, { decoded: run.decodedBits, max: 64, ariaLabel: 'recovered bits' })),
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Receiver' }),
       recoveredBox(run.recoveredText, { ok: success }),

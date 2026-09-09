@@ -70,18 +70,37 @@ export function tradeoffInstrument(channel, message, params) {
 /** An exportable, reproducible record of this run — for a take-home / instructor. */
 function labNotebook(channel, message, t) {
   const md = buildNotebook(channel, message, t);
+  // The button confirmed success by relabelling ITSELF, which no screen reader
+  // reliably re-announces mid-press, and confirmed failure not at all — the
+  // rejection handler was empty, so a blocked clipboard (insecure context,
+  // permission denied) left the button reading "Copy Markdown" with nothing
+  // copied and nothing said. The label swap stays as the sighted affordance;
+  // this region carries the outcome, including the failure path.
+  const copyStatus = el('p', { class: 'visually-hidden', attrs: { role: 'status', 'aria-live': 'polite' } });
   const copyBtn = button({
     label: 'Copy Markdown', variant: 'ghost', icon: '⧉',
     onClick: (e) => {
       const b = e.target.closest('button');
-      const done = () => { if (b) { const s = b.querySelector('span:last-child'); if (s) { s.textContent = 'Copied!'; setTimeout(() => { s.textContent = 'Copy Markdown'; }, 1500); } } };
-      try { navigator.clipboard.writeText(md).then(done, () => {}); } catch { /* the <pre> is selectable as a fallback */ }
+      const label = (text) => { if (b) { const s = b.querySelector('span:last-child'); if (s) { s.textContent = text; } } };
+      const done = () => {
+        label('Copied!');
+        setTimeout(() => label('Copy Markdown'), 1500);
+        copyStatus.textContent = 'Copied to clipboard.';
+      };
+      const failed = () => {
+        copyStatus.textContent = 'Copy failed — the Markdown below can be selected and copied by hand.';
+      };
+      try {
+        const p = navigator.clipboard.writeText(md);
+        if (p && typeof p.then === 'function') p.then(done, failed);
+        else done();
+      } catch { failed(); }
     },
   });
   return el('details', { class: 'notebook' },
     el('summary', { class: 'notebook-summary', text: 'Lab notebook — export this run' }),
     div({ class: 'notebook-body' },
-      div({ class: 'notebook-actions' }, copyBtn,
+      div({ class: 'notebook-actions' }, copyBtn, copyStatus,
         span({ class: 'subtle', text: 'Reproducible: the link, seed, and settings replay this exact run.' })),
       el('pre', { class: 'notebook-md' }, el('code', { text: md }))));
 }

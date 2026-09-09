@@ -5,7 +5,7 @@
  * framing and the honest caveat that an anomaly score is not a probability.
  */
 
-import { el, div, span, svg } from './dom.js';
+import { el, div, span, svg, tableCaption } from './dom.js';
 import { sectionHeader, para, inline } from './blocks.js';
 import { round } from '../utils/statistics.js';
 import { validateAll, VALIDATION_NOTES } from '../analysis/validation.js';
@@ -66,6 +66,7 @@ function learnedTable(r) {
     class: 'table-wrap',
     attrs: { tabindex: '0', role: 'region', 'aria-label': 'Learned detector versus the classical detector: area under curve on the training, held-out and shifted sets' },
   }, el('table', { class: 'data-table learned-table' },
+    tableCaption('Learned detector versus the classical detector: area under curve on the training, held-out and shifted sets'),
     el('thead', {}, el('tr', {},
       el('th', { scope: 'col', text: 'Detector' }),
       el('th', { scope: 'col', text: 'AUC (fit set)' }),

@@ -56,6 +56,7 @@ export function renderConceptsView(state) {
       area,
       callout({
         kind: 'note',
+        level: 4, // nested inside the trade-off card, whose title is the <h3>
         title: 'Steganography and encrypted tunnels',
         body: 'Image LSB steganography has high capacity and is visually invisible, yet a single lossy re-compression wipes it out — high capacity, low reliability. An HTTPS/SSH tunnel is highly reliable and hides content, but stays recognisable *as* HTTPS/SSH, so it scores low on covertness-of-existence. Both are covered in their own modules.',
       })));

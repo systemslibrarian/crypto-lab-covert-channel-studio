@@ -38,12 +38,21 @@
   color: var(--accent);
   line-height: 1.7;
 }
-.block-code code { background: none; border: none; padding: 0; color: inherit; }
+/* Wrap rather than pan. A <pre> with `overflow-x: auto` is a scroll container,
+   and Safari does not put scroll containers in the sequential focus order, so
+   any line long enough to overflow would be unreachable by keyboard (2.1.1).
+   Wrapping means the overflow never happens, so no scroll container is ever
+   created and there is nothing to make focusable. `overflow-x: auto` stays as a
+   harmless backstop for content that cannot break. */
+.block-code code {
+  background: none; border: none; padding: 0; color: inherit;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
 .kv-list { display: grid; gap: var(--sp-3); }
 .kv-list dt { font-weight: 650; color: var(--text); }
 .kv-list dd { color: var(--text-dim); margin-left: 0; }
 
-.concept-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
+.concept-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
 .concept-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); }
 .concept-tag { display: inline-block; font-size: var(--fs-xs); letter-spacing: 0.1em; font-weight: 700; color: var(--accent); margin-bottom: var(--sp-2); }
 .concept-card p { font-size: var(--fs-sm); }
@@ -88,46 +97,102 @@
 .ctrl-value { font-size: var(--fs-sm); color: var(--accent); font-weight: 600; }
 .ctrl-help { font-size: var(--fs-xs); color: var(--text-faint); }
 
+/* The slider is the primary control of this exhibit — fourteen views build one —
+   so it carries the most target-size risk. It used to BE six pixels tall: the
+   input's own border box was `height: 6px`, and the 18x18px thumb overflowed it.
+   Both are under the 24x24 CSS px minimum of WCAG 2.2 SC 2.5.8 Target Size
+   (Minimum). (Strictly the old markup was rescued by the Spacing exception —
+   sliders sit ~50-77px apart inside `.control-group`, so no two 24px circles
+   intersect — but a 6px grab band is a real motor barrier whichever clause
+   excuses it on paper, and any future layout that puts a button within 24px of a
+   slider would turn the exception off.)
+
+   The fix keeps the look exactly: the INPUT is now 24px tall and transparent,
+   the visible 6px bar is drawn by the track pseudo-elements, and the thumb is a
+   24x24 target that PAINTS the same 20px-wide dot it always did — a 12px accent
+   core, a 3px --surface-0 ring, a 1px accent edge — via a radial gradient with
+   hard stops, with the outer 2px left transparent as hit area. Sizing the thumb
+   with a border instead would have grown the visible dot; this way the design is
+   untouched and only the target grew. */
 .ctrl-range {
   -webkit-appearance: none; appearance: none;
-  width: 100%; height: 6px; border-radius: var(--r-pill);
-  background: var(--surface-3);
-  outline-offset: 4px; cursor: pointer;
+  width: 100%; height: 24px; border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+  /* The old `outline-offset: 4px` existed to lift the focus ring off a 6px box.
+     The box is now 24px, so the house :focus-visible treatment fits as-is. */
+}
+/* The bar, still 6px, but no longer invisible. It was --surface-3: 1.31:1
+   against a card, so the extent of the slider — where it begins, where it ends,
+   how far along it the thumb sits — could not be made out at all (WCAG 1.4.11
+   Non-text Contrast). --border-control is 3.55:1 there, and using the same token
+   as every other control boundary keeps the rail part of one visual language
+   rather than a new colour. Both engines centre their own track inside the 24px
+   input, so the bar is drawn here rather than on the input, which would need a
+   background band that cannot take a pill radius. */
+.ctrl-range::-webkit-slider-runnable-track {
+  height: 6px; border-radius: var(--r-pill);
+  background: var(--border-control);
+}
+.ctrl-range::-moz-range-track {
+  height: 6px; border-radius: var(--r-pill);
+  background: var(--border-control);
 }
 .ctrl-range::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid var(--surface-0);
-  box-shadow: 0 0 0 1px var(--accent), var(--shadow-1);
+  width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: transparent;
+  /* 12px accent core, 3px dark ring, 1px accent edge, 2px transparent hit area. */
+  background-image: radial-gradient(circle at 50% 50%,
+    var(--accent) 0 6px,
+    var(--surface-0) 6px 9px,
+    var(--accent) 9px 10px,
+    transparent 10px);
+  /* WebKit does not centre the thumb on a shorter track: (6px - 24px) / 2. */
+  margin-top: -9px;
   cursor: grab;
 }
 .ctrl-range::-webkit-slider-thumb:active { cursor: grabbing; }
 .ctrl-range::-moz-range-thumb {
-  width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent); border: 3px solid var(--surface-0);
-  box-shadow: 0 0 0 1px var(--accent);
+  width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: transparent;
+  background-image: radial-gradient(circle at 50% 50%,
+    var(--accent) 0 6px,
+    var(--surface-0) 6px 9px,
+    var(--accent) 9px 10px,
+    transparent 10px);
+  cursor: grab;
 }
-.ctrl-range::-moz-range-track { height: 6px; border-radius: var(--r-pill); background: var(--surface-3); }
 
 /* ---- Controls: select ----------------------------------------------------- */
+/* A field's fill is nearly the same colour as what surrounds it — --surface-2 is
+   1.10:1 against a card, --surface-inset 1.03:1 against the header — so the
+   border is the ONLY thing that says "this is a control". At --border-strong
+   that border measured 1.79:1 and 1.97:1, which is the canonical failure of WCAG
+   1.4.11 Non-text Contrast. --border-control clears 3:1 against every surface
+   these sit on (see base.css). */
 .ctrl-select {
   width: 100%; padding: var(--sp-2) var(--sp-3);
   background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--border-strong); border-radius: var(--r-md);
+  border: 1px solid var(--border-control); border-radius: var(--r-md);
   cursor: pointer;
 }
 .seed-field input, .msg-input {
   width: 100%; padding: var(--sp-2) var(--sp-3);
   background: var(--surface-inset); color: var(--text);
-  border: 1px solid var(--border-strong); border-radius: var(--r-md);
+  border: 1px solid var(--border-control); border-radius: var(--r-md);
 }
 .msg-input:focus, .ctrl-select:focus, .seed-field input:focus { border-color: var(--accent); }
 .msg-counter { font-size: var(--fs-xs); color: var(--text-faint); }
 .msg-counter.at-limit { color: var(--warn); }
 
 /* ---- Controls: switch ----------------------------------------------------- */
-.switch { display: flex; align-items: center; gap: var(--sp-3); cursor: pointer; }
+/* The real target is this <label>, which wraps the input, the track and the text.
+   With no padding its height is max(track 22px, label line box 21px) = 22px, two
+   pixels under the WCAG 2.2 SC 2.5.8 minimum; it was passing only on the Spacing
+   exception, with 2px of margin. min-height puts it on the baseline instead, and
+   changes nothing visually. */
+.switch { display: flex; align-items: center; gap: var(--sp-3); cursor: pointer; min-height: 24px; }
 .switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
 .switch-track {
   position: relative; width: 40px; height: 22px; flex: none;
@@ -145,7 +210,7 @@
 .switch-label { font-size: var(--fs-sm); color: var(--text-dim); }
 
 /* ---- Controls: segmented -------------------------------------------------- */
-.segmented { display: inline-flex; background: var(--surface-inset); border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; gap: 2px; }
+.segmented { display: inline-flex; background: var(--surface-inset); border: 1px solid var(--border-control); border-radius: var(--r-md); padding: 3px; gap: 2px; }
 .seg-input { position: absolute; opacity: 0; width: 0; height: 0; }
 .seg-btn {
   display: inline-flex; align-items: center; gap: var(--sp-2);
@@ -153,9 +218,25 @@
   font-size: var(--fs-sm); color: var(--text-dim); cursor: pointer; white-space: nowrap;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.seg-sm .seg-btn { padding: 3px var(--sp-2); font-size: var(--fs-xs); }
+/* 3px + 3px + a 1.6 line box on --fs-xs came to 24.4px — passing SC 2.5.8 by
+   four tenths of a pixel, at the mercy of font metrics and line-height rounding.
+   4px of padding gives it real margin. */
+.seg-sm .seg-btn { padding: 4px var(--sp-2); font-size: var(--fs-xs); }
 .seg-btn:hover { color: var(--text); }
-.seg-input:checked + .seg-btn { background: var(--surface-3); color: var(--text); box-shadow: var(--shadow-1); }
+/* WCAG 1.4.11 covers the STATES of a component, and "selected" used to be
+   nothing but a fill swap from --surface-inset to --surface-3: 1.43:1, with a
+   1.73:1 text change and a black drop shadow that does nothing on a dark
+   surface. This is the control that switches the exhibit between Sender/Receiver
+   and Defender mode and picks the channel in the Detection Console, so the state
+   has to be unmistakable. The accent ring is the indicator — 10.31:1 against the
+   group's --surface-inset track and 4.92:1 against the segment's own fill — and,
+   being the presence of an edge rather than a change of hue, it is a non-colour
+   cue as well. The lifted fill is redundant reinforcement. */
+.seg-input:checked + .seg-btn {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-3));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
 .seg-input:focus-visible + .seg-btn { outline: 2px solid var(--accent); outline-offset: 2px; }
 .seg-icon { font-size: 0.9em; }
 
@@ -164,7 +245,10 @@
   display: inline-flex; align-items: center; gap: var(--sp-2);
   padding: var(--sp-2) var(--sp-4);
   border-radius: var(--r-md);
-  border: 1px solid var(--border-strong);
+  /* --surface-2 is 1.10:1 against a card, so the border is the whole boundary —
+     and .btn.ghost is transparent, where it is literally all there is (1.4.11).
+     .btn.primary keeps its own transparent border: its accent fill is 10.39:1. */
+  border: 1px solid var(--border-control);
   background: var(--surface-2); color: var(--text);
   font-size: var(--fs-sm); font-weight: 550; cursor: pointer;
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
@@ -193,6 +277,11 @@
 .bit-ribbon.compact { gap: 2px; }
 .bit-cell {
   --bit-color: var(--bit-0);
+  /* Positioning context for .bit-error::after. Without it the badge resolved
+     against the initial containing block and, all offsets being auto, painted at
+     its static position — centred in the cell, on top of the digit — so the
+     redundant non-colour cue for an error bit was not actually being delivered. */
+  position: relative;
   display: grid; place-items: center;
   width: 20px; height: 22px;
   border-radius: var(--r-sm);
@@ -209,7 +298,12 @@
   --bit-color: var(--bit-err);
   outline: 2px solid var(--bit-err); outline-offset: 1px;
 }
-.bit-error::after { content: "✕"; position: absolute; }
+.bit-error::after {
+  content: "✕";
+  position: absolute; top: -4px; right: -3px;
+  font-size: 8px; line-height: 1; color: var(--bit-err);
+  pointer-events: none;
+}
 .bit-more { font-size: var(--fs-xs); color: var(--text-faint); margin-left: 4px; }
 @keyframes bitpop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
@@ -217,7 +311,11 @@
 
 /* ---- Charts --------------------------------------------------------------- */
 .chart { width: 100%; height: auto; overflow: visible; }
-.chart-axis { stroke: var(--border); stroke-width: 1; }
+/* The axis was --border: 1.35:1 against a card, i.e. effectively invisible. Not
+   a 1.4.11 failure — every chart carries role="img" with a substantive
+   aria-label and repeats its values as adjacent text — but a chart whose axis
+   cannot be seen is not much of a chart. --border-control is 3.55:1. */
+.chart-axis { stroke: var(--border-control); stroke-width: 1; }
 .chart-xlabel { fill: var(--text-faint); font-size: 9px; font-family: var(--font-mono); }
 .chart-val { fill: var(--text-dim); font-size: 9px; font-family: var(--font-mono); }
 .chart-figure { margin: 0; }
@@ -269,7 +367,12 @@
 /* ---- Observations --------------------------------------------------------- */
 .observation { border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3); background: var(--surface-1); }
 .observation + .observation { margin-top: var(--sp-2); }
-.observation.quiet { opacity: 0.75; border-style: dashed; }
+/* "Not triggered" is carried by the dashed border. It used to also be carried by
+   `opacity: 0.75`, which dragged the --text-faint tag down to 3.11:1 on
+   --surface-1 (1.4.3). Opacity is never a safe way to de-emphasise text: it
+   multiplies whatever margin the colour token already had, and --text-faint has
+   very little (4.51:1 here). The border alone says it, without colour. */
+.observation.quiet { border-style: dashed; }
 .obs-what { font-size: var(--fs-sm); color: var(--text); font-weight: 600; margin-bottom: 4px; }
 .obs-line { font-size: var(--fs-xs); color: var(--text-dim); display: flex; gap: 6px; }
 .obs-line .obs-tag { color: var(--text-faint); font-weight: 650; flex: none; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -280,7 +383,12 @@
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
 .data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .data-table th, .data-table td { padding: var(--sp-2) var(--sp-3); text-align: left; border-bottom: 1px solid var(--border-faint); white-space: nowrap; }
-.data-table thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--text-faint); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; z-index: 1; }
+/* --text-faint on --surface-2 is 4.08:1, under the 4.5:1 that 11.52px uppercase
+   body text needs (1.4.3). Fixed at this rule rather than by lightening the
+   token, because --text-faint clears 4.5:1 on every other surface it is used on
+   and a global change would move every quiet label in the exhibit.
+   --text-dim on --surface-2 measures 7.80:1. */
+.data-table thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--text-dim); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; z-index: 1; }
 .data-table tbody tr:hover { background: var(--surface-1); }
 .data-table td.mono, .data-table th.mono { font-family: var(--font-mono); }
 .data-table tr.is-covert td { background: color-mix(in srgb, var(--covert) 9%, transparent); }
@@ -299,6 +407,9 @@
 
 /* entropy mini-bar in tables */
 .ent-bar { display: inline-flex; align-items: center; gap: 6px; }
+/* Inside a covert-marked row the amber tint warms the background enough to pull
+   --text-faint to 3.84:1. The row highlight is the point, so lift the label instead. */
+.data-table tr.is-covert .ent-bar .subtle { color: var(--text-dim); }
 .ent-track { width: 46px; height: 6px; background: var(--surface-inset); border-radius: var(--r-pill); overflow: hidden; }
 .ent-fill { height: 100%; background: var(--covert); }
 
@@ -331,7 +442,21 @@
   display: grid; place-items: center; font-size: 9px; color: var(--text-invert); font-weight: 700;
   z-index: 2;
 }
-.tl-packet.dropped { background: var(--surface-3); box-shadow: none; opacity: 0.5; }
+/* A dropped packet is how the reader sees what the Packet-loss slider removed,
+   and the merged gap after it is the module's whole teaching point — so the
+   marker is a graphical object required to understand the content. Faded to
+   `opacity: 0.5` it composited to 1.13:1 against the card: invisible (1.4.11).
+   The dashed --danger ring is 6.32:1 against the card and the glyph is 4.84:1 on
+   the fill; the ring is also a shape difference, not just a colour one, which
+   the fade was not (1.4.1). The state is still not exposed to assistive tech —
+   the glyph and the `title` are identical to a delivered packet's — but that is
+   timingView.js's to fix, not this stylesheet's. */
+.tl-packet.dropped {
+  background: var(--surface-3);
+  box-shadow: none;
+  border: 2px dashed var(--danger);
+  color: var(--danger);
+}
 .tl-gap { position: absolute; top: 96px; font-size: var(--fs-xs); color: var(--text-faint); font-family: var(--font-mono); transform: translateX(-50%); }
 .tl-bit {
   position: absolute; top: 112px; transform: translateX(-50%);
@@ -374,17 +499,28 @@
   border: 1px dashed var(--border-strong); border-radius: var(--r-pill);
   padding: 3px 10px;
 }
+/* The word "SIMULATED" is the exhibit's central honesty claim, and it currently
+   lives in this stylesheet rather than in the DOM — three views render
+   `span.sim-note` with an empty string, so the pseudo-element is their entire
+   visible content. Chrome and Firefox do expose ::before text to the
+   accessibility tree, so this works today, but a claim that nothing here is real
+   should not depend on a stylesheet loading. The real fix is for simChip() to
+   emit the word; this rule styles that span identically and stands down the
+   moment it appears, so the two changes can land in either order without the
+   label either doubling up or disappearing. */
 .sim-note::before { content: "SIMULATED"; color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
+.sim-note:has(.sim-tag)::before { content: none; }
+.sim-tag { color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
 
 /* ---- Stego ---------------------------------------------------------------- */
-.stego-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--sp-4); }
+.stego-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: var(--sp-4); }
 .img-frame { display: flex; flex-direction: column; gap: var(--sp-2); }
 .img-frame canvas, .img-frame img { width: 100%; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--surface-inset); image-rendering: pixelated; aspect-ratio: 1 / 1; object-fit: contain; }
 .img-frame figcaption { font-size: var(--fs-xs); color: var(--text-faint); text-align: center; }
 .img-frame .cap-title { color: var(--text-dim); font-weight: 600; }
 
 /* ---- Glossary ------------------------------------------------------------- */
-.glossary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--sp-3); }
+.glossary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: var(--sp-3); }
 .glossary-item { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); }
 .glossary-term { font-size: var(--fs-base); font-weight: 650; color: var(--accent); margin-bottom: 4px; }
 .glossary-def { font-size: var(--fs-sm); color: var(--text-dim); }
@@ -397,7 +533,9 @@
 .quiz-choice {
   display: flex; align-items: center; gap: var(--sp-3);
   padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md);
-  border: 1px solid var(--border-strong); background: var(--surface-0);
+  /* --surface-0 fill is 1.06:1 against the quiz card, so the border is the only
+     boundary (1.4.11); --border-control is 3.16:1 against that fill. */
+  border: 1px solid var(--border-control); background: var(--surface-0);
   text-align: left; cursor: pointer; font-size: var(--fs-sm); color: var(--text-dim);
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
@@ -420,7 +558,7 @@
 .recovered-box { background: var(--surface-inset); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3); font-family: var(--font-mono); font-size: var(--fs-md); word-break: break-all; }
 .recovered-box.ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); color: var(--ok); }
 .recovered-box.err { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); color: var(--danger); }
-.stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: var(--sp-2); }
+.stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(90px, 100%), 1fr)); gap: var(--sp-2); }
 .stat-tile { background: var(--surface-inset); border: 1px solid var(--border-faint); border-radius: var(--r-md); padding: var(--sp-3); text-align: center; }
 .stat-tile .st-val { font-size: var(--fs-lg); font-weight: 700; font-family: var(--font-mono); color: var(--text); }
 .stat-tile .st-lab { font-size: var(--fs-xs); color: var(--text-faint); margin-top: 2px; }

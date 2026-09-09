@@ -6,10 +6,13 @@
  * slow), and the two defences on the left each kill exactly one of them.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, tableCaption } from './dom.js';
 import { sectionHeader, para, calloutChip, bitRibbon } from './blocks.js';
 import { panel, controlGroup, slider, toggle, segmented, button } from './controls.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { verticalBars } from './charts.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
@@ -18,25 +21,65 @@ import {
 } from '../channels/icmp.js';
 import { analyzeIcmp } from '../detectors/icmpDetector.js';
 import { round } from '../utils/statistics.js';
-import { setChannelParam, resetChannel, VIEW_MODES } from '../state.js';
+import { getState, setChannelParam, resetChannel, VIEW_MODES } from '../state.js';
 
 export function renderIcmpView(state) {
   const copy = COPY.icmp;
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+  // Two sliders whose `disabled` depends on ANOTHER control. leftPanel is built
+  // once (so controls keep focus), so those flags were frozen at build time:
+  // switching the clamp on left "Clamp size" permanently disabled, and switching
+  // the carrier field away from the data area left "Message bytes per echo"
+  // enabled. Keeping the input nodes lets refresh() update them in place —
+  // without rebuilding the panel and dropping focus.
+  const refs = { chunk: {}, clamp: {} };
 
   const node = el('section', { class: 'section', id: 'sec-icmp' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Protocol payload' }),
     modeBanner(state.viewMode),
-    div({ class: 'workbench' }, leftPanel(state), center, right));
+    div({ class: 'workbench' }, leftPanel(state, refs), center, right));
+
+  /** Reflect live state onto a control that was built with a stale snapshot. */
+  function syncControl(ref, isDisabled, helpText) {
+    if (!ref.input) return;
+    ref.input.disabled = !!isDisabled;
+    if (isDisabled) ref.input.setAttribute('disabled', '');
+    else ref.input.removeAttribute('disabled');
+    if (ref.node) ref.node.className = `ctrl${isDisabled ? ' is-disabled' : ''}`;
+    if (ref.help && helpText) ref.help.textContent = helpText;
+  }
 
   function refresh(s) {
+    const p = s.channels.icmp;
     const run = simulateIcmpRun(s.message, runParams(s));
+    syncControl(refs.chunk, p.field !== 'payload', chunkHelp(p.field === 'payload'));
+    syncControl(refs.clamp, p.clampBytes == null, null);
+    const toggleHelp = refs.clampToggleHelpRef && refs.clampToggleHelpRef.help;
+    if (toggleHelp) toggleHelp.textContent = clampToggleHelp(p.chunkBytes);
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    const damaged = run.clampedCount + run.droppedCount;
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeIcmp(run.mixed))}.`
+      : `${recoveredPhrase(run.recoveredText)}, ${errorPhrase(run.bitErrors, run.bits.length)}`
+        + `${damaged ? `, ${damaged} echoes damaged` : ''}.`);
   }
   refresh(state);
   return { node, refresh };
+}
+
+function chunkHelp(isPayload) {
+  return isPayload
+    ? 'More bytes per echo means fewer, larger echoes: higher rate, larger size anomaly.'
+    : 'Only applies to the data-area channel; the identifier channel carries one bit per echo.';
+}
+
+function clampToggleHelp(chunkBytes) {
+  return `Truncates any data area longer than the clamp. Note it only bites once the payload EXCEEDS the clamp — with the ${TIMESTAMP_BYTES}-byte timestamp plus ${chunkBytes} message bytes, this echo carries ${TIMESTAMP_BYTES + chunkBytes} B.`;
 }
 
 function runParams(s) {
@@ -44,9 +87,11 @@ function runParams(s) {
 }
 
 /* ---- controls -------------------------------------------------------------- */
-function leftPanel(state) {
+function leftPanel(state, refs = {}) {
   const p = state.channels.icmp;
   const isPayload = p.field === 'payload';
+  const clampToggleRef = {};
+  refs.clampToggleHelpRef = clampToggleRef;
   return panel('left',
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Where the bits go' }),
@@ -65,9 +110,8 @@ function leftPanel(state) {
         slider({
           label: 'Message bytes per echo', min: 1, max: 32, value: p.chunkBytes, unit: 'B',
           disabled: !isPayload,
-          help: isPayload
-            ? 'More bytes per echo means fewer, larger echoes: higher rate, larger size anomaly.'
-            : 'Only applies to the data-area channel; the identifier channel carries one bit per echo.',
+          help: chunkHelp(isPayload),
+          ref: refs.chunk,
           onInput: (v) => setChannelParam('icmp', 'chunkBytes', v),
         }),
         toggle({
@@ -89,16 +133,22 @@ function leftPanel(state) {
         toggle({
           label: 'Normaliser clamps the payload',
           checked: p.clampBytes != null,
-          help: `Truncates any data area longer than the clamp. Note it only bites once the payload EXCEEDS the clamp — with the ${TIMESTAMP_BYTES}-byte timestamp plus ${p.chunkBytes} message bytes, this echo carries ${TIMESTAMP_BYTES + p.chunkBytes} B.`,
-          onChange: (v) => setChannelParam('icmp', 'clampBytes', v ? p.clampAt : null),
+          help: clampToggleHelp(p.chunkBytes),
+          ref: clampToggleRef,
+          // getState(), not the build-time `p`: state is replaced immutably on
+          // every change, so a captured snapshot would clamp at whatever the
+          // slider read when the panel was built. This matters now that the
+          // Clamp size slider is reachable at all.
+          onChange: (v) => setChannelParam('icmp', 'clampBytes', v ? getState().channels.icmp.clampAt : null),
         }),
         slider({
           label: 'Clamp size', min: TIMESTAMP_BYTES, max: STANDARD_PAYLOAD_BYTES, value: p.clampAt, unit: 'B',
           disabled: p.clampBytes == null,
+          ref: refs.clamp,
           help: `A conventional ping data area is ${STANDARD_PAYLOAD_BYTES} B, so a clamp at that size never bites on the small messages this lab sends — find the size where it starts to.`,
           onInput: (v) => {
             setChannelParam('icmp', 'clampAt', v);
-            if (p.clampBytes != null) setChannelParam('icmp', 'clampBytes', v);
+            if (getState().channels.icmp.clampBytes != null) setChannelParam('icmp', 'clampBytes', v);
           },
         }),
         toggle({
@@ -158,6 +208,7 @@ function echoTable(echoes) {
     style: { maxHeight: '320px', overflowY: 'auto' },
     attrs: { tabindex: '0', role: 'region', 'aria-label': 'Simulated ICMP echo log: sequence, identifier, payload size, destination and data area' },
   }, el('table', { class: 'data-table' },
+    tableCaption('Simulated ICMP echo log: sequence, identifier, payload size, destination and data area'),
     el('thead', {}, el('tr', {},
       el('th', { scope: 'col', text: 'Seq' }),
       el('th', { scope: 'col', text: 'Identifier' }),
@@ -180,9 +231,9 @@ function senderPanel(run) {
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Sent vs recovered' }),
       el('p', { class: 'subtle', text: 'Intended' }),
-      bitRibbon(run.bits, { max: 64 }),
+      bitRibbon(run.bits, { max: 64, ariaLabel: 'intended bits' }),
       el('p', { class: 'subtle', text: 'Recovered' }),
-      bitRibbon(run.bits, { decoded: run.decodedBits, max: 64 })),
+      bitRibbon(run.bits, { decoded: run.decodedBits, max: 64, ariaLabel: 'recovered bits' })),
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: `Receiver reads the ${field.label.toLowerCase()}` }),
       recoveredBox(run.recoveredText, { ok }),

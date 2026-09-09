@@ -14,15 +14,32 @@
   --surface-3:     #24303f;
   --surface-inset: #0b0f16;
 
-  /* Borders / lines */
+  /* Borders / lines.
+     --border / --border-strong / --border-faint are DECORATIVE dividers: card
+     edges, table rules, hairlines. They are deliberately quiet and none of them
+     reaches 3:1 against the surfaces they sit on (--border-strong is 1.79:1 on
+     --surface-1), which is fine for decoration.
+
+     --border-control is the boundary of an INTERACTIVE component, which WCAG
+     1.4.11 Non-text Contrast holds to 3:1 against adjacent colour. Measured
+     (WCAG 2.1 relative luminance): 3.55:1 on --surface-1, 3.21:1 on --surface-2,
+     3.78:1 on --surface-0, 3.92:1 on --bg, 3.89:1 on --surface-inset — i.e. it
+     clears 3:1 against every surface a control is drawn on or filled with.
+     Use it ONLY on things the user can operate; decorative edges stay quiet. */
   --border:        #263243;
   --border-strong: #35455a;
   --border-faint:  #1a2331;
+  --border-control:#5e728c;
 
   /* Text */
   --text:          #e7eef6;
   --text-dim:      #a8b8c8;
-  --text-faint:    #728398;
+  /* Lightened from #728398, which measured 4.08:1 on --surface-2 and 4.51:1 on
+     --surface-1 — under, and barely over, the 4.5:1 body-text minimum. It is used in
+     roughly twenty places, so this is a token-level defect rather than a set of rule
+     ones; test/contrast.test.js measures it. #7c8da2 clears 4.66:1 on the darkest
+     panel surface while staying clearly quieter than --text-dim (7.80:1). */
+  --text-faint:    #7c8da2;
   --text-invert:   #0a0e14;
 
   /* Brand accents */
@@ -100,13 +117,44 @@
   /* Layout */
   --nav-w: 248px;
   --maxw: 1500px;
+
+  /* Height of the sticky .app-header. Everything that has to clear the header —
+     the sidebar, the sticky workbench panels, and scroll-padding-top — keys off
+     this instead of repeating a magic pixel constant.
+
+     It is in REM on purpose. The header is built entirely from rem-sized type
+     and spacing, so a reader who raises the browser's default font size (rather
+     than using page zoom) makes the real header taller; a px constant would not
+     follow it and the header would start covering the top of the sidebar. That
+     is WCAG 1.4.4 Resize Text, which page zoom satisfies but text-only zoom does
+     not. Derivation of the one-row desktop header, at any root size:
+       padding      --sp-3 x2                                = 1.500rem
+       .msg-field   label (--fs-sm x --lh-base)              = 1.312rem
+                  + --sp-2 gap                               = 0.500rem
+                  + input (--sp-2 x2 + --fs-base x --lh-base
+                           + 2px border)                     = 2.629rem
+                                                        total ~ 5.941rem
+     Rounded up to 6.25rem so the value is never short. Over-estimating only
+     leaves a little air under the header; under-estimating hides content. */
+  --header-h: 6.25rem;
 }
 
 /* ---- Reset ---------------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; }
 
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+/* scroll-padding-top keeps the sticky header from landing on top of whatever the
+   browser has just scrolled into view — a focused control reached with Shift+Tab,
+   the skip link's target, a hash change. Without it the browser aligns the target
+   with the viewport's top edge, which is underneath the header, and the focus ring
+   is invisible behind 88%-opaque backdrop-blurred glass (WCAG 2.2 SC 2.4.11 Focus
+   Not Obscured (Minimum)). --header-h drops to 0 below 960px, where the header is
+   no longer sticky. */
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + var(--sp-2));
+}
 
 body {
   font-family: var(--font-sans);

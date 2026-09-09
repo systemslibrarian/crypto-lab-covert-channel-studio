@@ -63,3 +63,92 @@ export function modeBanner(viewMode) {
 export function simChip(text = 'All traffic below is generated locally — nothing is sent.') {
   return div({ class: 'sim-note' }, span({ text })); // the ::before adds the SIMULATED tag
 }
+
+/* ---- the section outcome announcer (4.1.3 Status Messages) ---------------- */
+
+/**
+ * ONE polite status region per section, and a deliberately narrow one.
+ *
+ * The problem it solves: dragging the jitter slider re-renders the whole centre
+ * and right panels, so the bit-error count, the recovered message and the
+ * anomaly level all change with nothing announced. Those are results of the
+ * user's action presented without receiving focus — status messages under 4.1.3.
+ *
+ * The problem it must NOT create: a range `input` event fires once per pixel of
+ * a drag, and the panels it rewrites contain an 80-row DNS log, several charts
+ * and a page of prose. Marking those panels live would read a table aloud on
+ * every tick and make the exhibit *less* usable with a screen reader than
+ * silence. So the design is the opposite of "wrap the output":
+ *
+ *   - The region is created once, at section-build time, and lives BESIDE the
+ *     panels — never inside anything that gets replace()d, because replacing a
+ *     live region's node de-registers it and it stops announcing at all.
+ *   - It is written from refresh(), not from the control handlers, so it
+ *     describes a settled state rather than an in-flight drag.
+ *   - It carries one short outcome sentence — the two or three headline numbers
+ *     a reader is actually experimenting on — and nothing else. Charts, logs,
+ *     metric lists and observation prose stay inert and are read on demand.
+ *   - Two gates stop the chatter: a trailing debounce (a whole drag produces one
+ *     announcement) and an identity check (nudging a slider without changing the
+ *     outcome says nothing).
+ *
+ * Visually hidden, because the same information is already on screen.
+ */
+const STATUS_DEBOUNCE_MS = 500;
+
+export function statusRegion(opts = {}) {
+  const node = el('p', {
+    class: 'visually-hidden',
+    attrs: { role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+  });
+  let spoken = '';     // what the node currently holds
+  let pending = null;  // what the next tick would write
+  let timer = null;
+  let primed = false;
+
+  function announce(text) {
+    const s = String(text ?? '').replace(/\s+/g, ' ').trim();
+    if (s === spoken) {
+      // Includes the A → B → A case: cancel the scheduled write rather than
+      // announcing a value the reader is already sitting on.
+      pending = null;
+      if (timer) { clearTimeout(timer); timer = null; }
+      return;
+    }
+    pending = s;
+    if (!primed) {
+      // The first write happens while the section is still detached from the
+      // document, so it seeds the region without speaking on every navigation.
+      primed = true;
+      spoken = s;
+      node.textContent = s;
+      return;
+    }
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      if (pending !== null && pending !== spoken) { spoken = pending; node.textContent = spoken; }
+    }, opts.debounceMs ?? STATUS_DEBOUNCE_MS);
+    // Node keeps the event loop alive for pending timers; test runs must not hang.
+    if (timer && typeof timer.unref === 'function') timer.unref();
+  }
+
+  return { node, announce };
+}
+
+/** "0 bit errors" / "7 bit errors of 40". Shared by every sender panel summary. */
+export function errorPhrase(bitErrors, totalBits) {
+  if (!bitErrors) return 'no bit errors';
+  return `${bitErrors} bit error${bitErrors === 1 ? '' : 's'}${totalBits ? ` of ${totalBits}` : ''}`;
+}
+
+/** Sentence-initial: "Recovered “HELLO”" / "Nothing recovered". */
+export function recoveredPhrase(text) {
+  return text ? `Recovered “${text}”` : 'Nothing recovered';
+}
+
+/** Sentence-initial: "Anomaly indicator moderate, 48 of 100". */
+export function anomalyPhrase(det) {
+  if (!det) return '';
+  return `Anomaly indicator ${det.anomalyLevel}, ${Math.round(det.score)} of 100`;
+}

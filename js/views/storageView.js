@@ -2,11 +2,14 @@
  * views/storageView.js — the covert storage channel module.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, tableCaption } from './dom.js';
 import { sectionHeader, para, calloutChip, inline } from './blocks.js';
 import { panel, controlGroup, select, toggle, button, segmented } from './controls.js';
 import { verticalBars } from './charts.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import { simulateStorageRun, FIELDS, MIDDLEBOX_IMPACT, extractBit } from '../channels/storage.js';
@@ -38,7 +41,11 @@ export function renderStorageView(state) {
     noteArea, tableArea));
   center.appendChild(instrumentArea);
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-storage' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Storage' }),
     modeBanner(state.viewMode),
     div({ class: 'workbench' }, leftPanel(state), center, right));
@@ -52,6 +59,10 @@ export function renderStorageView(state) {
     replace(tableArea, packetTable(run.cleanPackets, run.field, reveal));
     replace(instrumentArea, tradeoffInstrument('storage', cur.message, { field: cur.channels.storage.field, middlebox: cur.channels.storage.middlebox, seed: `${cur.seed}:storage` }));
     replace(right, rightContent(cur, run));
+    status.announce(cur.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeStorage(run.processedPackets, run.field))}.`
+      : `${recoveredPhrase(run.processedDecode.text)}, ${errorPhrase(run.bitErrors)}, `
+        + `error rate ${Math.round(run.bitErrorRate * 100)}%.`);
   }
   function refresh(s) { cur = s; renderInner(); }
   refresh(state);
@@ -87,8 +98,8 @@ function packetTable(packets, field, reveal) {
   const baseCols = ['#', 'Src', 'Dst', 'Proto', 'TTL', 'IP ID', 'Seq', 'Len'];
   const revealCols = reveal ? ['Bit', 'Byte', 'Char'] : [];
   const head = el('tr', {},
-    ...baseCols.map((h) => el('th', { class: colClass(h, prop, reveal), text: h })),
-    ...revealCols.map((h) => el('th', { text: h })));
+    ...baseCols.map((h) => el('th', { scope: 'col', class: colClass(h, prop, reveal), text: h })),
+    ...revealCols.map((h) => el('th', { scope: 'col', text: h })));
 
   const bits = shown.map((p) => extractBit(p, field));
   const rows = shown.map((p, i) => {
@@ -118,7 +129,9 @@ function packetTable(packets, field, reveal) {
 
   return div({ class: 'table-wrap', style: { maxHeight: '360px', overflowY: 'auto' },
     attrs: { tabindex: '0', role: 'region', 'aria-label': 'Simulated packet stream' } },
-    el('table', { class: 'data-table' }, el('thead', {}, head), el('tbody', {}, ...rows)));
+    el('table', { class: 'data-table' },
+      tableCaption('Simulated packet stream'),
+      el('thead', {}, head), el('tbody', {}, ...rows)));
 }
 
 function colValueFor(prop, p) { return p[prop]; }

@@ -32,12 +32,25 @@ export function para(str, cls) {
 
 const KIND_ICON = { key: '◆', note: '❯', warn: '▲', tip: '✦' };
 
-/** A callout box. */
-export function callout({ kind = 'note', title, body, blocks }) {
+/**
+ * A callout box.
+ *
+ * `level` is the heading level of the callout's title, and it defaults to 3
+ * rather than 4 on purpose. A callout is normally a sibling of the section's
+ * other subheads — renderBlock({h}) emits <h3> — and most callouts sit directly
+ * under the section <h2> with no <h3> between, so a fixed <h4> made seven
+ * sections read h2 → h4 and claim a tier of structure that is not there. Pass
+ * `level: 4` for a callout nested INSIDE an h3 card, which is the only place the
+ * deeper level is truthful. (Skipped heading levels are advisory — technique
+ * G141 under 1.3.1 — not a hard failure, but they misstate the outline and are
+ * the first thing an auditor flags.)
+ */
+export function callout({ kind = 'note', title, body, blocks, level = 3 }) {
+  const h = `h${Math.min(6, Math.max(2, Number(level) || 3))}`;
   return el('aside', { class: `callout callout-${kind}`, attrs: { role: 'note' } },
     div({ class: 'callout-icon', 'aria-hidden': 'true', text: KIND_ICON[kind] ?? '❯' }),
     div({ class: 'callout-body' },
-      title ? el('h4', { class: 'callout-title', text: title }) : null,
+      title ? el(h, { class: 'callout-title', text: title }) : null,
       body ? para(body) : null,
       blocks ? renderBlocks(blocks) : null));
 }
@@ -105,18 +118,33 @@ export function outcomesBlock(outcomes) {
  * The bit ribbon: a row of 0/1 cells. Colour is paired with the glyph so the
  * value never depends on colour alone. Optionally compares against a decoded
  * sequence, marking mismatches.
+ *
+ * role="img" makes the whole subtree presentational, so the aria-label is the
+ * ENTIRE alternative — the per-cell digits and the `bit-error` marking are not
+ * in the accessibility tree at all. A bare "recovered bits" therefore threw away
+ * exactly the thing the widget exists to show (1.1.1: an alternative that does
+ * not serve the equivalent purpose). The label is now composed from the data:
+ * the sequence itself, grouped in bytes, plus the mismatch count and the
+ * positions that differ, which no other node on the page carries.
+ *
  * @param {number[]} bits
  * @param {{ decoded?:number[], max?:number, compact?:boolean, ariaLabel?:string }} [opts]
  */
 export function bitRibbon(bits, opts = {}) {
   const max = opts.max ?? 128;
   const shown = bits.slice(0, max);
+  const glyphs = [];
+  const errorPositions = [];
+  let missingCount = 0;
   const cells = shown.map((bit, i) => {
     const decodedBit = opts.decoded ? opts.decoded[i] : undefined;
     const missing = decodedBit !== undefined && decodedBit < 0;
     const isError = decodedBit !== undefined && decodedBit !== bit;
+    if (missing) missingCount += 1;
+    if (isError) errorPositions.push(i);
     const value = decodedBit !== undefined ? decodedBit : bit;
     const glyph = missing ? '·' : String(value);
+    glyphs.push(glyph);
     const cls = missing ? 'bit-cell bit-missing bit-error' : `bit-cell bit-${value}${isError ? ' bit-error' : ''}`;
     return span({
       class: cls,
@@ -125,10 +153,46 @@ export function bitRibbon(bits, opts = {}) {
   });
   return div({
     class: `bit-ribbon${opts.compact ? ' compact' : ''}`,
-    attrs: { role: 'img', 'aria-label': opts.ariaLabel ?? `${bits.length} bits` },
+    attrs: {
+      role: 'img',
+      'aria-label': ribbonLabel({
+        name: opts.ariaLabel ?? `${bits.length} bits`,
+        glyphs,
+        total: bits.length,
+        isComparison: !!opts.decoded,
+        errorPositions,
+        missingCount,
+      }),
+    },
   },
     ...cells,
     bits.length > max ? span({ class: 'bit-more', text: `+${bits.length - max}` }) : null);
+}
+
+/** Group the glyphs in bytes so a reader hears "01001000 01000101", not 64 digits. */
+function chunkBits(glyphs) {
+  const groups = [];
+  for (let i = 0; i < glyphs.length; i += 8) groups.push(glyphs.slice(i, i + 8).join(''));
+  return groups.join(' ');
+}
+
+const MAX_SPOKEN_POSITIONS = 12;
+
+function ribbonLabel({ name, glyphs, total, isComparison, errorPositions, missingCount }) {
+  if (!glyphs.length) return `${name}: none`;
+  const parts = [`${name}: ${chunkBits(glyphs)}`];
+  if (total > glyphs.length) parts.push(`first ${glyphs.length} of ${total} shown`);
+  if (isComparison) {
+    parts.push(errorPositions.length === 0
+      ? 'matches the intended bits exactly'
+      : `${errorPositions.length} of ${glyphs.length} differ from the intended bits`);
+    if (missingCount) parts.push(`${missingCount} never recovered`);
+    if (errorPositions.length) {
+      const listed = errorPositions.slice(0, MAX_SPOKEN_POSITIONS).join(', ');
+      parts.push(`at bit ${listed}${errorPositions.length > MAX_SPOKEN_POSITIONS ? ' and more' : ''}`);
+    }
+  }
+  return `${parts.join('; ')}.`;
 }
 
 /**

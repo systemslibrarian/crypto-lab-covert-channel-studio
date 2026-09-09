@@ -7,10 +7,13 @@
  * look at rather than a claim you are asked to believe.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, tableCaption } from './dom.js';
 import { sectionHeader, para, calloutChip, bitRibbon } from './blocks.js';
 import { panel, controlGroup, slider, toggle, button } from './controls.js';
-import { metricList, anomalyPanel, recoveredBox, modeBanner, statTiles } from './widgets.js';
+import {
+  metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+} from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
 import {
@@ -27,7 +30,11 @@ export function renderHoppingView(state) {
   const center = div({ class: 'panel panel-center' });
   const right = div({ class: 'panel panel-right' });
 
+  // One status region, built here and never replace()d — see statusRegion().
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-hopping' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Protocol structure' }),
     modeBanner(state.viewMode),
     div({ class: 'workbench' }, leftPanel(state), center, right));
@@ -36,6 +43,11 @@ export function renderHoppingView(state) {
     const run = simulateHoppingRun(s.message, runParams(s));
     replace(center, centerContent(s, run));
     replace(right, rightContent(s, run));
+    const lost = run.droppedCount + run.blockedCount;
+    status.announce(s.viewMode === VIEW_MODES.DEFENDER
+      ? `${anomalyPhrase(analyzeHopping(run.mixed))}.`
+      : `${recoveredPhrase(run.recoveredText)}, ${errorPhrase(run.bitErrors, run.bits.length)}`
+        + `${lost ? `, ${lost} flows lost` : ''}.`);
   }
   refresh(state);
   return { node, refresh };
@@ -123,9 +135,9 @@ function senderPanel(run) {
       el('h3', { class: 'card-title', text: 'Sent vs recovered' }),
       el('p', { class: 'subtle', text: 'Intended' }),
       // Two bits per hop, so the ribbon reads in pairs against the flow stream.
-      bitRibbon(run.bits, { max: 64 }),
+      bitRibbon(run.bits, { max: 64, ariaLabel: 'intended bits' }),
       el('p', { class: 'subtle', text: 'Recovered' }),
-      bitRibbon(run.bits, { decoded: run.decodedBits, max: 64 })),
+      bitRibbon(run.bits, { decoded: run.decodedBits, max: 64, ariaLabel: 'recovered bits' })),
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Receiver walks the same state machine' }),
       recoveredBox(run.recoveredText, { ok }),
@@ -191,6 +203,7 @@ function transitionMatrix(m) {
     class: 'table-wrap',
     attrs: { tabindex: '0', role: 'region', 'aria-label': 'Protocol transition matrix: counts of each from-protocol to to-protocol hop' },
   }, el('table', { class: 'data-table transition-matrix' },
+    tableCaption('Protocol transition matrix: counts of each from-protocol to to-protocol hop'),
     el('thead', {}, head),
     el('tbody', {}, ...rows)));
 }

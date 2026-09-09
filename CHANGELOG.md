@@ -3,6 +3,53 @@
 All notable changes to Covert Channel Studio. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic-ish versioning.
 
+## [1.5.1] — 2026-09-09 — Accessibility: the slider you could not hit, and the header you could not read
+
+Audited against WCAG 2.1 AA and small-screen reflow. The layout was already
+genuinely responsive and the palette already strong — 44 of 45 colour pairings
+cleared AA before this release — so what follows is a short list of real defects
+rather than a rewrite.
+
+### Fixed
+- **The sliders were a six-pixel touch target.** `.ctrl-range` was `height: 6px`
+  with an 18px thumb overflowing it. Sliders drive nearly every module in this
+  exhibit, so on a phone this was the worst interaction defect in the product.
+  The input is now 24px of interactive height with a 24x24 thumb (WCAG 2.5.8),
+  and the thin track survives via `::-webkit-slider-runnable-track` /
+  `::-moz-range-track` so the design is unchanged.
+- **Table headers failed contrast.** `--text-faint` on `--surface-2` measured
+  4.08:1 against the 4.5:1 minimum, in 11.5px uppercase, in every data table.
+- **`--text-faint` was a token-level defect, not a rule-level one.** It is used
+  in roughly twenty places and measured 4.08:1 on `--surface-2` and 4.51:1 on
+  `--surface-1` — under, and barely over, the minimum. Lightened #728398 ->
+  #7c8da2 (4.66:1 on the darkest panel surface) while staying clearly quieter
+  than `--text-dim`. Two tinted contexts needed scoped overrides on top: the lit
+  air-gap lamp and the covert-marked table row both warm their own background
+  enough to drag the token back under.
+- **Result panels changed silently.** The exhibit re-renders outputs on every
+  control change and had exactly one live region in the whole app, so a screen
+  reader user moving the jitter slider learned nothing. There is now a status
+  region that announces the OUTCOME — bit errors, recovered message, anomaly
+  level — with a trailing debounce so a whole drag produces one announcement,
+  and an identity check so nudging a control without changing the result says
+  nothing. Metric lists and observation prose stay inert and are read on demand;
+  a live region that recites a panel on every tick is worse than none.
+
+### Added
+- `test/contrast.test.js` computes WCAG relative luminance over the ACTUAL
+  rendered pairings — resolving custom-property scopes and `color-mix` tints,
+  not just token-against-token — so a contrast regression fails the build with
+  the measured ratio and the selector. It caught four defects during this
+  release that the token-level check had missed, including two of the fixes
+  above being incomplete.
+- `test/target-size.test.js` measures every rendered control against 24x24.
+- `test/css-model.js` and `test/view-registry.js`, the shared machinery both use.
+
+### Note
+Static analysis only. Nothing here has been driven with an actual screen reader
+or on a physical device, and this release does not claim ADA conformance — it
+claims specific, measured WCAG 2.1 AA criteria, with the gaps named.
+
 ## [1.5.0] — 2026-09-08 — Correctness release: the pattern catalog, as published
 
 This is a **correctness release**, and it is worth saying plainly what that means. What changed is

@@ -3,7 +3,7 @@
  * fidelity notes, including the families this lab only describes.
  */
 
-import { el, div, span } from './dom.js';
+import { el, div, span, tableCaption } from './dom.js';
 import { sectionHeader, para, inline, callout } from './blocks.js';
 import { TAXONOMY, CARRIERS, patternFor, noPatternLabel } from '../content/atlas.js';
 import { setSection } from '../state.js';
@@ -38,10 +38,11 @@ function taxonomyCard() {
         el('h4', { class: 'taxo-fam-title' }, span({ text: fam.name }), span({ class: 'subtle', text: ` — ${fam.note}` })),
         div({ class: 'table-wrap', attrs: { tabindex: '0', role: 'region', 'aria-label': `Hiding-pattern taxonomy: ${fam.name}` } },
           el('table', { class: 'data-table' },
+            tableCaption(`Hiding-pattern taxonomy: ${fam.name}`),
             el('thead', {}, el('tr', {},
-              el('th', { text: 'Pattern' }),
-              el('th', { text: 'Illustration (the paper’s own wording)' }),
-              el('th', { text: 'Demonstrated in this lab' }))),
+              el('th', { scope: 'col', text: 'Pattern' }),
+              el('th', { scope: 'col', text: 'Illustration (the paper’s own wording)' }),
+              el('th', { scope: 'col', text: 'Demonstrated in this lab' }))),
             el('tbody', {}, ...fam.patterns.map(patternRow)))))),
     el('p', { class: 'atlas-cite subtle', text: `Reference: ${TAXONOMY.citation}` }));
 }
@@ -56,8 +57,12 @@ function taxonomyCard() {
  */
 function patternRow(p) {
   return el('tr', {},
-    el('td', {},
-      el('strong', { text: `${p.code} ${p.name}` }),
+    // The pattern name identifies the row: a <th scope="row">, not a <td> whose
+    // header-ness lived in a <strong> (1.3.1). Without it a reader hears the
+    // illustration and the lab note with no way back to which pattern they
+    // describe — the one thing this table exists to teach.
+    el('th', { scope: 'row' },
+      el('span', { text: `${p.code} ${p.name}` }),
       p.parent ? el('div', { class: 'subtle', text: `Sub-pattern of ${p.parent}` }) : null),
     el('td', { class: 'cellwrap-cell' },
       p.idea
@@ -78,6 +83,7 @@ function scopeNote() {
   return callout({
     kind: 'key',
     title: s.title,
+    level: 4, // nested inside the taxonomy card, whose title is the <h3>
     blocks: [
       { note: `The survey draws its own boundary: “${s.quote}”` },
       s.body,

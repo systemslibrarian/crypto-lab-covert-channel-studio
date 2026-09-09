@@ -6,10 +6,10 @@
  * looked up.
  */
 
-import { el, div, span, replace } from './dom.js';
+import { el, div, span, replace, tableCaption } from './dom.js';
 import { sectionHeader, renderBlocks, para, callout } from './blocks.js';
 import { toggle, controlGroup, button } from './controls.js';
-import { statTiles } from './widgets.js';
+import { statTiles, statusRegion } from './widgets.js';
 import { COPY } from '../content/copy.js';
 import { runWarden, WARDEN_ACTIONS } from '../analysis/warden.js';
 import { round } from '../utils/statistics.js';
@@ -42,7 +42,13 @@ export function renderWardenView(state) {
   const results = div({});
   let cur = state;
 
+  // One status region, built here and never replace()d — see statusRegion().
+  // Flipping a switch rewrites twelve verdicts and five count tiles with nothing
+  // said; this carries the tally, and only the tally.
+  const status = statusRegion();
+
   const node = el('section', { class: 'section', id: 'sec-warden' },
+    status.node,
     sectionHeader({ ...copy, eyebrow: 'Analysis' }),
     div({ class: 'prose-wide' }, renderBlocks(copy.blocks)),
     el('div', { class: 'card' },
@@ -62,7 +68,14 @@ export function renderWardenView(state) {
 
   // Flipping one switch only needs the table redrawn; the bulk buttons change
   // the switch states themselves, so those redraw both.
-  function drawResults() { replace(results, resultsContent(cur)); }
+  function drawResults() {
+    const res = runWarden(cur.message, { seed: `${cur.seed}:warden`, active: [...active] });
+    replace(results, resultsContent(res));
+    const c = res.counts;
+    status.announce(`${active.size} warden action${active.size === 1 ? '' : 's'} active: `
+      + `${c.closed || 0} closed, ${c.residual || 0} residual, ${c['rate-limited'] || 0} rate-limited, `
+      + `${(c.survives || 0) + (c.untouched || 0)} untouched, ${c['out-of-path'] || 0} out of path.`);
+  }
   function drawSwitches() {
     replace(switches, controlGroup(null, ...WARDEN_ACTIONS.map((a) => actionToggle(a, drawResults))));
   }
@@ -82,8 +95,7 @@ function actionToggle(action, onChange) {
   });
 }
 
-function resultsContent(state) {
-  const res = runWarden(state.message, { seed: `${state.seed}:warden`, active: [...active] });
+function resultsContent(res) {
   const counts = res.counts;
   return div({},
     el('div', { class: 'card' },
@@ -167,6 +179,7 @@ function wardenTable(res) {
     class: 'table-wrap',
     attrs: { tabindex: '0', role: 'region', 'aria-label': 'Effect of the active warden on each channel: residual capacity, error rate, observability and verdict' },
   }, el('table', { class: 'data-table warden-table' },
+    tableCaption('Effect of the active warden on each channel: residual capacity, error rate, observability and verdict'),
     el('thead', {}, el('tr', {},
       el('th', { scope: 'col', text: 'Carrier' }),
       el('th', { scope: 'col', text: 'Capacity before' }),
