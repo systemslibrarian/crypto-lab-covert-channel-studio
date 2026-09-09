@@ -29,6 +29,7 @@ import { renderValidationView } from './views/validationView.js';
 import { renderWardenView } from './views/wardenView.js';
 import { renderComparisonView } from './views/comparisonView.js';
 import { renderAtlasView } from './views/atlasView.js';
+import { renderCaseStudiesView } from './views/caseStudiesView.js';
 import { renderSrmView } from './views/srmView.js';
 import { renderConceptsView } from './views/conceptsView.js';
 import { renderDefenseView } from './views/defenseView.js';
@@ -54,6 +55,7 @@ const VIEWS = {
   warden: renderWardenView,
   compare: renderComparisonView,
   atlas: renderAtlasView,
+  cases: renderCaseStudiesView,
   srm: renderSrmView,
   concepts: renderConceptsView,
   defense: renderDefenseView,

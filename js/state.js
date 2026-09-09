@@ -39,6 +39,7 @@ export const SECTIONS = [
   { id: 'warden', label: 'Active Warden Lab', group: 'Analysis' },
   { id: 'compare', label: 'Compare Channels', group: 'Analysis' },
   { id: 'atlas', label: 'Carrier Atlas', group: 'Analysis' },
+  { id: 'cases', label: 'Case Studies', group: 'Analysis' },
   { id: 'srm', label: 'Shared-Resource Matrix', group: 'Analysis' },
   { id: 'concepts', label: 'What Makes a Channel Covert?', group: 'Analysis' },
   { id: 'defense', label: 'Defensive Takeaways', group: 'Analysis' },

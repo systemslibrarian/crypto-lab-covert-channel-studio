@@ -258,5 +258,47 @@ export const QUIZ = [
     answerIndex: 1,
     explanation:
       'A score on the data a model was fitted to measures memorisation as much as generalisation, and two parameters over twelve cases are already enough to produce a gap between the fit score and a held-out score. The harder test is distribution shift: traffic from a generative process the model never saw, such as a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. The exhibit scores the hand-built detector on identical sets for the fair comparison — it was never fitted to anything, so it has nothing to shift away from, but it is also stuck with whatever weighting a person guessed.'
+  },
+  {
+    id: 'side-vs-covert',
+    question:
+      'Cache timing leaks information about what a program touched, purely because of how the hardware is built \u2014 nobody chose to send anything. An attacker then deliberately arranges which cache lines get touched, so that a secret can be read out by timing reloads. What changed?',
+    choices: [
+      'Nothing changed; both are covert channels, since both leak information',
+      'Nothing changed; both are side channels, since the mechanism is the same hardware',
+      'It went from a SIDE channel to a COVERT channel: the leak was a by-product, and then someone deliberately modulated it in order to signal',
+      'It went from a covert channel to a side channel, because the attacker no longer needs a receiver that knows the encoding'
+    ],
+    answerIndex: 2,
+    explanation:
+      'A side channel leaks as a by-product of doing the work \u2014 the information escapes whether or not anyone wants it to. A covert channel is somebody deliberately modulating a mechanism in order to signal, which means there is a sender, a receiver, and an agreed encoding. The same physics supports both, and Spectre is exactly the moment one becomes the other: cache timing already leaked, and the attack turns that leak into a transmitter. The distinction matters defensively because the remedies differ \u2014 you close a side channel by changing the system, and you catch a covert channel by noticing somebody using it.'
+  },
+  {
+    id: 'pingback-sequence',
+    question:
+      'A reported ICMP backdoor carried command-and-control traffic in echo messages and reused only three sequence numbers. A defender watching payload entropy saw nothing unusual. Why not \u2014 and what would have spoken instead?',
+    choices: [
+      'Entropy was the right measure but the sample was too small; a longer capture would have shown it',
+      'A conventional ping payload is already a high-entropy incrementing byte run, so entropy cannot separate it from data \u2014 but the sequence numbers no longer stepped by one',
+      'ICMP payloads are encrypted, so entropy is always maximal and never informative',
+      'Nothing would have spoken; an ICMP tunnel leaves no measurable trace'
+    ],
+    answerIndex: 1,
+    explanation:
+      'This is the trap the ICMP module is built around. The conventional fill is an incrementing run of DISTINCT bytes, so its Shannon entropy is already near the maximum for its length \u2014 higher than plenty of real message data. Entropy therefore separates nothing, and an entropy threshold can even flag benign ping while clearing a tunnel. What separates them is structure: ordinary ping repeats one identifier, one payload size, the same fill bytes, and a sequence that steps by one. A tool reusing a few fixed sequence numbers breaks that last property outright \u2014 and it is a statistic this lab already computes.'
+  },
+  {
+    id: 'no-incident-record',
+    question:
+      'Inter-packet timing, packet ordering and protocol hopping have a large research literature but very little public incident reporting, while DNS carriers are rediscovered by campaign after campaign. What is the most defensible reading?',
+    choices: [
+      'The timing-style channels are undetectable, so incidents involving them are never found',
+      'The research literature is wrong and those channels do not really work',
+      'They are impractical rather than invisible: a few bits per event, fragile under ordinary network conditions, and pointless when DNS is already allowed out and rarely logged',
+      'Incident reporting is classified, so no conclusion can be drawn at all'
+    ],
+    answerIndex: 2,
+    explanation:
+      'Absence of incident reporting is not evidence of undetectability \u2014 it is mostly evidence about incentives. The elegant low-capacity channels carry a handful of bits per event and collapse under jitter, reordering or loss, so an operator who can already reach DNS or ICMP has no reason to pay that cost. This is the capacity/reliability/observability triangle appearing as an operational fact rather than a chart, and it argues for enumerating carriers by how ATTRACTIVE they are rather than by how clever they are.'
   }
 ]

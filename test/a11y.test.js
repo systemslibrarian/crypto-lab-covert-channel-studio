@@ -48,6 +48,7 @@ const VIEW_MODULES = {
   warden: ['wardenView', 'renderWardenView'],
   compare: ['comparisonView', 'renderComparisonView'],
   atlas: ['atlasView', 'renderAtlasView'],
+  cases: ['caseStudiesView', 'renderCaseStudiesView'],
   srm: ['srmView', 'renderSrmView'],
   concepts: ['conceptsView', 'renderConceptsView'],
   defense: ['defenseView', 'renderDefenseView'],
