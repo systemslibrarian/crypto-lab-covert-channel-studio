@@ -30,6 +30,12 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The only cap that holds whatever shape a hang takes. --test-timeout misses a
+    # synchronous or non-yielding one entirely (measured: 2034ms under a 100ms
+    # budget, uncaught), and GitHub's default job limit is 360 minutes — so without
+    # this a wedged run burns six hours with nothing going red. Longest recent run
+    # here is 86s.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -47,6 +53,7 @@ jobs:
         run: npm test
 
   deploy:
+    timeout-minutes: 15
     # A pull request is tested, never published. NOT `== 'push'` — that would
     # also skip workflow_dispatch, which is the one trigger the auto-merge
     # deploy depends on: the dispatched run would build, pass the gate, and skip
@@ -75,6 +82,7 @@ jobs:
   # decides, not the version number. A bump that breaks this lab fails the gate
   # and the PR stays open for a human.
   dependabot-auto-merge:
+    timeout-minutes: 15
     needs: test
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
