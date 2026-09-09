@@ -56,7 +56,11 @@ function leftPanel(state) {
     calloutChip(CALLOUTS.ordering),
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'Rule' }),
-      div({ class: 'block-code mono' }, 'A then B → 0\nB then A → 1')));
+      div({
+        class: 'block-code mono',
+        // Scrolls horizontally, so it needs to be keyboard-reachable (SC 2.1.1).
+        attrs: { tabindex: '0', role: 'region', 'aria-label': 'The packet-ordering rule' },
+      }, 'A then B → 0\nB then A → 1')));
 }
 
 function centerContent(state, run) {

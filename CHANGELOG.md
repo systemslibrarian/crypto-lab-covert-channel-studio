@@ -16,7 +16,11 @@ rather than a rewrite.
   exhibit, so on a phone this was the worst interaction defect in the product.
   The input is now 24px of interactive height with a 24x24 thumb (WCAG 2.5.8),
   and the thin track survives via `::-webkit-slider-runnable-track` /
-  `::-moz-range-track` so the design is unchanged.
+  `::-moz-range-track` so the design is unchanged. Note the standard: target size
+  is SC 2.5.8, which is WCAG **2.2**, not 2.1 — so this was a quality defect
+  rather than a failure of the level this exhibit claims. It is fixed because a
+  six-pixel target is bad on a phone whichever version says so, not because a
+  conformance gate demanded it.
 - **Table headers failed contrast.** `--text-faint` on `--surface-2` measured
   4.08:1 against the 4.5:1 minimum, in 11.5px uppercase, in every data table.
 - **`--text-faint` was a token-level defect, not a rule-level one.** It is used
@@ -42,6 +46,12 @@ rather than a rewrite.
   the measured ratio and the selector. It caught four defects during this
   release that the token-level check had missed, including two of the fixes
   above being incomplete.
+- `npm test` now carries `--test-timeout=60000`. Measured caveat, because the
+  flag promises more than it delivers: node's timeout only fires for a test
+  that yields to the macrotask queue. A synchronous busy-loop ran 2034ms under
+  a 100ms budget without tripping, as did an async test that only awaited
+  already-resolved promises. It is worth having for a genuinely async hang and
+  should not be read as a general hang guard.
 - `test/target-size.test.js` measures every rendered control against 24x24.
 - `test/css-model.js` and `test/view-registry.js`, the shared machinery both use.
 

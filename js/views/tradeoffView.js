@@ -102,7 +102,12 @@ function labNotebook(channel, message, t) {
     div({ class: 'notebook-body' },
       div({ class: 'notebook-actions' }, copyBtn, copyStatus,
         span({ class: 'subtle', text: 'Reproducible: the link, seed, and settings replay this exact run.' })),
-      el('pre', { class: 'notebook-md' }, el('code', { text: md }))));
+      el('pre', {
+        class: 'notebook-md',
+        // Scrolls in both axes and is capped at 260px, so it must be reachable
+        // and scrollable from the keyboard as well as the pointer (SC 2.1.1).
+        attrs: { tabindex: '0', role: 'region', 'aria-label': 'Lab notebook entry, Markdown source' },
+      }, el('code', { text: md }))));
 }
 
 function buildNotebook(channel, message, t) {

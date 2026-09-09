@@ -22,8 +22,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   allRules, rootTokens, lengthPx, paddingBox, borderPx, splitTop, parseStylesheet,
+  matchesCompound, computedDecls, ancestorClassIndex,
 } from './css-model.js';
 import { installDomShim, walk } from './dom-shim.js';
+import { loadViews } from './view-registry.js';
 
 const VARS = rootTokens();
 const MIN_TARGET_PX = 24;
@@ -31,56 +33,6 @@ const MIN_TARGET_PX = 24;
 /** body { line-height: var(--lh-base) } — the inherited default. */
 const BASE_LINE_HEIGHT = parseFloat(VARS['--lh-base'] || '1.6');
 const BASE_FONT_PX = lengthPx(VARS['--fs-base'], VARS) ?? 16;
-
-/* ---- a very small cascade ------------------------------------------------- */
-
-/** Does this simple compound selector match a shim element? */
-function matchesCompound(node, compound) {
-  const parts = compound.match(/^[a-z][a-z0-9]*|\.[A-Za-z0-9_-]+|\[[^\]]+\]|::?[a-z-]+(\([^)]*\))?/gi) || [];
-  const classes = (node.className || '').split(' ').filter(Boolean);
-  for (const p of parts) {
-    if (p.startsWith('.')) { if (!classes.includes(p.slice(1))) return false; continue; }
-    if (p.startsWith('[')) {
-      const m = /^\[([A-Za-z0-9_-]+)(?:([~|^$*]?=)"?([^"\]]*)"?)?\]$/.exec(p);
-      if (!m) return false;
-      const v = node.getAttribute(m[1]);
-      if (v == null) return false;
-      if (m[2] && m[2] !== '=' ? false : m[3] != null && m[2] === '=' && v !== m[3]) return false;
-      continue;
-    }
-    if (p.startsWith(':')) {
-      // Pseudo-classes describe a state; :hover/:active/:disabled variants are
-      // not the resting target, and are skipped rather than guessed at.
-      if (/^::/.test(p)) return false;
-      if (!/^:(focus-visible|focus|hover|active|disabled|checked|not|last-child|first-child|nth-child)/.test(p)) return false;
-      return false;
-    }
-    if (node.tagName !== p.toUpperCase()) return false;
-  }
-  return parts.length > 0;
-}
-
-/** Merge every non-media rule whose last compound matches this element. */
-function computedDecls(node, ancestorClasses) {
-  const merged = {};
-  for (const r of allRules()) {
-    if (r.media) continue;
-    for (const sel of r.selectors) {
-      const compounds = sel.split(/\s+/).filter(Boolean);
-      if (compounds.some((c) => /[>+~]/.test(c))) continue; // sibling/child combinators: not modelled
-      const last = compounds[compounds.length - 1];
-      if (!matchesCompound(node, last)) continue;
-      // Ancestor compounds must all be satisfied by some ancestor's classes.
-      const ok = compounds.slice(0, -1).every((c) => {
-        const cls = (c.match(/\.[A-Za-z0-9_-]+/g) || []).map((x) => x.slice(1));
-        return cls.length > 0 && cls.every((x) => ancestorClasses.has(x));
-      });
-      if (!ok) continue;
-      Object.assign(merged, r.decls);
-    }
-  }
-  return merged;
-}
 
 /** Rules for a pseudo-element on a selector the element matches (slider thumb). */
 function pseudoRules(node, pseudo) {
@@ -164,41 +116,13 @@ function isVisuallyHiddenProxy(decls) {
 
 /* ---- the gate -------------------------------------------------------------- */
 
-const VIEW_MODULES = {
-  overview: ['overviewView', 'renderOverview'], dns: ['dnsView', 'renderDnsView'],
-  timing: ['timingView', 'renderTimingView'], storage: ['storageView', 'renderStorageView'],
-  ordering: ['orderingView', 'renderOrderingView'], icmp: ['icmpView', 'renderIcmpView'],
-  hopping: ['hoppingView', 'renderHoppingView'], http: ['httpView', 'renderHttpView'],
-  stego: ['stegoView', 'renderStegoView'], metadata: ['metadataView', 'renderMetadataView'],
-  physical: ['physicalView', 'renderPhysicalView'], cache: ['cacheView', 'renderCacheView'],
-  detection: ['detectionView', 'renderDetectionView'], challenge: ['challengeView', 'renderChallengeView'],
-  validation: ['validationView', 'renderValidationView'], warden: ['wardenView', 'renderWardenView'],
-  compare: ['comparisonView', 'renderComparisonView'], atlas: ['atlasView', 'renderAtlasView'],
-  cases: ['caseStudiesView', 'renderCaseStudiesView'], srm: ['srmView', 'renderSrmView'],
-  concepts: ['conceptsView', 'renderConceptsView'], defense: ['defenseView', 'renderDefenseView'],
-  glossary: ['glossaryView', 'renderGlossaryView'], quiz: ['quizView', 'renderQuizView'],
-};
-
 const CONTROL_TAGS = new Set(['BUTTON', 'SELECT', 'TEXTAREA', 'INPUT']);
 const isControl = (n) => CONTROL_TAGS.has(n.tagName)
   && !(n.tagName === 'INPUT' && ['hidden'].includes(n.getAttribute('type')));
 
 installDomShim();
 const { getState, setViewMode } = await import('../js/state.js');
-
-/** Classes on every ancestor of a node, for descendant-selector matching. */
-function ancestorClassIndex(root) {
-  const index = new Map();
-  const visit = (n, inherited) => {
-    if (!n || n.nodeType === 3) return;
-    const own = new Set(inherited);
-    for (const c of (n.className || '').split(' ')) if (c) own.add(c);
-    index.set(n, inherited);
-    for (const child of n.childNodes || []) visit(child, own);
-  };
-  visit(root, new Set());
-  return index;
-}
+const VIEWS = await loadViews();
 
 /** The <label> that drives a visually-hidden input, if there is one. */
 function labelFor(node, root) {
@@ -212,14 +136,13 @@ function labelFor(node, root) {
   return null;
 }
 
-test('target size: every rendered control is at least 24x24 CSS px (WCAG 2.2 SC 2.5.8)', async () => {
+test('target size: every rendered control is at least 24x24 CSS px (WCAG 2.2 SC 2.5.8)', () => {
   const failures = [];
   const unmeasured = [];
   const seen = new Map(); // signature -> measurement, so each control shape is reported once
   let count = 0;
 
-  for (const [id, [mod, fn]] of Object.entries(VIEW_MODULES)) {
-    const factory = (await import(`../js/views/${mod}.js`))[fn];
+  for (const [id, factory] of VIEWS) {
     for (const mode of ['sender', 'defender']) {
       setViewMode(mode);
       const { node: root } = factory(getState());

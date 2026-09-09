@@ -87,7 +87,11 @@ function leftPanel(state) {
     calloutChip(CALLOUTS.hopping),
     el('div', { class: 'card' },
       el('h3', { class: 'card-title', text: 'The grammar' }),
-      div({ class: 'block-code mono' },
+      div({
+        class: 'block-code mono',
+        // Scrolls horizontally, so it needs to be keyboard-reachable (SC 2.1.1).
+        attrs: { tabindex: '0', role: 'region', 'aria-label': 'The protocol-hopping grammar' },
+      },
         `${PROTOCOL_KEYS.map((k, i) => `${i} ${LABEL[k]}`).join('\n')}\n\nto = (from + 1 + symbol) mod ${PROTOCOL_KEYS.length}\n${BITS_PER_HOP} bits per hop`)));
 }
 

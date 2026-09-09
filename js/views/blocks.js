@@ -69,7 +69,14 @@ export function renderBlock(b) {
   if (b.lead) return para(b.lead, 'lead');
   if (b.h) return el('h3', { class: 'block-h', text: b.h });
   if (b.note) return el('p', { class: 'block-note' }, ...inline(b.note));
-  if (b.code) return el('pre', { class: 'block-code' }, el('code', { text: b.code }));
+  // Focusable + named: the block scrolls horizontally, and a region a pointer can
+  // scroll but a keyboard cannot is a 2.1.1 failure. Same treatment .table-wrap gets.
+  if (b.code) {
+    return el('pre', {
+      class: 'block-code',
+      attrs: { tabindex: '0', role: 'region', 'aria-label': b.codeLabel ?? 'Code example' },
+    }, el('code', { text: b.code }));
+  }
   if (b.ul) return el('ul', { class: 'block-list' }, ...b.ul.map((li) => el('li', {}, ...inline(li))));
   if (b.ol) return el('ol', { class: 'block-list' }, ...b.ol.map((li) => el('li', {}, ...inline(li))));
   if (b.kv) {

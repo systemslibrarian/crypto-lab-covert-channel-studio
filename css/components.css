@@ -40,10 +40,11 @@
 }
 /* Wrap rather than pan. A <pre> with `overflow-x: auto` is a scroll container,
    and Safari does not put scroll containers in the sequential focus order, so
-   any line long enough to overflow would be unreachable by keyboard (2.1.1).
-   Wrapping means the overflow never happens, so no scroll container is ever
-   created and there is nothing to make focusable. `overflow-x: auto` stays as a
-   harmless backstop for content that cannot break. */
+   any line long enough to overflow is unreachable by keyboard (2.1.1). Wrapping
+   means the overflow does not happen in the first place; `overflow-x: auto`
+   stays as the backstop for content that cannot break, which is why this still
+   counts as a scroll container and still wants the tabindex/role/aria-label
+   treatment in js/views/blocks.js that every other scroller here gets. */
 .block-code code {
   background: none; border: none; padding: 0; color: inherit;
   white-space: pre-wrap; overflow-wrap: anywhere;
@@ -258,7 +259,9 @@
 .btn.primary { background: linear-gradient(140deg, var(--accent), var(--accent-deep)); border-color: transparent; color: var(--text-invert); font-weight: 650; }
 .btn.primary:hover { filter: brightness(1.08); background: linear-gradient(140deg, var(--accent), var(--accent-deep)); }
 .btn.ghost { background: transparent; }
-.btn.danger { border-color: color-mix(in srgb, var(--danger) 50%, var(--border)); color: var(--danger); background: transparent; }
+/* Mixed with --border-control, not --border: this is an interactive boundary and
+   has to clear 3:1 (SC 1.4.11). Against the decorative --border it measured 2.92:1. */
+.btn.danger { border-color: color-mix(in srgb, var(--danger) 50%, var(--border-control)); color: var(--danger); background: transparent; }
 .btn-icon { font-size: 1em; }
 
 /* ---- Pipeline & bytes ----------------------------------------------------- */
@@ -368,10 +371,11 @@
 .observation { border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-3); background: var(--surface-1); }
 .observation + .observation { margin-top: var(--sp-2); }
 /* "Not triggered" is carried by the dashed border. It used to also be carried by
-   `opacity: 0.75`, which dragged the --text-faint tag down to 3.11:1 on
-   --surface-1 (1.4.3). Opacity is never a safe way to de-emphasise text: it
-   multiplies whatever margin the colour token already had, and --text-faint has
-   very little (4.51:1 here). The border alone says it, without colour. */
+   `opacity: 0.75`, which dragged the --text-faint tag from 5.15:1 on --surface-1
+   down to 3.47:1 (1.4.3). Opacity is never a safe way to de-emphasise text: it
+   multiplies whatever margin the colour token has, so a token that passes on its
+   own can still fail wherever someone fades it. The dashed border says "not
+   triggered" by itself, and says it without colour. */
 .observation.quiet { border-style: dashed; }
 .obs-what { font-size: var(--fs-sm); color: var(--text); font-weight: 600; margin-bottom: 4px; }
 .obs-line { font-size: var(--fs-xs); color: var(--text-dim); display: flex; gap: 6px; }
@@ -383,11 +387,11 @@
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
 .data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .data-table th, .data-table td { padding: var(--sp-2) var(--sp-3); text-align: left; border-bottom: 1px solid var(--border-faint); white-space: nowrap; }
-/* --text-faint on --surface-2 is 4.08:1, under the 4.5:1 that 11.52px uppercase
-   body text needs (1.4.3). Fixed at this rule rather than by lightening the
-   token, because --text-faint clears 4.5:1 on every other surface it is used on
-   and a global change would move every quiet label in the exhibit.
-   --text-dim on --surface-2 measures 7.80:1. */
+/* This measured 4.08:1 against --surface-2 when --text-faint was #728398 —
+   under the 4.5:1 that 11.52px uppercase body text needs (1.4.3). The token has
+   since been lightened to #7c8da2, which brings the old pairing to 4.66:1, but a
+   column header names the data underneath it and 0.16 of a point is not a margin
+   worth shipping. --text-dim measures 7.80:1 here. */
 .data-table thead th { position: sticky; top: 0; background: var(--surface-2); color: var(--text-dim); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; z-index: 1; }
 .data-table tbody tr:hover { background: var(--surface-1); }
 .data-table td.mono, .data-table th.mono { font-family: var(--font-mono); }

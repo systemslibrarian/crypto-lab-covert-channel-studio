@@ -157,15 +157,15 @@
 .notebook-summary:hover { text-decoration: underline; }
 .notebook-body { margin-top: var(--sp-3); }
 .notebook-actions { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-2); }
-/* The notebook used to be a scroll container on BOTH axes — `max-height: 260px`
-   against 340-400px of content, and `white-space: pre` on lines as long as the
-   shareable link — on a <pre> with no tabindex. Safari does not add scroll
-   containers to the sequential focus order, so a keyboard-only user could not
-   reach the bottom of the exhibit's own take-home artefact (2.1.1). Rather than
-   make it a focusable region (markup this stylesheet cannot add), stop it being
-   a scroll container: the lines wrap, and the notebook is inside a <details> the
-   reader opened deliberately, so it can simply be as tall as it is. */
-.notebook-md { background: var(--surface-inset); border: 1px solid var(--border-faint); border-radius: var(--r-md); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-xs); color: var(--text-dim); }
+/* This was a scroll container on BOTH axes: `max-height: 260px` against 340-400px
+   of content, and `white-space: pre` on lines as long as the shareable link.
+   Safari does not add scroll containers to the sequential focus order, so a
+   keyboard-only user could not reach the bottom of the exhibit's own take-home
+   artefact (2.1.1). Wrapping removes the horizontal axis, so what is left is one
+   ordinary vertical scroller of the kind this project already handles by making
+   it a labelled focusable region — the tabindex/role/aria-label that needs is
+   markup, and belongs in tradeoffView.js. */
+.notebook-md { background: var(--surface-inset); border: 1px solid var(--border-faint); border-radius: var(--r-md); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-xs); color: var(--text-dim); max-height: 260px; overflow-y: auto; }
 .notebook-md code { background: none; border: none; padding: 0; color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ---- Detector Validation Lab ---------------------------------------------- */
@@ -233,9 +233,9 @@
 .http-header { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-xs); padding: 1px 4px; border-radius: var(--r-sm); }
 /* `.hh-val` holds the actual header values — the content this module asks the
    reader to inspect — and it used to be --text-faint at `opacity: 0.7`, which
-   composites to 3.00:1 on --surface-inset and 2.67:1 on a highlighted covert
-   row (1.4.3). --text-faint was already only 4.95:1 there before the multiplier,
-   so the opacity is what broke it. De-emphasis now runs the other way round:
+   composites to 3.34:1 on --surface-inset and 2.96:1 on a highlighted covert row
+   (1.4.3). Lightening the token did not rescue it and never could: opacity
+   multiplies whatever margin the token has. De-emphasis now runs the other way:
    the name is the quiet part and the value is legible everywhere — 9.46:1 on
    --surface-inset, 7.64:1 on a covert row. */
 .http-header .hh-name { color: var(--text-faint); }
@@ -360,9 +360,9 @@ a.atlas-deepdive { text-decoration: none; }
 .hop-flow.covert { border-color: color-mix(in srgb, var(--covert) 40%, transparent); background: color-mix(in srgb, var(--covert) 8%, var(--surface-1)); }
 .hop-flow.sync { border-style: dashed; }
 .hop-proto { font-size: var(--fs-sm); font-weight: 650; }
-/* --text-faint is only 4.51:1 on --surface-1 to begin with, so it fails under
-   the covert tint a hopping flow is drawn on: `color-mix(--covert 8%,
-   --surface-1)` takes it to 3.87:1 (1.4.3). Both of these appear on covert
+/* --text-faint has 5.15:1 on --surface-1 to spend, and the covert tint a hopping
+   flow is drawn on spends it: `color-mix(--covert 8%, --surface-1)` takes the
+   token to 4.42:1 (1.4.3). Both of these appear on covert
    flows — .hop-bits.empty is what the rendezvous flow shows, and that flow is
    always covert — so both move to --text-dim: 7.40:1 on the tint, 8.62:1 off it,
    and still clearly subordinate to the --covert bits and the --text protocol. */
@@ -378,10 +378,10 @@ a.atlas-deepdive { text-decoration: none; }
   background: color-mix(in srgb, var(--accent) calc(var(--tm-fill, 0) * 26%), transparent);
 }
 /* The comment above is right that the count is always text — and that text was
-   the thing failing. --text-faint over the striped half of the hatch measured
-   3.59:1 (1.4.3): the hatch lightens the background just enough to eat the 0.2%
-   of margin --text-faint has on --surface-1. --text-dim over the same stripe is
-   6.87:1, and still reads as recessed against the plain --text of a live cell. */
+   the thing failing. --text-faint over the striped half of the hatch measures
+   4.00:1 (1.4.3): the hatch lightens the background by more than the token has
+   margin to give, even after the token was lightened. --text-dim over the same
+   stripe is 6.70:1, and still reads as recessed against a live cell's --text. */
 .transition-matrix .tm-cell.diag {
   background: repeating-linear-gradient(45deg,
     transparent, transparent 4px,

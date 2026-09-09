@@ -37,6 +37,12 @@ jobs:
           node-version: 20
           # Deliberately no `cache: npm` and no `npm ci`. This lab has no
           # dependencies and no lockfile; both would fail the run outright.
+      # `npm test` carries --test-timeout=60000. Read that as partial cover, not a
+      # hang guard: node's test timeout only fires for a test that YIELDS to the
+      # macrotask queue. Measured here — a synchronous busy-loop ran 2034ms under a
+      # 100ms budget without tripping, and so did an async test that only ever
+      # awaited already-resolved promises. It does catch a genuinely async hang,
+      # which is the shape the opt-in CSP_CHECK_URL fetch could take.
       - name: Run the simulation test suite
         run: npm test
 

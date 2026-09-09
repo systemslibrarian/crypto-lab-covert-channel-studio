@@ -15,6 +15,50 @@
  * Anything it cannot resolve is reported as `null` rather than guessed, and the
  * gates assert on the size of that unresolved set so a new colour syntax cannot
  * quietly opt itself out of the contrast guard.
+ *
+ * ---------------------------------------------------------------------------
+ * PORTING THIS TO ANOTHER LAB
+ * ---------------------------------------------------------------------------
+ * This is a port, not a copy. The split is roughly 90% portable / 10% local, but
+ * the 10% is load-bearing and silent if you get it wrong — a mis-set surface list
+ * makes the gate pass by measuring nothing.
+ *
+ * PORTABLE AS-IS
+ *   Everything below except the CSS_FILES constant: the parser, the custom-property
+ *   scope resolution, colour resolution (hex / rgb / var with fallback / color-mix /
+ *   gradient stops), alpha compositing, relative luminance, contrast ratio, the
+ *   px/rem length resolution, and the compound-selector matcher.
+ *
+ * WHAT EACH LAB MUST SUPPLY
+ *   1. CSS_FILES, in <link> order. Later files win, as in the cascade. Get the
+ *      order wrong and overrides resolve backwards.
+ *   2. A view registry: section id -> [module basename, exported factory name],
+ *      plus a factory contract. Here every view returns { node, refresh? } and is
+ *      called with the store state. A lab whose views take different arguments
+ *      needs its own adapter; the gates only need a DOM tree per section.
+ *   3. A DOM to render into. This lab has a hand-written shim (test/dom-shim.js)
+ *      exposing createElement with { attributes, childNodes, className, style,
+ *      parentNode } and a `walk` helper. A lab already on jsdom can point the
+ *      gates at that instead — the model only reads attributes, classes, inline
+ *      style and ancestry, so any tree with those works.
+ *   4. The surface list the contrast gate measures against, and the exemptions.
+ *      DECORATIVE_CHROME is genuinely per-lab: it records which painted elements
+ *      render no meaningful text, and each entry has to carry a justification
+ *      rather than a name, or it becomes a place to hide failures.
+ *
+ * WHAT WILL BITE
+ *   - The model covers the CSS *this* project writes. A lab using nesting, layers,
+ *     relative colour syntax, or container queries needs the parser extended. It
+ *     will report those as unresolved rather than passing them, which is the
+ *     intended failure mode: check the unresolved count on first run and expect it
+ *     to be non-zero until you have taught it the syntax.
+ *   - Contrast is only meaningful once tints are composited. Checking tokens
+ *     against tokens is much easier and finds much less: on this lab's first run
+ *     the token-level check passed while the rendered check found four defects,
+ *     two of them incomplete fixes and one self-inflicted.
+ *   - The gate is only as honest as its surfaces. If a lab's panels paint colours
+ *     that never appear in the surface list, the gate measures the wrong pairing
+ *     and reports success.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -371,27 +415,6 @@ export function borderPx(decls, vars) {
   const top = decls['border-top'] != null ? read(decls['border-top']) : shorthand;
   const bottom = decls['border-bottom'] != null ? read(decls['border-bottom']) : shorthand;
   return { top: top ?? 0, bottom: bottom ?? 0 };
-}
-
-/**
- * Collect the declarations that apply to a selector, merged in cascade order
- * across every stylesheet (base rule first, later overrides applied on top).
- * Exact-string selector match — good enough for the concrete control selectors
- * the target-size gate names, and it never silently matches something else.
- */
-export function declarationsFor(selector, { includeMedia = false } = {}) {
-  const merged = {};
-  for (const r of allRules()) {
-    if (!includeMedia && r.media) continue;
-    if (!r.selectors.some((s) => s === selector)) continue;
-    Object.assign(merged, r.decls);
-  }
-  return merged;
-}
-
-/** Every rule whose selector list contains this exact selector. */
-export function rulesFor(selector) {
-  return allRules().filter((r) => r.selectors.some((s) => s === selector));
 }
 
 /* ---- a very small cascade over the DOM shim -------------------------------
