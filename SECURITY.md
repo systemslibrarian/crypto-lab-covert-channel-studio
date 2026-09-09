@@ -40,10 +40,18 @@ Its attack surface is deliberately minimal:
 - **No external network requests.** The site loads only its own vendored assets; there are
   no third-party CDNs, fonts, analytics, or trackers.
 - **No cookies and no sensitive storage.** Nothing secret is written to cookies,
-  `localStorage`, or any other browser storage.
+  `localStorage`, or any other browser storage. Exactly one value is stored: the inline
+  theme pin writes `theme=dark` to `localStorage` on load, to overwrite any `light` a
+  visitor kept from the retired theme toggle. It is a display preference, it is the only
+  write the page makes, and `test/csp.test.js` asserts that it stays the only one.
 - **Strict Content-Security-Policy** delivered via a `<meta http-equiv>` tag, restricting
   scripts, styles, and connections to the site's own origin (`connect-src 'none'`, no
-  `unsafe-inline`/`eval`). Note a documented limitation: a `<meta>` CSP cannot enforce
+  `unsafe-inline`/`eval`). One inline script exists — the theme pin — and it is permitted by
+  its **sha256 hash** rather than by relaxing the policy, so no other inline script can run.
+  That hash is a silent failure mode: edit the script by a single byte and the browser
+  refuses to execute it while the page still loads and every other test still passes.
+  `test/csp.test.js` therefore recomputes the hash from the file on every run, and also
+  fails if an inline `on*=` handler appears, since a hash cannot authorise one. Note a documented limitation: a `<meta>` CSP cannot enforce
   `frame-ancestors` (it requires a real HTTP response header, which static GitHub Pages
   hosting does not let us set), so that directive is intentionally omitted rather than listed
   and silently ignored. The page has no login, payment, or state-changing actions, so
