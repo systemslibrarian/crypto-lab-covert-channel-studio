@@ -71,3 +71,51 @@ test('the theme pin writes only a non-secret value', () => {
   assert.deepEqual(writes, ['theme=dark'],
     `index.html may only store the theme pin; found: ${writes.join(', ') || '(none)'}`);
 });
+
+/**
+ * OPT-IN: check the hash against the bytes actually SERVED, not just authored.
+ *
+ * Everything above proves the hash is right in the repository. It cannot prove
+ * the deployed page is byte-identical to the file — only a fetch can, because
+ * that is what the browser hashes. GitHub Pages serves this repo as-is (the
+ * deploy uploads `path: '.'` with no build step), so the two should never
+ * diverge; a serving-layer rewrite is the one failure this catches and the
+ * authored-bytes check above cannot.
+ *
+ * Off by default, and deliberately so. This project's whole posture is that it
+ * makes no network requests, and the fast test loop must stay deterministic and
+ * offline. Enable it explicitly when you want the stronger claim:
+ *
+ *   CSP_CHECK_URL=https://systemslibrarian.github.io/crypto-lab-covert-channel-studio/ npm test
+ */
+test('served page matches the declared hash (opt-in via CSP_CHECK_URL)', async (t) => {
+  const url = process.env.CSP_CHECK_URL;
+  if (!url) {
+    t.skip('set CSP_CHECK_URL to check the deployed bytes; skipped so the suite stays offline');
+    return;
+  }
+  let served;
+  try {
+    const res = await fetch(url, { redirect: 'follow' });
+    assert.equal(res.status, 200, `fetching ${url} returned HTTP ${res.status}`);
+    served = await res.text();
+  } catch (err) {
+    // A network failure is not a policy failure; say which one happened.
+    t.skip(`could not reach ${url} (${err.message}) — not treating unreachable as non-conformant`);
+    return;
+  }
+
+  const scripts = [...served.matchAll(/<script(?![^>]*\bsrc=)[^>]*>(.*?)<\/script>/gs)].map((m) => m[1]);
+  const csp = served.match(/http-equiv="Content-Security-Policy"\s*content="([^"]*)"/s);
+  assert.ok(csp, 'the served page carries no <meta> CSP');
+  const declared = [...csp[1].matchAll(/'(sha256-[A-Za-z0-9+/=]+)'/g)].map((m) => m[1]);
+
+  for (const body of scripts) {
+    const computed = 'sha256-' + createHash('sha256').update(body, 'utf8').digest('base64');
+    assert.ok(declared.includes(computed),
+      `the SERVED inline script does not match any declared hash.\n`
+      + `  computed from served bytes: ${computed}\n  declared: ${declared.join(', ')}\n`
+      + '  The repository copy may be correct while the serving layer rewrote the page.');
+  }
+  assert.match(served, /<html[^>]*\bdata-theme="dark"/, 'the served page must carry the theme pin');
+});
