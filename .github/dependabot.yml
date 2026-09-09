@@ -1,0 +1,44 @@
+# Grouped so an ecosystem's routine bumps arrive as ONE pull request instead of
+# one per dependency. Ungrouped, this fleet reached 1,461 open PRs across 176
+# repos, none of which had any CI signal because the only workflow fired on push
+# to main. This lab had exactly that shape until now.
+#
+# Majors are deliberately left OUT of the npm group: grouping a breaking major
+# with the safe bumps makes the whole PR unmergeable, which is the hand-unpicking
+# this exists to prevent. github-actions majors ARE grouped, per the fleet-wide
+# verification of the checkout/setup-node/Pages jumps.
+#
+# A NOTE SPECIFIC TO THIS LAB: it has no dependencies and no lockfile. It is a
+# static, no-build, dependency-free ES-module site, and `npm test` is
+# `node --test` with nothing installed. The npm block below is therefore expected
+# to stay quiet — it is kept because the group name is part of the fleet contract
+# and because the moment anyone adds a first dependency, the grouping should
+# already be in place rather than being remembered afterwards. The
+# github-actions block is the one that will actually open PRs here.
+#
+# Both groups auto-merge once this lab's own gate passes on the PR — see the
+# dependabot-auto-merge job in .github/workflows/deploy-pages.yml.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
