@@ -17,9 +17,20 @@ import { round } from '../utils/statistics.js';
 /** Section-local selection; the store holds per-channel controls, not this. */
 let active = new Set();
 
+/**
+ * Every verdict `runWarden` can return needs an entry here. A missing one is not
+ * a cosmetic gap: the table reads `.pill` off this object unguarded, so a
+ * verdict the model can produce and the view has never heard of takes the whole
+ * section down with a TypeError. That is exactly what happened when
+ * 'rate-limited' was added to the model and not to this table, and it was hidden
+ * by "Enable every action" (where the allow-list overrides the throttle and the
+ * hopping row comes back 'closed'). test/wardenView.test.js now flips each
+ * switch on its own so the same omission cannot reach a reader again.
+ */
 const VERDICT = {
   closed: { label: 'Closed', pill: 'pill-ok', note: 'under 5% of its original capacity survives' },
   residual: { label: 'Residual', pill: 'pill-mod', note: 'degraded, but still carrying information' },
+  'rate-limited': { label: 'Rate-limited', pill: 'pill-mod', note: 'every bit still arrives, just more slowly' },
   survives: { label: 'Survives', pill: 'pill-high', note: 'largely unaffected' },
   untouched: { label: 'Not targeted', pill: 'pill-normal', note: 'no active action applies to this carrier' },
   'out-of-path': { label: 'Out of path', pill: 'pill-normal', note: 'a network warden is not positioned to act' },
@@ -80,6 +91,7 @@ function resultsContent(state) {
       statTiles([
         { val: String(counts.closed || 0), lab: 'closed', tone: 'good' },
         { val: String(counts.residual || 0), lab: 'residual', tone: (counts.residual || 0) ? 'bad' : undefined },
+        { val: String(counts['rate-limited'] || 0), lab: 'rate-limited', tone: (counts['rate-limited'] || 0) ? 'bad' : undefined },
         { val: String((counts.survives || 0) + (counts.untouched || 0)), lab: 'untouched' },
         { val: String(counts['out-of-path'] || 0), lab: 'out of path' },
       ]),
@@ -93,6 +105,7 @@ function resultsContent(state) {
       })
       : null,
     residualCallout(res),
+    rateLimitedCallout(res),
     callout({
       kind: 'note',
       title: 'What a warden cannot reach',
@@ -108,6 +121,23 @@ function residualCallout(res) {
     kind: 'key',
     title: 'The residual channel',
     body: `${r.label} was degraded, not closed: its error rate rose to ${Math.round(r.after.ber * 100)}%, which still leaves **${round(r.after.residualBitsPerSymbol, 3)} bits per symbol** of Shannon capacity — about ${round(r.after.residualBps, 2)} bits per second. Timing channels degrade gracefully because the warden cannot delete a gap, only blur it, and blurring harder means buffering harder. This is the one defence on this page with an ongoing cost, and it still does not reach zero.`,
+  });
+}
+
+/**
+ * The third shape of outcome, called out because a tile alone reads as a
+ * smaller version of "closed" and it is not one: nothing was corrupted, so the
+ * message still decodes exactly. Only the clock was attacked.
+ */
+function rateLimitedCallout(res) {
+  const limited = res.rows.filter((r) => r.verdict === 'rate-limited');
+  if (!limited.length) return null;
+  const r = limited[0];
+  const factor = r.after.residualBps > 0 ? r.before.residualBps / r.after.residualBps : 0;
+  return callout({
+    kind: 'key',
+    title: 'Throttled, not closed',
+    body: `${r.label} came through with **every bit intact** — its error rate is ${Math.round(r.after.ber * 100)}% and its per-symbol capacity is unchanged at ${round(r.after.residualBitsPerSymbol, 3)} bits. What fell is the rate: ${round(r.before.residualBps, 2)} → ${round(r.after.residualBps, 2)} bit/s, a factor of about ${round(factor, 1)}. Every other switch on this page attacks the SYMBOL and shows up as a rising error rate; this one attacks the CLOCK and does not. Read the verdict as what it says: a bitrate limit is a budget for a patient sender, not a barrier, and folding it in with "closed" would score a defence that slows an attacker as one that stops them.`,
   });
 }
 

@@ -30,7 +30,13 @@
  *      packets — which is the strongest argument in the exhibit against
  *      treating normalisation as a complete answer.
  *
- * A fourth point is easy to miss and is surfaced explicitly: normalisation is
+ *   4. One defence neither destroys nor degrades: it THROTTLES. The
+ *      protocol-switching-aware warden delays protocol switches, so the hopping
+ *      channel comes through with every bit correct and a fraction of the
+ *      bitrate. Per-symbol capacity is untouched; symbols per second are not.
+ *      That is a third shape of outcome and it gets its own verdict below.
+ *
+ * One more point is easy to miss and is surfaced explicitly: normalisation is
  * DISRUPTION, not DETECTION. When a warden kills a channel the anomaly score
  * usually falls too, so the defender is left with nothing to investigate and no
  * record that anyone tried. Both columns are shown for that reason.
@@ -89,6 +95,37 @@ export const WARDEN_ACTIONS = [
     cost: 'High. This is a policy decision about what the organisation is allowed to do, not a transparent rewrite.',
     patch: { hopping: { blocked: ['ntp', 'smtp', 'ssh'] } },
   },
+  // The one RATE-LIMITING defence in the lab, and the only one aimed by name at
+  // a channel this exhibit builds.
+  //
+  //   S. Wendzel and J. Keller. 2012a. Preventing Protocol Switching Covert
+  //   Channels. International Journal On Advances in Security 5, 3 and 4
+  //   (2012), 81-93.
+  //
+  // Wendzel, Zander, Fechner & Herdin (ACM CSUR 47(3), 2015, §6.3) summarise it
+  // as follows: the PCAW "introduces delays on protocol switches and thus limits
+  // the bitrate of covert channels that signal hidden information through the
+  // use of particular network protocols", and they note it was shown to work on
+  // IPv4-based protocol switching and on BACnet building-automation networks.
+  //
+  // The DETECTION counterpart to this DISRUPTION, for anyone following the
+  // module's running distinction, is a separate paper by the same group:
+  //
+  //   S. Wendzel and S. Zander. 2012. Detecting Protocol Switching Covert
+  //   Channels. In 37th IEEE Conference on Local Computer Networks (LCN).
+  //   IEEE, 280-283.
+  //
+  // The DELAY LENGTH below is the lab's own modelling choice, not a figure from
+  // either paper: the per-hop gap is stretched from the channel's 0.9 s default
+  // to 3.6 s, a four-fold delay picked to be legible on the table. The papers
+  // give the mechanism; the number is ours.
+  {
+    key: 'switchDelay',
+    label: 'Protocol-switching-aware warden (PCAW)',
+    what: 'Instead of blocking or rewriting anything, the warden holds each change of protocol back before forwarding it, capping how fast a host can switch. Wendzel & Keller (2012a) introduce it to limit the bitrate of channels that signal through the choice of protocol. Modelled here as the hopping channel\'s per-hop gap stretched from 0.9 s to 3.6 s.',
+    cost: 'Moderate, and it buys something weaker than the other switches here. Legitimate protocol switches are delayed too, and the channel is never closed — every bit still arrives, just more slowly. A bitrate limit is a budget for the sender, not a barrier.',
+    patch: { hopping: { gapMs: 3600 } },
+  },
   {
     key: 'dnsPolicy',
     label: 'DNS label policy',
@@ -109,7 +146,10 @@ export const WARDEN_CHANNELS = [
   { key: 'storage', label: 'IP/TCP header fields', inPath: true, baseline: { field: 'ttl-toggle' } },
   { key: 'ordering', label: 'Packet ordering', inPath: true, baseline: { reorderProb: 0 } },
   { key: 'http', label: 'HTTP header order', inPath: true, baseline: { coverCount: 0, normalize: false } },
-  { key: 'hopping', label: 'Protocol hopping', inPath: true, baseline: { lossProb: 0, blocked: [], coverCount: 30 } },
+  // gapMs is stated explicitly even though 900 is the channel's own default:
+  // the PCAW action moves it, and a before/after is only readable if the
+  // "before" is written down.
+  { key: 'hopping', label: 'Protocol hopping', inPath: true, baseline: { lossProb: 0, blocked: [], coverCount: 30, gapMs: 900 } },
   {
     key: 'physical', label: 'Air-gap optical', inPath: false,
     baseline: { ambientNoise: 0, ambientDrift: 0 },
@@ -170,10 +210,41 @@ function measure(channel, message, params) {
  *
  * Thresholds are stated in the UI as teaching thresholds, not tuned operating
  * points — the same convention as the anomaly levels.
+ *
+ * 'rate-limited' is checked FIRST and deliberately, because it is a different
+ * KIND of outcome rather than a point on the same scale. Every other action in
+ * this lab attacks the symbol: it corrupts a value, blurs a gap, drops a query.
+ * Its signature is a rise in the error rate, and what is left is measured as
+ * residual per-symbol capacity C = 1 − H₂(BER).
+ *
+ * The PCAW attacks the CLOCK. It corrupts nothing, so per-symbol capacity is
+ * exactly what it was; there are simply fewer symbols per second. Folding that
+ * into 'residual' would tell a reader the channel was damaged, when in fact it
+ * still decodes perfectly — the message just takes four times as long. Folding
+ * it into 'closed' at a hard enough throttle would be worse: a rate limit is a
+ * budget, not a barrier, and a patient sender empties the budget. So the test
+ * is not "how much capacity is left" but "is the per-symbol capacity intact",
+ * and a throttled-but-intact channel is reported as neither closed nor broken.
+ *
+ * The consequence is that 'rate-limited' has no lower bound. A hundred-fold
+ * delay is still 'rate-limited', not 'closed'. That is the honest reading of
+ * what a bitrate limit does, and it is the point of keeping the verdict
+ * separate: it stops a defence that only slows an attacker from being scored as
+ * one that stops them.
  */
 function verdictFor(before, after, touched) {
   if (!touched) return 'untouched';
-  const ratio = before.residualBps > 0 ? after.residualBps / before.residualBps : 0;
+  // A channel with no capacity to begin with cannot be throttled, and must not
+  // be reported as though it were. With before.residualBps === 0 the ratio below
+  // is 0 and `perSymbolIntact` reduces to 0 >= -1e-9, which is true — so without
+  // this guard a dead-before/dead-after channel would come back 'rate-limited'
+  // ("every bit still arrives, just more slowly") when the honest verdict is
+  // 'closed'. That is precisely the inversion the verdict exists to prevent.
+  if (before.residualBps <= 0) return 'closed';
+  const ratio = after.residualBps / before.residualBps;
+  // Bits per symbol unchanged, symbols per second down: throttled, not damaged.
+  const perSymbolIntact = after.residualBitsPerSymbol >= before.residualBitsPerSymbol - 1e-9;
+  if (perSymbolIntact && ratio < 1 - 1e-9) return 'rate-limited';
   // Under a twentieth of the original capacity is not a channel any more.
   if (ratio <= 0.05) return 'closed';
   if (ratio <= 0.6) return 'residual';

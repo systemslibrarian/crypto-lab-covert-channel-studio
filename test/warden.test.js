@@ -14,6 +14,12 @@
  *   3. The air-gap and shared-cache carriers are 'out-of-path' no matter what
  *      is switched on, because a normaliser rewrites packets and neither of
  *      those carriers is made of packets.
+ *   4. The PCAW is a THROTTLE, not a normaliser: it lowers the hopping
+ *      channel's bitrate without touching a single bit. The tests below pin
+ *      that as a property — capacity strictly down, error rate NOT up, message
+ *      still decoding — because it is the one place in the lab where those
+ *      three can be true at once, and the 'rate-limited' verdict exists only to
+ *      keep it from being scored as damage.
  *
  * Also locked down: residual capacity is reported as zero at or past a coin
  * flip. A textbook binary symmetric channel credits fully-inverted bits with
@@ -119,8 +125,8 @@ for (const action of WARDEN_ACTIONS) {
         assert.equal(r.touched, true, `${key} should be targeted by ${action.key}`);
         assert.deepEqual(r.appliedActions, [action.key]);
         assert.ok(
-          r.verdict === 'closed' || r.verdict === 'residual',
-          `${action.key} should degrade or close ${key}, got ${r.verdict}`,
+          r.verdict === 'closed' || r.verdict === 'residual' || r.verdict === 'rate-limited',
+          `${action.key} should close, degrade or throttle ${key}, got ${r.verdict}`,
         );
       } else {
         assert.equal(r.touched, false, `${key} must be untouched by ${action.key}`);
@@ -131,17 +137,105 @@ for (const action of WARDEN_ACTIONS) {
   });
 }
 
-test('each action closes (not merely degrades) its target, except the timing shaper', () => {
+test('each action closes its target outright, with two named exceptions', () => {
+  // The exceptions are the whole point of the page, so they are spelled out
+  // here rather than allowed as a loose "closed or something else":
+  //   shapeTiming  — blurs a gap, cannot delete one, so a residual is left.
+  //   switchDelay  — the PCAW throttles rather than corrupts, so nothing is
+  //                  left over: the channel is intact and merely slower.
+  const EXPECTED = { shapeTiming: { timing: 'residual' }, switchDelay: { hopping: 'rate-limited' } };
   for (const action of WARDEN_ACTIONS) {
     const rows = byChannel(run([action.key]));
     for (const target of Object.keys(action.patch)) {
-      const expected = target === 'timing' ? 'residual' : 'closed';
+      const expected = EXPECTED[action.key]?.[target] ?? 'closed';
       assert.equal(
         rows[target].verdict, expected,
         `${action.key} on ${target}: expected ${expected}, got ${rows[target].verdict}`,
       );
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// The rate-limiting defence
+// ---------------------------------------------------------------------------
+
+test("'rate-limited' is a verdict only the PCAW earns", () => {
+  // Every other action attacks the SYMBOL and shows up as a rising error rate.
+  // If a second action ever starts producing this verdict, either the action
+  // is mis-modelled or verdictFor's test is too loose — both worth catching.
+  for (const action of WARDEN_ACTIONS) {
+    for (const r of run([action.key]).rows) {
+      if (r.verdict !== 'rate-limited') continue;
+      assert.equal(action.key, 'switchDelay', `${action.key} produced rate-limited on ${r.channel}`);
+      assert.equal(r.channel, 'hopping');
+    }
+  }
+});
+
+test('the PCAW lowers capacity WITHOUT raising the error rate', () => {
+  // The defining property, and the reason this action needs its own verdict:
+  // a bitrate limit is not damage. Asserted as a strict inequality on capacity
+  // and a strict non-increase on errors, in the same measurement.
+  const r = byChannel(run(['switchDelay'])).hopping;
+
+  assert.equal(r.touched, true);
+  assert.ok(r.after.rawBps < r.before.rawBps, 'the throttle must actually slow the channel');
+  assert.ok(r.after.residualBps < r.before.residualBps, 'and that must show up as capacity');
+
+  assert.ok(r.after.ber <= r.before.ber, `error rate must not rise: ${r.before.ber} -> ${r.after.ber}`);
+  assert.equal(r.before.ber, 0, 'the clean hopping baseline decodes exactly');
+  assert.equal(r.after.ber, 0, 'and so does the throttled one — nothing is corrupted');
+
+  // Per-symbol capacity is untouched; only symbols per second moved. This is
+  // precisely the distinction 'residual' would have hidden.
+  assert.equal(r.after.residualBitsPerSymbol, r.before.residualBitsPerSymbol);
+  assert.equal(r.verdict, 'rate-limited');
+});
+
+test('the throttled hopping channel still delivers the message intact', () => {
+  // A degraded channel loses text; a throttled one does not. Compare against
+  // the shaped timing channel, which is the lab's other non-closing defence.
+  const rows = byChannel(run(['switchDelay']));
+  assert.equal(rows.hopping.before.decodedText, MESSAGE);
+  assert.equal(rows.hopping.after.decodedText, MESSAGE, 'a rate limit costs time, not bits');
+
+  const timing = byChannel(run(['shapeTiming'])).timing;
+  assert.notEqual(timing.after.decodedText, MESSAGE, 'whereas shaping does cost bits');
+});
+
+test('a rate limit is not a hiding place: the anomaly score does not fall', () => {
+  // The counterpart to silentKills. Slowing a channel leaves the transition
+  // statistic exactly as visible as it was, so unlike the normalisers this
+  // defence disrupts nothing AND conceals nothing.
+  const res = run(['switchDelay']);
+  const r = byChannel(res).hopping;
+  assert.equal(r.observabilityDelta, 0, 'delaying hops does not change what the detector sees');
+  assert.ok(!res.silentKills.includes('hopping'), 'a throttled channel was never killed');
+});
+
+test('the throttle scales: a harder delay means proportionally less capacity', () => {
+  // Reads the modelled delay straight off the action, so the assertion tracks
+  // the patch rather than a copied constant.
+  const action = WARDEN_ACTIONS.find((a) => a.key === 'switchDelay');
+  const factor = action.patch.hopping.gapMs / 900; // 900 ms is the clean baseline gap
+  assert.ok(factor > 1, 'the PCAW has to actually add delay');
+
+  const r = byChannel(run(['switchDelay'])).hopping;
+  assert.ok(
+    Math.abs(r.after.rawBps - r.before.rawBps / factor) < 1e-9,
+    `bitrate should fall by exactly ${factor}x: ${r.before.rawBps} -> ${r.after.rawBps}`,
+  );
+});
+
+test('the PCAW gives way to the allow-list when both are on', () => {
+  // Stacking a throttle on a blocker does not produce a throttled verdict: the
+  // allow-list destroys symbols, and destroyed beats slow. This pins the
+  // ordering inside verdictFor, which checks 'rate-limited' first.
+  const r = byChannel(run(['switchDelay', 'allowList'])).hopping;
+  assert.deepEqual(r.appliedActions.slice().sort(), ['allowList', 'switchDelay']);
+  assert.ok(r.after.ber > 0, 'the allow-list still corrupts the walk');
+  assert.equal(r.verdict, 'closed');
 });
 
 // ---------------------------------------------------------------------------
