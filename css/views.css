@@ -115,9 +115,9 @@
 /* Not `display: flex`. Making the <li>s flex items blockifies their `display`
    away from `list-item`, which drops the listitem role in Chromium and costs the
    Further Reading list its "list of N items" announcement (1.3.1). Margin gives
-   the same spacing and keeps the semantics. `list-style: none` still suppresses
-   the role in Safari/VoiceOver — that half needs role="list" / role="listitem"
-   in defenseView.js, which this stylesheet cannot add. */
+   the same spacing and keeps the semantics. `list-style: none` also suppresses
+   the role in Safari/VoiceOver; that half is covered by the explicit role="list"
+   / role="listitem" defenseView.js now sets, which this stylesheet cannot add. */
 .ref-list { list-style: none; padding: 0; margin: 0; }
 .ref-item { border-left: 2px solid var(--border-strong); padding-left: var(--sp-3); margin: 0; }
 .ref-item + .ref-item { margin-top: var(--sp-3); }
@@ -142,7 +142,16 @@
 .cap-label { color: var(--text-dim); font-weight: 600; }
 .cap-val { color: var(--accent); text-align: right; }
 .cap-note { font-size: var(--fs-xs); }
-@media (max-width: 480px) { .cap-row { grid-template-columns: 1fr auto; } .cap-note { display: none; } }
+/* The note is what distinguishes the three capacity numbers from one another —
+   "structural maximum for this carrier" vs "what this encoder emits" vs
+   "recovered correctly, after errors" — and three-numbers-not-one is the whole
+   teaching point of the panel. `display: none` at 480px dropped it, which is a
+   loss of information at the narrow widths SC 1.4.10 Reflow is about. Wrapping
+   it onto its own row costs a line of height and keeps the meaning. */
+@media (max-width: 480px) {
+  .cap-row { grid-template-columns: 1fr auto; row-gap: 0; }
+  .cap-note { grid-column: 1 / -1; }
+}
 /* Still decorative reference, and deliberately below the axis in weight — but
    --border-faint was 1.11:1 against a card, which is not a grid so much as a
    rumour. --border-strong is 1.79:1 and stays subordinate to the 3.55:1 axis. */

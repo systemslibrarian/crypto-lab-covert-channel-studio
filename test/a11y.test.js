@@ -13,18 +13,24 @@
  *      focus somewhere                                           (2.4.3, 3.2.2)
  *   4. heading levels describe the real outline                  (1.3.1)
  *   5. status regions are polite, atomic, small, and survive re-render (4.1.3)
+ *   6. the app chrome — header controls, sidebar nav, footer     (4.1.2, 2.1.1)
  *
  * (2) and (3) are the additions that close the gate's two historic blind spots:
  * the old region matcher named `table-wrap`/`timeline-wrap` literally, so
  * `.notebook-md` — a genuinely unreachable scroller — passed CI, and nothing
  * asserted anything about focus, so four self-destroying buttons were invisible
- * to a suite that ran on every commit.
+ * to a suite that ran on every commit. (6) closes the third: the gate rendered
+ * the 24 section views and nothing else, so the header and the navigation — the
+ * two components every visitor uses — were measured by no gate at all.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { installDomShim, walk, hasClass } from './dom-shim.js';
 import { allRules } from './css-model.js';
-import { loadViews } from './view-registry.js';
+import { loadViews, loadChrome, CHROME_INDEX_MARKERS } from './view-registry.js';
 
 installDomShim();
 
@@ -48,6 +54,8 @@ for (const factory of ['createElement', 'createElementNS']) {
 
 const { getState, setViewMode } = await import('../js/state.js');
 const VIEWS = await loadViews();
+const CHROME = await loadChrome();
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /* ---- helpers -------------------------------------------------------------- */
 
@@ -225,6 +233,80 @@ test('a11y: the focus gate itself catches a self-destroying button', () => {
   document.activeElement = wellBehaved;
   press(wellBehaved);
   assert.ok(!focusLost(root2, wellBehaved), 'moving focus to the replacement must satisfy the gate');
+});
+
+/* ---- 6: the app chrome ------------------------------------------------------
+ * The 24 section views are only the middle of the page. The header's global
+ * controls, the sidebar's 24 links and the footer are built by
+ * js/views/chromeView.js and were, until this test, measured by nothing — which
+ * is the systemic reason a colour-only current-page indicator survived a full
+ * accessibility pass. The gates render them through test/view-registry.js.
+ * ------------------------------------------------------------------------- */
+
+test('a11y: the chrome the gates render is the chrome index.html mounts', () => {
+  // The registry reproduces index.html's wrappers so the chrome is measured on
+  // the surfaces it really sits on. If the HTML is renamed and this copy is not,
+  // three gates quietly start measuring a page that does not exist.
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  for (const marker of CHROME_INDEX_MARKERS) {
+    assert.ok(html.includes(marker),
+      `index.html no longer contains \`${marker}\` — test/view-registry.js builds the chrome inside that `
+      + 'wrapper, so the contrast, target-size and a11y gates would be measuring the wrong ancestry. '
+      + 'Update CHROME_INDEX_MARKERS and the skeleton beside it together.');
+  }
+});
+
+test('a11y: chrome controls have accessible names, and the nav is a labelled landmark', () => {
+  for (const mode of ['sender', 'defender']) {
+    setViewMode(mode);
+    for (const [id, factory] of CHROME) {
+      const { node } = factory(getState());
+
+      const controls = walk(node, (n) => ['BUTTON', 'SELECT', 'TEXTAREA'].includes(n.tagName)
+        || (n.tagName === 'INPUT' && ['text', 'search', 'range', 'checkbox', 'radio', 'file'].includes(n.getAttribute('type'))));
+      assert.ok(controls.length > 0 || id === 'chrome-footer',
+        `${id} [${mode}]: renders no controls — has the chrome stopped being built here?`);
+      for (const c of controls) {
+        assert.ok(accessibleName(c, node).length > 0,
+          `${id} [${mode}]: ${describe(c)} has no accessible name`);
+      }
+
+      // `.sidebar` is `overflow-y: auto`, so it is a scroll container — but the
+      // rule the section views follow (tabindex + role=region + aria-label) is
+      // the WRONG fix here twice over: role=region would replace the navigation
+      // landmark role, and a container whose content is 24 focusable buttons is
+      // already keyboard-reachable, because tabbing through them scrolls it.
+      // What it does owe is a name for the landmark.
+      for (const scroller of walk(node, (n) => [...SCROLLERS].some((c) => hasClass(n, c)))) {
+        const focusable = walk(scroller, (n) => ['BUTTON', 'A', 'SELECT', 'TEXTAREA', 'INPUT'].includes(n.tagName)
+          || n.getAttribute('tabindex') != null);
+        assert.ok(focusable.length > 0,
+          `${id} [${mode}]: .${(scroller.className || '').split(' ').join('.')} scrolls but holds nothing focusable — `
+          + 'it needs the tabindex="0" / role="region" / aria-label treatment the section scrollers get (SC 2.1.1)');
+        assert.ok((scroller.getAttribute('aria-label') || '').length > 0,
+          `${id} [${mode}]: the scrollable ${scroller.tagName.toLowerCase()} has no aria-label (SC 4.1.2)`);
+      }
+    }
+  }
+});
+
+test('a11y: every nav link names its section and carries no colour-only state', () => {
+  setViewMode('sender');
+  const [, navFactory] = CHROME.find(([id]) => id === 'chrome-nav');
+  const { node } = navFactory(getState());
+  const links = walk(node, (n) => hasClass(n, 'nav-link'));
+  assert.ok(links.length >= 20, `expected the exhibit's section links, found ${links.length}`);
+  for (const link of links) {
+    assert.equal(link.tagName, 'BUTTON', 'a nav link must be a real control');
+    assert.ok((link.textContent || '').trim().length > 0, 'a nav link with no text has no accessible name');
+    assert.ok(link.dataset.section, 'a nav link with no data-section cannot be marked current by app.js');
+  }
+  // The current item is exposed programmatically, not by colour alone. The
+  // visual half — an inset accent bar at 10.39:1 — is asserted by
+  // test/contrast.test.js's 1.4.11 gate, which now renders the chrome.
+  const current = links.filter((l) => l.getAttribute('aria-current') === 'page');
+  assert.equal(current.length, 1,
+    `expected exactly one aria-current="page" link in the rendered nav, found ${current.length}`);
 });
 
 /* ---- 4: heading order ------------------------------------------------------ */

@@ -39,6 +39,75 @@ rather than a rewrite.
   nothing. Metric lists and observation prose stay inert and are read on demand;
   a live region that recites a panel on every tick is worse than none.
 
+The items below are the second pass over the same release, after an adversarial
+re-audit of the fixes above.
+
+- **The contrast gate was measuring the wrong background for every table
+  header.** The cascade model indexed ancestors by CLASS only, so any selector
+  with a bare-tag ancestor was dropped silently — and exactly one painting rule
+  fell into that hole: `.data-table thead th { background: var(--surface-2) }`.
+  Every `<th>` in the exhibit was therefore measured against the card behind it
+  (`--surface-1`, which is *darker*), so the gate over-reported contrast for
+  light text: it erred in the unsafe direction, on the exact pairing this
+  release was written for. The model now carries ancestor tag names and
+  attributes, and a regression test asserts a `<thead>` `<th>` resolves
+  `--surface-2` specifically, rather than only asserting a ratio.
+- **The contrast walk never descended into `DocumentFragment`s.** It stopped at
+  `nodeType !== 1`, where a real DOM splices a fragment's children into the
+  parent on append — so 352 elements (1.7% of the exhibit, everything
+  `renderBlocks()` builds) were never measured. This is the same trap
+  `test/dom-shim.js` already documents for `textContent`, reintroduced in a new
+  walker. The walk now splices, and asserts its element count against a
+  fragment-splicing reference so the hole cannot silently reopen.
+- **The glossary filter announced nothing.** Typing filters 51 terms down to a
+  result grid — or to "No matching terms" — on every keystroke, with no live
+  region anywhere in the view: the textbook SC 4.1.3 case, missed because the
+  status-region work was done view by view and this view had no numeric outcome
+  to report. It now announces the settled result count, debounced like the rest.
+- **The sidebar's "you are here" was colour-only and below 3:1.** Every cue on
+  `.nav-link[aria-current="page"]` was faint and hue-based: fill 1.27:1 against
+  the sidebar, border 2.54:1, label and index shifting by 1.73:1 and 1.82:1
+  (SC 1.4.11, and colour as the only carrier, against this project's own rule).
+  The segmented control had the identical problem and was fixed with an accent
+  ring; the navigation — the most-used state indicator in the exhibit — was
+  missed. It now carries a 3px inset accent bar at 10.39:1, which is a shape
+  cue as well as a colour one, with the tint kept as reinforcement.
+- **The switch had no perceivable boundary.** `.switch-track` was `--surface-3`
+  with no edge: 1.31:1 against a card, the same token at the same ratio that the
+  slider rail was fixed for in this release. In the OFF state only the thumb was
+  visible, so what a reader saw was a loose dot beside a label (SC 1.4.11 covers
+  a component's boundary as well as its state). It now takes the house
+  `--border-control` edge; the geometry is unchanged.
+- **A dropped packet did not say so.** `timingView.js` gave dropped and
+  delivered timeline dots identical `title`s, leaving the state to a dashed ring
+  in CSS — and the gap a drop leaves behind is the whole teaching point of that
+  module (SC 1.3.1). The title now ends ", dropped".
+- **"SIMULATED" lived in the stylesheet.** The exhibit's central honesty claim —
+  that nothing here is real traffic — was painted by `.sim-note::before` in all
+  seven places it appears. Engines do expose pseudo-element text today, but a
+  claim of that weight should not depend on a stylesheet loading. `simTag()`
+  emits it from the DOM; the `::before` stays as the fallback and stands down
+  when the span is present.
+- **The Further Reading list lost its list semantics in VoiceOver.**
+  `list-style: none` suppresses the list/listitem roles in Safari; the Chromium
+  half was fixed in this release and the explicit `role="list"` /
+  `role="listitem"` half was not (SC 1.3.1).
+- **The capacity notes vanished below 480px.** `.cap-note { display: none }` at
+  the narrowest breakpoint removed the sentences that distinguish the three
+  capacity numbers from one another, which is a loss of information at the width
+  SC 1.4.10 Reflow is about. They now wrap onto their own row. (Pre-existing,
+  from 1.4.0 — not something this pass broke.)
+- **A comment overstated the slider fix.** It claimed the new thumb "PAINTS the
+  same 20px-wide dot it always did". The old thumb declared 18x18 with a 3px
+  border, and the `box-sizing` reset does not reach a vendor pseudo-element, so
+  what it painted was 18px or 24px depending on the engine — the one thing it
+  was not is "the same". The comment now says what the gradient paints and where
+  the ambiguity is; in a file whose comments are meant to be trusted, an
+  over-claim costs more than the two pixels it was hiding.
+- Removed the dead `.packet*` block, which styled markup no view builds any
+  more and included a `content: "DROPPED"` pseudo-element that reads exactly
+  like a live 1.3.1 defect.
+
 ### Added
 - `test/contrast.test.js` computes WCAG relative luminance over the ACTUAL
   rendered pairings — resolving custom-property scopes and `color-mix` tints,
@@ -54,6 +123,20 @@ rather than a rewrite.
   should not be read as a general hang guard.
 - `test/target-size.test.js` measures every rendered control against 24x24.
 - `test/css-model.js` and `test/view-registry.js`, the shared machinery both use.
+- **The app chrome is now rendered by the gates.** The registry listed the 24
+  section views and nothing else, so the header controls, the sidebar links and
+  the footer — built by `js/app.js`, which boots at import time and could not be
+  imported by a test — were measured for contrast, target size and accessible
+  names by *nothing*. That is the systemic reason the current-page defect above
+  survived a full pass and a stricter-gates follow-up. The builders moved to
+  `js/views/chromeView.js` as pure node factories; `test/view-registry.js`
+  rebuilds them inside index.html's wrappers, and a test asserts index.html
+  still contains those wrappers so the copy cannot drift. The chrome's text was
+  in fact fine (5.52:1 to 10.39:1); it is the guarding that was missing.
+- The 1.4.11 gate now measures the switch's track — the `<input>` is a 0x0
+  proxy, so the track is the only thing on screen that says a switch is there —
+  and understands an inset `box-shadow` as a boundary, which is how both the
+  segmented control and the nav item draw their indicator.
 
 ### Note
 Static analysis only. Nothing here has been driven with an actual screen reader

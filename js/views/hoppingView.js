@@ -12,7 +12,7 @@ import { sectionHeader, para, calloutChip, bitRibbon } from './blocks.js';
 import { panel, controlGroup, slider, toggle, button } from './controls.js';
 import {
   metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
-  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase, simNote,
 } from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
@@ -101,7 +101,7 @@ function centerContent(state, run) {
   return div({},
     el('div', { class: 'card' },
       el('h3', { class: 'card-title' },
-        span({ text: 'Observed flows ' }), span({ class: 'sim-note', text: '' })),
+        span({ text: 'Observed flows ' }), simNote()),
       para(`Every flow is an ordinary flow. The channel is the sequence of protocols going to ${RENDEZVOUS_DEST}; everything else is the host doing its job.`, 'subtle'),
       div({
         class: 'table-wrap hop-stream-wrap',

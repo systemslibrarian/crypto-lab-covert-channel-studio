@@ -7,7 +7,7 @@ import { el, div, span, replace } from './dom.js';
 import { sectionHeader, renderBlocks, para, callout } from './blocks.js';
 import { segmented } from './controls.js';
 import { anomalyGauge, verticalBars, dualHistogram } from './charts.js';
-import { metricList, observationList, statusRegion, anomalyPhrase } from './widgets.js';
+import { metricList, observationList, statusRegion, anomalyPhrase, simNote } from './widgets.js';
 import { COPY } from '../content/copy.js';
 import { round } from '../utils/statistics.js';
 
@@ -66,7 +66,7 @@ export function renderDetectionView(state) {
     el('div', { class: 'card det-console' },
       div({ class: 'det-console-head' },
         el('h3', { class: 'card-title', text: 'Signals at a glance' }),
-        span({ class: 'sim-note', text: '' })),
+        simNote()),
       overview,
       div({ class: 'det-selector' },
         segmented({

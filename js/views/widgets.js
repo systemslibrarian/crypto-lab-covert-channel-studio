@@ -59,9 +59,29 @@ export function modeBanner(viewMode) {
       : span({}, ...inline('**Sender / Receiver view** — you know the encoding rule, so you can watch the message be represented and reconstructed.')));
 }
 
+/**
+ * The SIMULATED marker.
+ *
+ * The word is emitted from the DOM rather than left to `.sim-note::before`.
+ * It is the exhibit's central honesty claim — that nothing here is real traffic
+ * — and a claim of that weight should not be a stylesheet's to make: a
+ * pseudo-element's text is exposed to the accessibility tree by today's engines
+ * but is not guaranteed to be, and it disappears entirely if the stylesheet
+ * fails to load. `.sim-note:has(.sim-tag)::before` stands the pseudo-element
+ * down when this span is present, so the label neither doubles nor vanishes.
+ */
+export function simTag() {
+  return span({ class: 'sim-tag', text: 'SIMULATED' });
+}
+
 /** A simulated-data marker chip. */
 export function simChip(text = 'All traffic below is generated locally — nothing is sent.') {
-  return div({ class: 'sim-note' }, span({ text })); // the ::before adds the SIMULATED tag
+  return div({ class: 'sim-note' }, simTag(), span({ text }));
+}
+
+/** The bare marker, for a card title that carries its own wording. */
+export function simNote() {
+  return span({ class: 'sim-note' }, simTag());
 }
 
 /* ---- the section outcome announcer (4.1.3 Status Messages) ---------------- */

@@ -112,7 +112,10 @@ function timeline(run) {
     span({
       class: `tl-packet${pkt.dropped ? ' dropped' : ''}`,
       style: { left: `${leftPad + (pkt.arrivalMs - first) * pxPerMs}px`, animationDelay: `${i * 45}ms` },
-      attrs: { title: `packet ${pkt.index} @ ${Math.round(pkt.arrivalMs)} ms` },
+      // The dropped state was carried only by `.tl-packet.dropped`'s dashed ring,
+      // so it was not programmatically determinable (1.3.1) — and the gap a drop
+      // leaves behind is the whole teaching point of this module.
+      attrs: { title: `packet ${pkt.index} @ ${Math.round(pkt.arrivalMs)} ms${pkt.dropped ? ', dropped' : ''}` },
     }, '≡'));
 
   const intervalEls = [];

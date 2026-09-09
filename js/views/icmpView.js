@@ -11,7 +11,7 @@ import { sectionHeader, para, calloutChip, bitRibbon } from './blocks.js';
 import { panel, controlGroup, slider, toggle, segmented, button } from './controls.js';
 import {
   metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
-  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase, simNote,
 } from './widgets.js';
 import { verticalBars } from './charts.js';
 import { tradeoffInstrument } from './tradeoffView.js';
@@ -172,7 +172,7 @@ function centerContent(state, run) {
   return div({},
     el('div', { class: 'card' },
       el('h3', { class: 'card-title' },
-        span({ text: 'Simulated echo log ' }), span({ class: 'sim-note', text: '' })),
+        span({ text: 'Simulated echo log ' }), simNote()),
       para(`Data areas are shown as hex. The first ${TIMESTAMP_BYTES} bytes are the timestamp every ping carries; what follows is either the conventional fill pattern or somebody's message.`, 'subtle'),
       echoTable(shown),
       run.mixed.length > shown.length

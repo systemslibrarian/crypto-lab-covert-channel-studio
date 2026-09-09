@@ -447,7 +447,23 @@ export function matchesCompound(node, compound) {
   return true;
 }
 
-/** Classes contributed by each node's ancestors, for descendant matching. */
+/**
+ * Selector keys contributed by each node's ancestors, for descendant matching.
+ *
+ * Classes are stored bare; TAG NAMES are stored as `tag:<name>` and ATTRIBUTES
+ * as `attr:<name>` / `attr:<name>=<value>`, so a selector can require a bare-tag
+ * or attribute-bearing ancestor without a class named `th` being mistaken for a
+ * `<th>`. Carrying tags is not a nicety: `.data-table thead th` — the rule
+ * that paints every column header in the exhibit on --surface-2 — has a bare
+ * `thead` in the middle, and a class-only index dropped the whole selector,
+ * measuring every `<th>` against the card behind it instead. That is the exact
+ * pairing the contrast gate was written for, and it errs towards reporting MORE
+ * contrast than the reader gets, so the miss is silent.
+ *
+ * DocumentFragments are descended through: the shim keeps a fragment's children
+ * inside it, where a real DOM splices them into the parent on append, and a
+ * fragment contributes no selector keys of its own.
+ */
 export function ancestorClassIndex(root) {
   const index = new Map();
   const visit = (n, inherited) => {
@@ -455,6 +471,11 @@ export function ancestorClassIndex(root) {
     index.set(n, inherited);
     const own = new Set(inherited);
     for (const c of (n.className || '').split(' ')) if (c) own.add(c);
+    if (n.tagName) own.add(`tag:${String(n.tagName).toLowerCase()}`);
+    for (const [k, v] of Object.entries(n.attributes || {})) {
+      own.add(`attr:${k}`);
+      own.add(`attr:${k}=${v}`);
+    }
     for (const child of n.childNodes || []) visit(child, own);
   };
   visit(root, new Set());
@@ -509,6 +530,33 @@ function selectorIndex() {
   return _index;
 }
 
+/**
+ * Is an ancestor compound (`thead`, `.data-table`, `td.mono`) satisfied by the
+ * keys an element's ancestors contributed?
+ *
+ * Anything the compound asks for that this model does not carry — an id, an
+ * attribute selector, a pseudo-class — makes it UNsatisfied, so an unmodelled
+ * selector is dropped rather than applied on a partial match. Dropping is the
+ * safe direction for target size and the same-rule contrast checks; for the
+ * rendered-contrast walk it can hide a painted surface, which is why bare tags
+ * are now carried instead of being dropped with them.
+ */
+function ancestorCompoundSatisfied(compound, ancestorKeys) {
+  const parts = compound.match(/^[a-z][a-z0-9]*|\.[A-Za-z0-9_-]+|\[[^\]]+\]/gi) || [];
+  // Every part of the compound must be one we model, and all must be present.
+  if (!parts.length) return false;
+  if (parts.join('') !== compound) return false;
+  return parts.every((p) => {
+    if (p.startsWith('.')) return ancestorKeys.has(p.slice(1));
+    if (p.startsWith('[')) {
+      const m = /^\[([A-Za-z0-9_-]+)(?:=?"?([^"\]]*)"?)?\]$/.exec(p);
+      if (!m) return false;
+      return m[2] ? ancestorKeys.has(`attr:${m[1]}=${m[2]}`) : ancestorKeys.has(`attr:${m[1]}`);
+    }
+    return ancestorKeys.has(`tag:${p.toLowerCase()}`);
+  });
+}
+
 export function computedDecls(node, ancestorClasses, { includeInline = true } = {}) {
   const index = selectorIndex();
   const keys = new Set((node.className || '').split(' ').filter(Boolean));
@@ -521,10 +569,7 @@ export function computedDecls(node, ancestorClasses, { includeInline = true } = 
   const merged = {};
   for (const { rule, compounds, last } of candidates) {
     if (!matchesCompound(node, last)) continue;
-    const ok = compounds.slice(0, -1).every((c) => {
-      const cls = (c.match(/\.[A-Za-z0-9_-]+/g) || []).map((x) => x.slice(1));
-      return cls.length > 0 && cls.every((x) => ancestorClasses.has(x));
-    });
+    const ok = compounds.slice(0, -1).every((c) => ancestorCompoundSatisfied(c, ancestorClasses));
     if (!ok) continue;
     Object.assign(merged, rule.decls);
   }

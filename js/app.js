@@ -8,8 +8,8 @@ import {
   getState, subscribe, setSection, setMessage, setSeed, setViewMode,
   SECTIONS, VIEW_MODES, MAX_MESSAGE_BYTES, VERSION,
 } from './state.js';
-import { el, div, span, clear } from './views/dom.js';
-import { messageInput, segmented, button } from './views/controls.js';
+import { append, clear } from './views/dom.js';
+import { headerControls, navGroups, footerContent } from './views/chromeView.js';
 
 import { renderOverview } from './views/overviewView.js';
 import { renderDnsView } from './views/dnsView.js';
@@ -71,65 +71,34 @@ const navEl = document.getElementById('nav');
 const headerEl = document.getElementById('header-controls');
 const footerEl = document.getElementById('footer');
 
-/* ---- Global header controls ----------------------------------------------- */
+/* ---- Global chrome: header controls, navigation, footer --------------------
+ * The markup lives in js/views/chromeView.js so the accessibility gates can
+ * build it without booting the app; this file owns the wiring to the store and
+ * the router.
+ * ------------------------------------------------------------------------ */
 function buildHeader() {
   const state = getState();
   clear(headerEl);
-  headerEl.appendChild(messageInput({
-    value: state.message, maxBytes: MAX_MESSAGE_BYTES, label: 'Hidden message',
-    onInput: (v) => setMessage(v),
+  append(headerEl, headerControls({
+    message: state.message,
+    seed: state.seed,
+    viewMode: state.viewMode,
+    maxBytes: MAX_MESSAGE_BYTES,
+    viewModes: VIEW_MODES,
+    onMessage: (v) => setMessage(v),
+    onSeed: (v) => setSeed(v),
+    onViewMode: (v) => setViewMode(v),
   }));
-  headerEl.appendChild(seedField(state.seed));
-  headerEl.appendChild(div({ class: 'ctrl viewmode-field' },
-    el('label', { class: 'ctrl-label-inline', text: 'View mode' }),
-    segmented({
-      name: 'viewmode', label: 'View mode', value: state.viewMode,
-      options: [
-        { value: VIEW_MODES.SENDER, label: 'Sender / Receiver', icon: '⇄' },
-        { value: VIEW_MODES.DEFENDER, label: 'Defender', icon: '◎' },
-      ],
-      onChange: (v) => setViewMode(v),
-    })));
 }
 
-function seedField(seed) {
-  const id = 'seed-input';
-  return div({ class: 'ctrl seed-field' },
-    el('label', { for: id, text: 'Seed' }),
-    el('input', {
-      type: 'text', id, class: 'mono', value: seed,
-      attrs: { autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Deterministic simulation seed' },
-      // Store the raw value so the field never disagrees with the seed in use;
-      // an empty seed is still a perfectly valid deterministic key.
-      on: { input: (e) => setSeed(e.target.value) },
-    }));
-}
-
-/* ---- Navigation ----------------------------------------------------------- */
 function buildNav() {
   clear(navEl);
-  const groups = [];
-  const byGroup = new Map();
-  for (const s of SECTIONS) {
-    if (!byGroup.has(s.group)) { byGroup.set(s.group, []); groups.push(s.group); }
-    byGroup.get(s.group).push(s);
-  }
-  let index = 0;
-  for (const g of groups) {
-    const groupEl = div({ class: 'nav-group' }, el('p', { class: 'nav-group-title', text: g }));
-    for (const s of byGroup.get(g)) {
-      index += 1;
-      const idx = index;
-      groupEl.appendChild(el('button', {
-        class: 'nav-link', type: 'button', dataset: { section: s.id },
-        on: { click: () => go(s.id) },
-      },
-        span({ class: 'nav-index', text: String(idx).padStart(2, '0') }),
-        s.icon ? span({ class: 'nav-icon', 'aria-hidden': 'true', text: s.icon }) : null,
-        span({ text: s.label })));
-    }
-    navEl.appendChild(groupEl);
-  }
+  append(navEl, navGroups(SECTIONS, go));
+}
+
+function buildFooter() {
+  clear(footerEl);
+  append(footerEl, footerContent(VERSION));
 }
 
 function updateNav(activeId) {
@@ -137,16 +106,6 @@ function updateNav(activeId) {
     if (link.dataset.section === activeId) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
-}
-
-/* ---- Footer --------------------------------------------------------------- */
-function buildFooter() {
-  clear(footerEl);
-  footerEl.appendChild(div({},
-    span({ text: 'Covert Channel Studio · an educational Crypto-Lab exhibit. ' }),
-    span({ class: 'mono', text: `v${VERSION} · MIT licensed.` })));
-  footerEl.appendChild(div({ class: 'foot-note' },
-    span({ text: 'Everything here is simulated in your browser — no packets, DNS queries, or images are ever sent over the network.' })));
 }
 
 /* ---- Routing & lifecycle -------------------------------------------------- */

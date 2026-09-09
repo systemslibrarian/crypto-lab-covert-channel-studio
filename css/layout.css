@@ -81,10 +81,23 @@
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 .nav-link:hover { background: var(--surface-1); color: var(--text); }
+/* "You are here" is the most-used state indicator in the exhibit, and every cue
+   it had was both faint and colour-only: the tinted fill is 1.27:1 against the
+   sidebar, the tinted border 2.54:1 against the sidebar and 1.99:1 against its
+   own fill, and the label and index shift by 1.73:1 and 1.82:1. All under the
+   3:1 that WCAG 1.4.11 Non-text Contrast asks of a component state, with nothing
+   but hue to carry it (1.4.1). The segmented control had exactly this problem
+   and was fixed with an accent edge; this is the same treatment, turned to the
+   side the reader scans. The 3px bar is 10.39:1 against the sidebar and 8.15:1
+   against the tinted fill, and — being the presence of an edge rather than a
+   change of hue — it is a non-colour cue too. Fill, border and label colour stay
+   as redundant reinforcement. (aria-current="page" is set in js/app.js, so the
+   state was always exposed programmatically; this is the visual half.) */
 .nav-link[aria-current="page"] {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 .nav-link .nav-index {
   font-size: var(--fs-xs); color: var(--text-faint);
@@ -136,7 +149,18 @@
    700px, so only stick when the viewport can actually hold it. Capping the panel
    and scrolling it instead would work too, but that turns it into a scroll
    container, which this project labels as a focusable region — markup this
-   stylesheet cannot add. */
+   stylesheet cannot add.
+
+   The threshold is arithmetic, not taste: the panel's sticky top is
+   `--header-h + --sp-4` = 100px + 16px, so the tallest panel needs about 816px
+   of viewport to be reachable while pinned. 800px is that number rounded down
+   to something legible. It IS high — a 1440x900 laptop lands near 760px of
+   viewport once browser chrome is subtracted, so a good share of ordinary
+   desktop users get panels that scroll with the page rather than pinning. That
+   is a deliberate trade, and it is the direction to err in: an un-pinned panel
+   costs everyone a little convenience, while a pinned one with an unreachable
+   Reset button costs some people the control entirely. Lower the number only by
+   making the tallest panel shorter. */
 @media (max-height: 800px) {
   .panel-left, .panel-right { position: static; }
 }

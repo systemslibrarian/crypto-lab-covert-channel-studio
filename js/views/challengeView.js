@@ -8,7 +8,7 @@ import { el, div, span, replace, formatClock, tableCaption } from './dom.js';
 import { sectionHeader, para, inline } from './blocks.js';
 import { button, select } from './controls.js';
 import { verticalBars } from './charts.js';
-import { statTiles, observationList, statusRegion } from './widgets.js';
+import { statTiles, observationList, statusRegion, simNote } from './widgets.js';
 import { anomalyGauge } from './charts.js';
 import { histogram, mean, minMax, round } from '../utils/statistics.js';
 import { generateChallengeSet, scoreCall, INDICATORS } from '../analysis/challenge.js';
@@ -83,7 +83,7 @@ export function renderChallengeView(state) {
     return el('div', { class: 'card challenge-case' },
       div({ class: 'challenge-head' },
         el('h3', { class: 'card-title', text: `Case ${c.index + 1} · ${channelLabel(c.channel)} · ${c.title}` }),
-        span({ class: 'sim-note', text: '' })),
+        simNote()),
       observablePanel(c.observables),
       answered ? reveal : answerPanel(c));
   }

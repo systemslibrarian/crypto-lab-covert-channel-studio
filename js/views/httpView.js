@@ -7,7 +7,7 @@ import { sectionHeader, para, calloutChip, inline } from './blocks.js';
 import { panel, controlGroup, slider, toggle, button } from './controls.js';
 import {
   metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
-  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase,
+  statusRegion, anomalyPhrase, recoveredPhrase, errorPhrase, simNote,
 } from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
@@ -65,7 +65,7 @@ function centerContent(state, run) {
   const reqs = run.processedRequests.slice(0, 6);
   return div({},
     el('div', { class: 'card' },
-      el('h3', { class: 'card-title' }, span({ text: 'Simulated requests ' }), span({ class: 'sim-note', text: '' })),
+      el('h3', { class: 'card-title' }, span({ text: 'Simulated requests ' }), simNote()),
       para(run.normalize
         ? 'The normalizing proxy has re-sorted every request into the same canonical order.'
         : 'Fixed headers stay put; the reorderable headers (highlighted) carry the payload in their arrangement.', 'subtle'),

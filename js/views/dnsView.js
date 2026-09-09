@@ -8,7 +8,7 @@ import { panel, controlGroup, slider, toggle, button } from './controls.js';
 import { verticalBars } from './charts.js';
 import {
   metricList, anomalyPanel, recoveredBox, modeBanner, statTiles,
-  statusRegion, anomalyPhrase, recoveredPhrase,
+  statusRegion, anomalyPhrase, recoveredPhrase, simNote,
 } from './widgets.js';
 import { tradeoffInstrument } from './tradeoffView.js';
 import { COPY, CALLOUTS } from '../content/copy.js';
@@ -88,7 +88,7 @@ function centerContent(state, run) {
   return div({},
     sender ? encodeBreakdown(run) : null,
     el('div', { class: 'card' },
-      el('h3', { class: 'card-title' }, span({ text: 'Simulated DNS query log ' }), span({ class: 'sim-note', text: '' })),
+      el('h3', { class: 'card-title' }, span({ text: 'Simulated DNS query log ' }), simNote()),
       dnsLog(run.mixed, { markCovert: sender }),
       run.params.lossProb > 0 ? para(`${countLost(run)} covert queries were lost in transit.`, 'subtle') : null),
     sender ? splitCompare(run) : null,

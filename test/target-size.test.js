@@ -25,7 +25,7 @@ import {
   matchesCompound, computedDecls, ancestorClassIndex,
 } from './css-model.js';
 import { installDomShim, walk } from './dom-shim.js';
-import { loadViews } from './view-registry.js';
+import { loadViews, loadChrome } from './view-registry.js';
 
 const VARS = rootTokens();
 const MIN_TARGET_PX = 24;
@@ -122,7 +122,9 @@ const isControl = (n) => CONTROL_TAGS.has(n.tagName)
 
 installDomShim();
 const { getState, setViewMode } = await import('../js/state.js');
-const VIEWS = await loadViews();
+// The section views plus the app chrome — the header's message/seed fields and
+// view-mode switch, and the sidebar's 24 nav links, are controls too.
+const VIEWS = [...await loadViews(), ...await loadChrome()];
 
 /** The <label> that drives a visually-hidden input, if there is one. */
 function labelFor(node, root) {
@@ -303,8 +305,17 @@ test('target size: the guard measures the pre-fix slider as a failure', () => {
   assert.equal(lengthPx(input.decls.height, VARS), 6,
     'the parser must read the historic 6px slider height');
   assert.ok(lengthPx(input.decls.height, VARS) < MIN_TARGET_PX, 'a 6px input is under the minimum');
+
+  // The input's own 6px box is the unambiguous half of the before-picture, and
+  // it is the half that mattered: the grab band was six pixels tall. The thumb
+  // is the shakier half — it declared 18x18 with a 3px border, and the
+  // `*, *::before, *::after` box-sizing reset does not reach a vendor
+  // pseudo-element, so its border box was 18px or 24px depending on the UA. What
+  // is asserted here is therefore the declared content box, not a claim about
+  // what every engine painted.
   assert.equal(lengthPx(thumb.decls.width, VARS), 18);
-  assert.ok(lengthPx(thumb.decls.height, VARS) < MIN_TARGET_PX, 'an 18px thumb is under the minimum');
+  assert.ok(lengthPx(thumb.decls.height, VARS) < MIN_TARGET_PX,
+    'the historic thumb declared an 18px content box, under the minimum before its border is counted');
 
   // And the same measurement passes on the current stylesheet, so the numbers
   // above are a real before/after and not an artefact of the parser.

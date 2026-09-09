@@ -34,7 +34,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   allRules, rootTokens, sectionTokenScopes, resolveColor, backgroundColors,
-  contrastRatio, over, lengthPx, fmtColor,
+  contrastRatio, over, lengthPx, fmtColor, splitTop,
 } from './css-model.js';
 import { installDomShim, walk } from './dom-shim.js';
 
@@ -68,8 +68,9 @@ const DECORATIVE_CHROME = new Map([
   ['.switch-track', 'aria-hidden switch furniture — no text'],
   ['.switch-input:checked + .switch-track', 'aria-hidden switch furniture — no text'],
   // js/views/timingView.js renders a "≡" texture glyph inside the packet dot.
-  // It carries no information (position + the title attribute do), and "dropped"
-  // is signalled by opacity and by the packet list, not by that glyph.
+  // It carries no information: position and the `title` do, and the title now
+  // says ", dropped" outright, so the dashed --danger ring is reinforcement
+  // rather than the only carrier.
   ['.tl-packet.dropped', 'contains only the decorative ≡ texture glyph'],
 ]);
 
@@ -102,6 +103,9 @@ function thresholdFor(decls, vars) {
   if (size != null && (size >= 24 || (bold && size >= 18.66))) return 3;
   return 4.5;
 }
+
+/** Where a rendered failure lives: a section id, or one of the chrome regions. */
+const where = (id) => (id.startsWith('chrome-') ? id : `#sec-${id}`);
 
 const fmt = (n) => n.toFixed(2);
 /** Collapse a multi-line CSS value so a failure message stays one line. */
@@ -190,6 +194,36 @@ function paintsText(node) {
   return (node.childNodes || []).some((c) => c.nodeType === 3 && String(c.textContent || '').trim());
 }
 
+/** Elements the walk below prunes on purpose: not exposed, or never painted. */
+const prunedFromWalk = (node) => (node.getAttribute && node.getAttribute('aria-hidden') === 'true')
+  || (node.className || '').split(' ').includes('visually-hidden');
+
+/**
+ * How many elements a walk reaches under a given fragment policy, with the same
+ * two prunes the gate applies. `splice: true` is what a real DOM does when a
+ * DocumentFragment is appended; `splice: false` is the naive `nodeType !== 1`
+ * stop that silently skipped 1.7% of the exhibit.
+ */
+function reachableElements(root, { splice }) {
+  let n = 0;
+  const go = (node) => {
+    if (!node) return;
+    if (node.nodeType === 11) {
+      if (splice) for (const c of node.childNodes || []) go(c);
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    if (prunedFromWalk(node)) return;
+    n += 1;
+    for (const c of node.childNodes || []) go(c);
+  };
+  go(root);
+  return n;
+}
+
+/** Filled in by the rendered-pairing walk; asserted by the coverage test below. */
+let walkStats = null;
+
 test('contrast: every text/background pairing that actually renders clears its threshold', async () => {
   installDomShim();
   const { getState, setViewMode } = await import('../js/state.js');
@@ -200,8 +234,10 @@ test('contrast: every text/background pairing that actually renders clears its t
   const failures = new Map();
   const unresolved = new Set();
   let measured = 0;
+  let visited = 0;
+  let reference = 0;
 
-  for (const [id, factory] of await VIEW_MODULES.loadViews()) {
+  for (const [id, factory] of [...await VIEW_MODULES.loadViews(), ...await VIEW_MODULES.loadChrome()]) {
     const vars = { ...ROOT_VARS, ...(scopes.get(id) || {}) };
     const pageBg = resolveColor('var(--bg)', vars); // body { background: var(--bg) }
     for (const mode of ['sender', 'defender']) {
@@ -210,10 +246,24 @@ test('contrast: every text/background pairing that actually renders clears its t
       const ancestors = ancestorClassIndex(root);
 
       const visit = (node, inherited, backdrops, path) => {
-        if (!node || node.nodeType !== 1) return;
+        if (!node) return;
+        // A DocumentFragment (nodeType 11) paints nothing and inherits nothing:
+        // a real DOM splices its children into the parent on append, so they
+        // render with the parent's colour, font and backdrop. The shim keeps
+        // them inside the fragment, so splice them here instead of stopping —
+        // renderBlocks() returns a fragment, and returning at nodeType !== 1
+        // left 352 elements (every .block-* built by renderBlocks, in the views
+        // that append it directly) unmeasured. `visits every element a real DOM
+        // would splice in` below pins the count.
+        if (node.nodeType === 11) {
+          for (const child of node.childNodes || []) visit(child, inherited, backdrops, path);
+          return;
+        }
+        if (node.nodeType !== 1) return;
         if (node.getAttribute && node.getAttribute('aria-hidden') === 'true') return; // not exposed, not read
         const classes = (node.className || '').split(' ').filter(Boolean);
         if (classes.includes('visually-hidden')) return; // never painted
+        visited += 1;
         const here = classes.length ? `${path} .${classes.join('.')}` : `${path} ${node.tagName.toLowerCase()}`;
         const decls = computedDecls(node, ancestors.get(node) || new Set());
 
@@ -258,7 +308,7 @@ test('contrast: every text/background pairing that actually renders clears its t
               if (worst.ratio < need) {
                 const key = `${here}|${colorValue}|${fmtColor(worst.bg)}`;
                 if (!failures.has(key)) {
-                  failures.set(key, `#sec-${id} [${mode}]${here} — ${short(colorValue)} (${fmtColor(fg)}) on ${fmtColor(worst.bg)}: `
+                  failures.set(key, `${where(id)} [${mode}]${here} — ${short(colorValue)} (${fmtColor(fg)}) on ${fmtColor(worst.bg)}: `
                     + `${fmt(worst.ratio)}:1 (needs ${need}:1 at ${short(fontSize)}${fontWeight ? `/${fontWeight}` : ''})`);
                 }
               }
@@ -271,9 +321,11 @@ test('contrast: every text/background pairing that actually renders clears its t
       };
 
       // body { color: var(--text); background: var(--bg); font-size: var(--fs-base) }
-      visit(root, { color: 'var(--text)', fontSize: 'var(--fs-base)', fontWeight: null, vars }, [pageBg], `#sec-${id}`);
+      visit(root, { color: 'var(--text)', fontSize: 'var(--fs-base)', fontWeight: null, vars }, [pageBg], where(id));
+      reference += reachableElements(root, { splice: true });
     }
   }
+  walkStats = { visited, reference };
 
   assert.ok(measured > 2000, `expected thousands of rendered text pairings, measured only ${measured}`);
   assert.deepEqual([...unresolved], [],
@@ -281,6 +333,76 @@ test('contrast: every text/background pairing that actually renders clears its t
     + `teach test/css-model.js to parse them:\n  ${[...unresolved].join('\n  ')}`);
   assert.deepEqual([...failures.values()], [],
     `WCAG 1.4.3 — ${failures.size} rendered pairing(s) below threshold:\n  ${[...failures.values()].join('\n  ')}`);
+});
+
+/* ---- 2a. two ways the gate can be blind while staying green ---------------
+ * Both of these have already happened once. A contrast gate that measures the
+ * wrong surface, or that never reaches an element, reports success either way,
+ * so the coverage is asserted as directly as the ratios are.
+ * ------------------------------------------------------------------------ */
+
+test('contrast: the rendered walk visits every element a real DOM would splice in', async () => {
+  assert.ok(walkStats, 'the rendered-pairing walk did not run, so its coverage cannot be checked');
+  assert.equal(walkStats.visited, walkStats.reference,
+    `the walk measured ${walkStats.visited} elements where a fragment-splicing DOM contains ${walkStats.reference}. `
+    + 'A DocumentFragment is nodeType 11: stopping at `nodeType !== 1` skips everything renderBlocks() built, '
+    + 'and the gate then reports contrast for markup it never looked at.');
+
+  // Non-vacuity: prove fragments really are in the rendered tree, so the
+  // equality above is a fixed hole and not an empty coincidence.
+  installDomShim();
+  const { getState, setViewMode } = await import('../js/state.js');
+  const { loadViews, loadChrome } = await import('./view-registry.js');
+  let naive = 0;
+  let spliced = 0;
+  for (const [, factory] of await loadViews()) {
+    for (const mode of ['sender', 'defender']) {
+      setViewMode(mode);
+      const { node: root } = factory(getState());
+      naive += reachableElements(root, { splice: false });
+      spliced += reachableElements(root, { splice: true });
+    }
+  }
+  assert.ok(spliced > naive,
+    'no DocumentFragment appears in any rendered view, so this coverage check proves nothing — '
+    + 'has renderBlocks() stopped returning a fragment?');
+});
+
+test('contrast: a <th> resolves the background it is really painted on', async () => {
+  // The gate's original headline defect was --text-faint on the sticky
+  // --surface-2 of `.data-table thead th`. That selector has a BARE `thead`
+  // between two class compounds; while the cascade model indexed ancestors by
+  // class only, the whole rule was dropped and every column header in the
+  // exhibit was measured against the card behind it (--surface-1, which is
+  // DARKER — so the gate over-reported contrast for light text and erred in the
+  // unsafe direction). Assert the resolved surface, not just the ratio.
+  installDomShim();
+  const { getState, setViewMode } = await import('../js/state.js');
+  const { computedDecls, ancestorClassIndex } = await import('./css-model.js');
+  const { loadViews, loadChrome } = await import('./view-registry.js');
+  const { walk } = await import('./dom-shim.js');
+
+  const expected = fmtColor(resolveColor('var(--surface-2)', ROOT_VARS));
+  let checked = 0;
+  for (const [id, factory] of await loadViews()) {
+    setViewMode('defender');
+    const { node: root } = factory(getState());
+    const ancestors = ancestorClassIndex(root);
+    // Column headers only: a `<th scope="row">` lives in the <tbody> and is
+    // deliberately NOT painted by the sticky-header rule.
+    for (const head of walk(root, (n) => n.tagName === 'THEAD')) {
+      for (const th of walk(head, (n) => n.tagName === 'TH')) {
+        const decls = computedDecls(th, ancestors.get(th) || new Set());
+        const bg = decls.background ?? decls['background-color'];
+        const colour = bg ? resolveColor(bg, ROOT_VARS) : null;
+        assert.equal(colour ? fmtColor(colour) : 'none', expected,
+          `#sec-${id}: a <thead> <th> resolves its background as ${bg ?? 'nothing'}, not the --surface-2 that `
+          + '`.data-table thead th` paints — the cascade model is dropping selectors with a bare-tag ancestor');
+        checked += 1;
+      }
+    }
+  }
+  assert.ok(checked > 20, `expected the exhibit's table headers, found only ${checked}`);
 });
 
 /* ---- 3. same-rule foreground/background pairs ----------------------------- */
@@ -474,19 +596,26 @@ test('contrast: accent-filled controls stay legible under every section accent',
  * half of that: IF a control draws a border, that border has to be visible
  * against the surfaces the control sits on.
  *
- * It deliberately does not try to judge controls that draw no border (the
- * slider, whose bar is a track pseudo-element, or the switch, whose thumb
- * carries the state) — that needs a pseudo-element model and would trade real
- * coverage for guesses. What it does catch is the common regression: reaching
- * for the decorative --border (1.35:1 on a card) or --border-strong (1.79:1)
- * when outlining something the user operates.
+ * It deliberately does not try to judge a control whose only boundary is a
+ * pseudo-element (the slider, whose bar is drawn by ::-webkit-slider-runnable-
+ * track / ::-moz-range-track) — that needs a pseudo-element model and would
+ * trade real coverage for guesses. It DOES cover the switch: its <input> is a
+ * 0x0 proxy, so `.switch-track` is the only thing on screen that says a switch
+ * is there, and a component's boundary is as much 1.4.11's business as its
+ * state. What this catches in general is the common regression: reaching for
+ * the decorative --border (1.35:1 on a card) or --border-strong (1.79:1) when
+ * outlining something the user operates.
  */
 test('contrast: a control that draws a border draws a visible one (SC 1.4.11)', async () => {
   installDomShim();
   const { getState, setViewMode } = await import('../js/state.js');
   const { computedDecls, ancestorClassIndex } = await import('./css-model.js');
-  const { loadViews } = await import('./view-registry.js');
+  const { loadViews, loadChrome } = await import('./view-registry.js');
   const CONTROLS = new Set(['BUTTON', 'SELECT', 'TEXTAREA', 'INPUT']);
+  // Furniture that IS the control on screen while the real input is a 0x0 proxy.
+  const FURNITURE = new Set(['switch-track']);
+  const isBoundary = (n) => CONTROLS.has(n.tagName)
+    || (n.className || '').split(' ').some((c) => FURNITURE.has(c));
   const failures = new Map();
   let checked = 0;
 
@@ -502,13 +631,30 @@ test('contrast: a control that draws a border draws a visible one (SC 1.4.11)', 
     return null;
   };
 
-  for (const [id, factory] of await loadViews()) {
+  // An inset box-shadow is an edge exactly as a border is, and this stylesheet
+  // uses it as one deliberately: the segmented control's selected state and the
+  // sidebar's current-page item both draw their indicator that way. A control
+  // whose ring clears 3:1 has a visible boundary whatever its border does.
+  const insetRingColor = (decls) => {
+    const v = decls['box-shadow'];
+    if (!v) return null;
+    for (const shadow of splitTop(v, ',')) {
+      if (!/\binset\b/i.test(shadow)) continue;
+      for (const part of splitTopSpace(shadow.trim())) {
+        if (/^inset$/i.test(part) || /^-?[\d.]+(px|rem|em)?$/i.test(part)) continue;
+        return part;
+      }
+    }
+    return null;
+  };
+
+  for (const [id, factory] of [...await loadViews(), ...await loadChrome()]) {
     const vars = { ...ROOT_VARS, ...(sectionTokenScopes().get(id) || {}) };
     for (const mode of ['sender', 'defender']) {
       setViewMode(mode);
       const { node: root } = factory(getState());
       const ancestors = ancestorClassIndex(root);
-      for (const ctrl of walk(root, (n) => CONTROLS.has(n.tagName))) {
+      for (const ctrl of walk(root, isBoundary)) {
         const decls = computedDecls(ctrl, ancestors.get(ctrl) || new Set());
         const value = borderColorValue(decls);
         if (!value) continue;
@@ -521,18 +667,21 @@ test('contrast: a control that draws a border draws a visible one (SC 1.4.11)', 
           what = `transparent border, fill ${fill}`;
         }
         if (!colour) continue;
+        const ringValue = insetRingColor(decls);
+        const ring = ringValue ? resolveColor(ringValue, vars) : null;
         checked += 1;
         // Measure against what the control really sits on, not a worst case:
         // the nearest ancestor that paints an opaque background.
         for (const { value: bgValue, colour: backdrop } of backdropsOf(ctrl, ancestors, vars, computedDecls)) {
           const ratio = contrastRatio(over(colour, backdrop), backdrop);
-          if (ratio < 3) {
-            const key = `${ctrl.tagName}.${ctrl.className}|${fmtColor(backdrop)}`;
-            failures.set(key, `#sec-${id} ${ctrl.tagName.toLowerCase()}.${ctrl.className.split(' ').join('.')} — ${what} `
-              + `is ${fmt(ratio)}:1 against the ${short(bgValue)} it sits on (needs 3:1). `
-              + 'Interactive boundaries use --border-control; --border and --border-strong are decorative '
-              + 'and do not clear 3:1 on any surface.');
-          }
+          if (ratio >= 3) continue;
+          if (ring && contrastRatio(over(ring, backdrop), backdrop) >= 3) continue; // the ring is the edge
+          const key = `${ctrl.tagName}.${ctrl.className}|${fmtColor(backdrop)}`;
+          failures.set(key, `${where(id)} ${ctrl.tagName.toLowerCase()}.${ctrl.className.split(' ').join('.')} — ${what} `
+            + `is ${fmt(ratio)}:1 against the ${short(bgValue)} it sits on (needs 3:1)`
+            + `${ringValue ? `, and its inset ring (${short(ringValue)}) does not carry it either` : ''}. `
+            + 'Interactive boundaries use --border-control; --border and --border-strong are decorative '
+            + 'and do not clear 3:1 on any surface.');
         }
       }
     }

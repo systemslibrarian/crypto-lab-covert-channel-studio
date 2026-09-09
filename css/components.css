@@ -92,6 +92,15 @@
 .control-group { display: flex; flex-direction: column; gap: var(--sp-4); }
 .control-group-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); }
 .ctrl { display: flex; flex-direction: column; gap: var(--sp-2); }
+/* NOT a 1.4.3 item — the SC exempts "text that is part of an inactive user
+   interface component" — but recorded so the next audit does not re-litigate it:
+   at 0.45 a disabled slider's label composites to 2.78:1 and its `.ctrl-help` to
+   2.06:1, and in icmpView that help text is the sentence explaining what the
+   Clamp size control does and why it is worth switching on. Opacity cannot be
+   undone by a child, so the only levers are this number and where the help
+   paragraph lives. Left as-is deliberately: the fade is also the ONLY visual
+   signal that the control is inactive. If it is ever raised (~0.65 makes the
+   help legible), give the disabled state a second cue at the same time. */
 .ctrl.is-disabled { opacity: 0.45; }
 .ctrl-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
 .ctrl label { font-size: var(--fs-sm); color: var(--text-dim); font-weight: 500; }
@@ -108,13 +117,22 @@
    excuses it on paper, and any future layout that puts a button within 24px of a
    slider would turn the exception off.)
 
-   The fix keeps the look exactly: the INPUT is now 24px tall and transparent,
-   the visible 6px bar is drawn by the track pseudo-elements, and the thumb is a
-   24x24 target that PAINTS the same 20px-wide dot it always did — a 12px accent
-   core, a 3px --surface-0 ring, a 1px accent edge — via a radial gradient with
-   hard stops, with the outer 2px left transparent as hit area. Sizing the thumb
-   with a border instead would have grown the visible dot; this way the design is
-   untouched and only the target grew. */
+   The fix: the INPUT is now 24px tall and transparent, the visible 6px bar is
+   drawn by the track pseudo-elements, and the thumb is a 24x24 target that
+   PAINTS a 20px dot — a 12px accent core, a 3px --surface-0 ring, a 1px accent
+   edge — via a radial gradient with hard stops, leaving the outer 2px
+   transparent as pure hit area. Sizing the thumb with a border instead would
+   have grown the target and the dot together.
+
+   What the dot used to be is genuinely ambiguous, so this comment does not
+   claim it is unchanged: the old thumb declared `width/height: 18px` with a 3px
+   --surface-0 border, and the `*, *::before, *::after` box-sizing reset in
+   base.css does NOT match a vendor pseudo-element — so whether that painted an
+   18px dot (border-box) or a 24px one (content-box, the CSS default) is the
+   UA's business, not this stylesheet's. The dot today is a definite 20px with a
+   1px accent edge; it is a hair larger or a hair smaller than before depending
+   on the engine, and either way the 24x24 target is now explicit rather than
+   incidental. */
 .ctrl-range {
   -webkit-appearance: none; appearance: none;
   width: 100%; height: 24px; border-radius: var(--r-pill);
@@ -195,13 +213,25 @@
    changes nothing visually. */
 .switch { display: flex; align-items: center; gap: var(--sp-3); cursor: pointer; min-height: 24px; }
 .switch-input { position: absolute; opacity: 0; width: 0; height: 0; }
+/* The OFF state used to be --surface-3 with no edge: 1.31:1 against a card, so
+   the track — where the switch begins, where it ends, which side the thumb is on
+   — could not be made out at all, and what a reader saw was a loose dot beside a
+   label. WCAG 1.4.11 covers the boundary of a component as well as its state,
+   and this is the same token at the same ratio that the slider rail was fixed
+   for. --border-control is 3.55:1 on a card and clears 3:1 on every surface a
+   control sits on. Geometry is unchanged: box-sizing is border-box so the track
+   stays 40x22, and the thumb's 3px inset is now 1px of border plus 2px of
+   offset — absolute positioning resolves against the padding box. (The ON fill
+   is 4.23:1 and the state itself is a position change, so 1.4.1 was never the
+   problem here.) */
 .switch-track {
   position: relative; width: 40px; height: 22px; flex: none;
-  background: var(--surface-3); border-radius: var(--r-pill);
+  background: var(--surface-3); border: 1px solid var(--border-control);
+  border-radius: var(--r-pill);
   transition: background var(--dur) var(--ease);
 }
 .switch-thumb {
-  position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
   background: var(--text-dim); border-radius: 50%;
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
 }
@@ -417,22 +447,16 @@
 .ent-track { width: 46px; height: 6px; background: var(--surface-inset); border-radius: var(--r-pill); overflow: hidden; }
 .ent-fill { height: 100%; background: var(--covert); }
 
-/* ---- Packet cards --------------------------------------------------------- */
-.packet-stream { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
-.packet {
-  width: 150px; flex: none;
-  background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md);
-  padding: var(--sp-2) var(--sp-3); font-size: var(--fs-xs);
-}
-.packet-head { display: flex; justify-content: space-between; color: var(--text-faint); margin-bottom: var(--sp-2); font-family: var(--font-mono); }
-.packet-field { display: flex; justify-content: space-between; gap: var(--sp-2); padding: 1px 0; }
-.packet-field .pf-name { color: var(--text-faint); }
-.packet-field .pf-val { color: var(--text-dim); font-family: var(--font-mono); }
-.packet-field.covert { background: color-mix(in srgb, var(--covert) 16%, transparent); border-radius: var(--r-sm); padding: 2px 4px; margin: 1px -4px; }
-.packet-field.covert .pf-name, .packet-field.covert .pf-val { color: var(--covert); font-weight: 650; }
-.packet-bit { margin-top: var(--sp-2); text-align: center; }
-.packet.dropped { opacity: 0.4; border-style: dashed; }
-.packet.dropped .packet-head::after { content: "DROPPED"; color: var(--danger); }
+/* ---- Packet cards (retired) -----------------------------------------------
+   The `.packet` / `.packet-head` / `.packet-field` / `.packet-bit` block that
+   used to live here styled markup no view builds any more — verified by
+   collecting every class name rendered by all 24 sections in both view modes.
+   Recorded rather than silently deleted because it also carried a
+   `content: "DROPPED"` pseudo-element, which reads exactly like the live
+   `.sim-note::before` case and would otherwise cost the next audit a 1.3.1 fix
+   on markup that does not exist. The timeline dot below (`.tl-packet`) is the
+   packet visualisation that survived.
+   ------------------------------------------------------------------------ */
 
 /* ---- Timeline (timing channel) -------------------------------------------- */
 .timeline-wrap { overflow-x: auto; padding: var(--sp-5) 0 var(--sp-3); }
@@ -452,9 +476,9 @@
    `opacity: 0.5` it composited to 1.13:1 against the card: invisible (1.4.11).
    The dashed --danger ring is 6.32:1 against the card and the glyph is 4.84:1 on
    the fill; the ring is also a shape difference, not just a colour one, which
-   the fade was not (1.4.1). The state is still not exposed to assistive tech —
-   the glyph and the `title` are identical to a delivered packet's — but that is
-   timingView.js's to fix, not this stylesheet's. */
+   the fade was not (1.4.1). The state is exposed to assistive tech as well:
+   timingView.js appends ", dropped" to the packet's `title`, so the ring is
+   reinforcement rather than the only carrier (1.3.1). */
 .tl-packet.dropped {
   background: var(--surface-3);
   box-shadow: none;
@@ -503,15 +527,12 @@
   border: 1px dashed var(--border-strong); border-radius: var(--r-pill);
   padding: 3px 10px;
 }
-/* The word "SIMULATED" is the exhibit's central honesty claim, and it currently
-   lives in this stylesheet rather than in the DOM — three views render
-   `span.sim-note` with an empty string, so the pseudo-element is their entire
-   visible content. Chrome and Firefox do expose ::before text to the
-   accessibility tree, so this works today, but a claim that nothing here is real
-   should not depend on a stylesheet loading. The real fix is for simChip() to
-   emit the word; this rule styles that span identically and stands down the
-   moment it appears, so the two changes can land in either order without the
-   label either doubling up or disappearing. */
+/* The word "SIMULATED" is the exhibit's central honesty claim, and it is now
+   emitted from the DOM by simTag() in js/views/widgets.js — a claim of that
+   weight should not depend on a stylesheet loading, or on an engine choosing to
+   expose ::before text to the accessibility tree. The ::before below is the
+   fallback for any `.sim-note` that does not carry the span, and stands down the
+   moment one does, so the label neither doubles up nor disappears. */
 .sim-note::before { content: "SIMULATED"; color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
 .sim-note:has(.sim-tag)::before { content: none; }
 .sim-tag { color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
