@@ -2,7 +2,7 @@
 
 This document exists so that every statistical claim in Covert Channel Studio can be traced from
 **published statistic → this implementation → chosen threshold → measured behaviour**, and so the
-simplifications are visible rather than hidden. It complements two things already in the repo:
+simplifications are visible rather than hidden. It complements three things already in the repo:
 
 - **Known-answer tests** — `test/methods.test.js` (the statistics) and the per-detector tests.
 - **The Detector Validation Lab** — `js/analysis/validation.js` + the in-app *Detector Validation
@@ -198,6 +198,16 @@ Five honest limitations are built into the benchmark and reported rather than hi
   while keeping the conventional fill — it trips the size statistic and nothing else, which is a real
   false-positive source rather than a strawman.
 
+**What the ICMP size statistic actually measures.** `Payload-size conformance` scores how far the
+observed echo sizes sit from the conventional ping sizes (56 bytes on Linux, 32 on Windows), so it
+fires on an unconventional *constant* size as readily as on a varying one. It is an educational
+indicator, not a published statistic, and it is **not** a detector for hiding-pattern P1 *Size
+Modulation*, whose illustration in the 2015 survey reads: *"The covert channel uses the size of a
+header element or of a PDU to encode the hidden message."* This lab builds no size-encoded channel.
+Its ICMP data-area carrier sets its size from how much message got chunked in, which is why switching
+padding on removes the size tell **without costing a single bit** — the diagnostic test that
+separates a by-product from an encoding. Earlier releases claimed P1 here; see `CHANGELOG.md` 1.5.0.
+
 ## 9. Two-level recovery, matched filtering, and BSC capacity (air-gap optical, shared cache)
 
 Both physical-medium modules are **models of their medium** — no hardware, cache, or timer is
@@ -360,6 +370,45 @@ This is a **toy**, and calling it anything else would undercut the point it is m
 
 It exists to make overfitting and distribution shift visible on data a student can trace by hand. It
 is not a claim that a logistic regression detects covert channels.
+
+---
+
+## 11. Active Warden verdicts: residual capacity and the rate-limit exception
+
+The Active Warden lab (`js/analysis/warden.js`) reports numbers, so the conventions behind them belong
+in this document alongside the detectors'. Nothing here is a published statistic; it is arithmetic
+over measured runs, and the choices are all conservative in the same direction.
+
+- **Everything is measured, not asserted.** Each action is a parameter patch applied to the *actual*
+  simulation, and every channel is re-run through `computeTradeoff` with and without it. A channel
+  absent from an action's patch is genuinely untouched by it — that is a finding, not an omission.
+- **Residual capacity** (`residualCapacity`): `C = 1 − H₂(BER)` bits per symbol, the binary symmetric
+  channel of §9, with one deliberate deviation. The BSC formula credits a fully **inverted** channel
+  with *full* capacity, which is right when the only impairment is a flip the receiver can relabel.
+  Under a warden the errors are a mix of flips, erasures and desynchronisation, and a receiver at or
+  past a coin flip cannot tell an inverted channel from a destroyed one — so **everything at BER ≥ 0.5
+  is reported as zero**. That is the conservative reading, and it is the honest one.
+- **Verdict thresholds** are teaching thresholds, the same convention as the anomaly bands (§6):
+  residual/before ≤ 0.05 reads `closed`, ≤ 0.6 reads `residual`, above that `survives`.
+- **`rate-limited` is a different *kind* of outcome, not a point on that scale.** Every other action
+  in the lab attacks the **symbol** — it corrupts a value, blurs a gap, drops a query — and shows up
+  as a rising error rate. The PCAW attacks the **clock**: it corrupts nothing, so bits per symbol are
+  exactly what they were and there are simply fewer symbols per second. The test is therefore not
+  "how much capacity is left" but "is the per-symbol capacity intact", and a throttled-but-intact
+  channel is scored as neither closed nor broken. It has **no lower bound on purpose**: a hundred-fold
+  delay is still `rate-limited`. A bitrate limit is a budget for a patient sender, not a barrier, and
+  folding it into `closed` would score a defence that only slows an attacker as one that stops them.
+- **One guard worth naming**, because it is the exact inversion the verdict exists to prevent: a
+  channel with **no capacity before and none after** is reported `closed`, not `rate-limited`. Without
+  the zero-baseline guard the ratio is 0 and the per-symbol test passes vacuously, and a dead channel
+  would come back labelled "every bit still arrives, just more slowly."
+- **The delay figure is this lab's own modelling choice, not a published one.** Wendzel & Keller
+  (2012) give the PCAW *mechanism* — delay protocol switches, cap the bitrate — and the 2015 survey
+  summarises it in §6.3; the four-fold stretch (0.9 s → 3.6 s per hop) was picked to be legible on the
+  table and is labelled as such in the action's own note.
+- **Observability is reported next to every verdict** because a closed channel whose anomaly score
+  *fell* is the lab's least comfortable result: disruption without detection leaves the defender with
+  nothing to investigate and no record that anyone tried.
 
 ---
 

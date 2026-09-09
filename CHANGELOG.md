@@ -3,6 +3,146 @@
 All notable changes to Covert Channel Studio. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic-ish versioning.
 
+## [1.5.0] — 2026-09-08 — Correctness release: the pattern catalog, as published
+
+This is a **correctness release**, and it is worth saying plainly what that means. What changed is
+that the Carrier Atlas now says true things about the taxonomy it cites. It had been getting four
+claims about that catalog wrong: it named a hiding pattern that **does not exist in the paper** —
+invented here, then attributed to Wendzel, Zander, Fechner & Herdin — it filed the Packet-Order
+Channel in the wrong *family* of the catalog, it gave protocol hopping a pattern code the catalog
+does not contain, and it claimed P1 Size Modulation for a carrier that does not modulate size. A
+fifth retraction withdraws an assertion about what the 2025 generic-steganography taxonomy covers,
+which is a claim about a paper's contents this lab is not in a position to make. Several carriers
+were also mapped to patterns on nothing stronger than this lab's own reading, presented as though the
+paper had adjudicated it; where a mapping still rests on a pattern's *name*, the card now says so.
+
+An exhibit whose selling point is that its citations are honest does not get to fix that quietly.
+The **Retracted** section below therefore comes first, and each entry names what the exhibit claimed,
+what the paper actually says, and what the card reads now. Same convention as the BitWhisper
+"IEEE typo" retraction in 1.3.0: the correction is part of the teaching material, not an
+embarrassment to be edited out of the table. The Atlas is the section that teaches students to
+demand citations, so it is the last place that gets to hand-wave one.
+
+Version bumped to **1.5.0**. The corrections on their own would have been a patch — nothing a reader
+could rely on was removed, and the sentences that were wrong *were* the product, which is the argument
+for documenting them here in full rather than in a commit message. It is a minor bump because the same
+release also adds a section (Case Studies) and fixes a rendering bug, and a new section is an addition
+whatever else ships beside it.
+
+### Retracted
+- **The "payload-structure" hiding pattern never existed, and the whole category is out of scope.**
+  Earlier versions of the Carrier Atlas mapped the DNS query-name channel and the ICMP echo data area
+  to a pattern called *payload structure / naming*, attributed to the Wendzel, Zander, Fechner &
+  Herdin catalog (ACM CSUR 47(3), 2015). There is no such pattern. Worse, the survey rules that whole
+  family out by its own sentence: *"We distinguish between storage channels which apply hiding
+  methods to payload (e.g. to audio streaming) - these channels are outside of our scope - and
+  storage channels which alter non-payload (e.g. header elements or padding bits)."* Both carriers
+  now read **no pattern**, and the scope sentence is quoted on the Atlas as the reason. A blank is a
+  finding, not a gap — that is the correction, and it is the most teachable thing on the screen.
+- **The Packet-Order Channel was filed under the wrong family.** It was mapped to P2 Sequence, a
+  STORAGE pattern. Reordering whole PDUs is **P10 PDU Order**, which the survey lists under Network
+  Covert *Timing* Channels: no value in any packet is altered, so what varies is *when* each PDU
+  appears. The HTTP header channel is the one that genuinely is P2 — it permutes elements inside a
+  single PDU. The Compare Channels row for packet ordering moves from "Both/other" to **Timing** to
+  match.
+- **Protocol hopping was mapped to "value modulation" with no citation.** It is not one of the eleven
+  patterns at all. The survey discusses protocol switching separately, and the module now cites the
+  primary literature for it: Wendzel & Zander, *Detecting Protocol Switching Covert Channels* (LCN
+  2012); Wendzel & Keller, *Preventing Protocol Switching Covert Channels* (IJAS 5(3-4), 2012); and
+  Wendzel & Keller, *Low-attention forwarding for mobile network covert channels* (CMS, LNCS 7025,
+  2011).
+- **P1 Size Modulation is no longer claimed for the ICMP module.** P1 requires the size to *encode
+  the hidden message*; this lab's data-area carrier sets its size from how much message was chunked
+  in, and turning padding on removes the variation without costing a bit. The detector method is
+  renamed **Payload-size conformance** and cited as an educational indicator against the conventional
+  56/32-byte ping sizes, which is what it actually measures. The Atlas P1 row now says the lab does
+  not build it, and the glossary entry says so too.
+- The Atlas no longer asserts what the 2025 generic steganography taxonomy covers. It is listed as
+  further reading; the four sentences claiming specific carriers "are covered by" it are gone, since
+  that is a claim about a paper's contents rather than about this exhibit.
+
+### Added
+- **Protocol-switching-aware warden (PCAW)** — an eighth warden action, and the only rate-limiting
+  defence in the lab. It blocks and rewrites nothing; it delays each change of protocol, modelled as
+  the hopping channel's per-hop gap stretched from 0.9 s to 3.6 s. From Wendzel & Keller (2012),
+  which the 2015 survey summarises in §6.3 as introducing "delays on protocol switches and thus
+  limit[ing] the bitrate of covert channels that signal hidden information through the use of
+  particular network protocols", applied to IPv4 and to BACnet building-automation networks. The
+  four-fold delay is this lab's own modelling choice and is labelled as such.
+- **A third verdict shape: `rate-limited`.** Every other action attacks the SYMBOL and shows up as a
+  rising error rate. The PCAW attacks the CLOCK: per-symbol capacity is untouched, the message
+  decodes perfectly, there are simply fewer symbols per second. Folding it into "residual" would say
+  the channel was damaged; folding it into "closed" would score a defence that slows an attacker as
+  one that stops them. It gets its own verdict, its own outcome tile, and its own callout, and it has
+  no lower bound on purpose — a hundred-fold delay is still a budget, not a barrier.
+- **Case Studies** (`#cases`) — five publicly documented incidents mapped onto the modules that model
+  their carriers, each naming the statistic in this lab that speaks to it and a caveat saying what it
+  would *not* have told you. Notably, none of the five carriers has a pattern number. Backed by
+  `js/content/caseStudies.js`, `js/views/caseStudiesView.js`.
+
+### Changed
+- The Atlas taxonomy card now renders the **published catalog** rather than a seven-row summary of
+  it: all eleven patterns with their P-numbers and Table II's names, plus the four sub-patterns
+  (P2.a, P2.b, P6.a, P6.b) — fifteen rows for eleven patterns, each sub-pattern row naming its
+  parent so the heading and the row count agree.
+- "No pattern" is no longer one flat string. Three different reasons are kept apart on the carrier
+  cards — payload-carrying and excluded by the scope sentence, in scope but not one of the eleven, or
+  no network PDU at all — because saying "outside this catalog's scope" about protocol switching
+  contradicted the survey and the card's own note.
+- Where a pattern code rests on the pattern's NAME rather than on an Illustration line this lab can
+  quote, the carrier note now says so, instead of implying the paper adjudicated it.
+- The instructor guide, README and the Atlas entry in the reference list no longer promise a pattern
+  for every module. The answer key's Carrier Atlas model answer was rewritten against the corrected
+  Atlas; it previously graded the correct answer wrong.
+- **The instructor guide teaches the reclassification instead of quietly absorbing it.** Two new
+  misconception entries: *"a channel that hides bits in packet ordering is obviously a storage
+  channel"* (it is P10 PDU Order, filed under **timing** — and this exhibit believed the wrong thing
+  until now, which is the part worth saying out loud in front of a class), and *"every module must map
+  to one of the eleven patterns"* (the DNS module, this lab's flagship, has **no pattern at all**, and
+  the survey's scope sentence is the reason). Plan C gains two matching discussion prompts: a
+  storage-or-timing vote taken *before* opening the Atlas, and "where is the DNS module's pattern?"
+  The `#ordering` and `#dns` rows of the learning-outcome map now carry the classification outcome.
+- The instructor guide and answer key no longer describe the DNS channel as carrying data in
+  "structure, **not payload**". That phrasing contradicted the corrected Atlas, which classifies the
+  query name as payload and therefore out of the catalog's scope. Both now say the bits ride in *the
+  names being asked for*, with no stuffed data field anywhere in the packet — and the answer key adds
+  a grading note so an instructor who still says "structure" knows where the tension surfaces.
+- **README** now states, above its five-way taxonomy table, that the table is **this lab's own
+  framing and not the published catalog** — the two are easy to confuse when only one of them is on
+  the page. The note names the three places they disagree, which is the useful part. The
+  Packet-Order Channel feature bullet carries the P10/timing surprise, and Case Studies is listed in
+  the feature list it had been missing from.
+- **VALIDATION.md** documents two things it had been silent about: what the ICMP `Payload-size
+  conformance` statistic actually measures (conformance to the conventional ping sizes — explicitly
+  *not* a P1 Size Modulation detector, with the illustration line quoted for contrast), and, in a new
+  **§11**, the Active Warden's arithmetic — measured-not-asserted runs, the `BER ≥ 0.5 ⇒ zero
+  capacity` convention and why the plain BSC formula is wrong here, the verdict thresholds, the
+  zero-baseline guard, and why `rate-limited` is a different kind of outcome with no lower bound. A
+  lab that reports capacity numbers for a defence owes the same transparency as one that reports
+  detector scores.
+
+### Fixed
+- **Enabling the PCAW switch on its own crashed the Active Warden section.** `wardenView`'s verdict
+  table had no entry for `rate-limited` and read `.pill` off it unguarded. "Enable every action" hid
+  the bug, because the allow-list overrides the throttle and the hopping row comes back `closed`.
+  `test/wardenView.test.js` now renders the view and flips each switch in turn.
+- The `rate-limited` verdict was missing from the outcome tiles, so one channel vanished from a
+  summary that otherwise looked plausible. A test now asserts the tiles account for every channel.
+- `verdictFor` reported a channel with **no capacity before and none after** as `rate-limited`
+  ("every bit still arrives, just more slowly") rather than `closed`, because the zero-baseline guard
+  made the ratio 0 and the per-symbol test vacuously true. Not reachable from the UI today, but it is
+  the exact inversion the verdict exists to prevent.
+- Case Studies attributed four DNS C2 families to one vendor. DarkHydrus and xHunt are Unit 42;
+  SUNBURST was named by FireEye/Mandiant and Decoy Dog by Infoblox.
+- The Atlas no longer sends readers to "Table II" for Illustration lines it does not have; Table II
+  is cited for the names and hierarchy, which is what it is being read for.
+- `CITATION.cff` listed three authors for the 2025 taxonomy where the reference list has twelve.
+- VALIDATION.md's opening said it complements "two things already in the repo" and then listed three.
+- The answer key claimed a model answer for "every worksheet task". Seven shipped sections have none —
+  ICMP, protocol hopping, air-gap optical, shared cache, the Validation Lab, the Active Warden Lab and
+  Case Studies — and the key now says which, at the top, rather than letting an instructor find out
+  mid-session.
+
 ## [1.4.0] — 2026-09-08 — Sequence carriers, the active warden, and a learned detector
 
 ### Added

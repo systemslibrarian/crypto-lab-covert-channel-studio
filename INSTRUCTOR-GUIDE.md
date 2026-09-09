@@ -232,10 +232,11 @@ Library Records → Shared-Resource Matrix → Carrier Atlas → Detection Chall
 | 30–42 min | **Beyond the network (optional swap).** Air-Gap Optical: raise ambient noise, then raise samples-per-bit and watch the matched filter win the message back; then raise *drift* with noise at zero to show a systematic offset averaging cannot remove. Shared Cache: switch Flush+Reload to Prime+Probe and note the polarity inverts. Both are explicit **models** of their medium. | `#physical`, `#cache` |
 | 30–42 min | **Media & metadata.** Image Steganography: embed, view the bit-plane and the chi-square attack, then note lossy re-compression destroys the payload. Library Records: routine metadata as an unintended inference channel, and **data minimisation** as the defence. | `#stego`, `#metadata` |
 | 42–55 min | **Systematic method.** Work the **Shared-Resource Matrix** (Kemmerer 1983) as an interactive exercise — read/alter relationships that reveal storage and timing channels. | `#srm` |
-| 55–63 min | **Carrier Atlas.** Map each module to a named hiding pattern (Wendzel et al.), and read the fidelity cards for carriers the lab only *describes* (VoIP/RTP, Wi-Fi / link layer, history channels, and the text/linguistic family, which links out to the sibling Ghost-Ink exhibit). Good moment to note that **ICMP and protocol hopping used to be on that list** and are now built — a described-only card is a backlog item, not a verdict. | `#atlas` |
+| 55–63 min | **Carrier Atlas.** Map each module either to a named hiding pattern from the eleven-pattern catalog (Wendzel et al., 2015) **or to an explicit statement of why it has none** — over half the modules land in the second group, and that is the single most valuable thing on the screen. Start with the scope callout: the survey excludes payload-carrying channels by its own sentence, so "no pattern" is the correct answer for DNS and the ICMP data area rather than a missing one; protocol switching is in scope but is not one of the eleven; and the air-gap, cache and library-records carriers have no network PDU at all. Then read the fidelity cards for carriers the lab only *describes* (VoIP/RTP, Wi-Fi / link layer, history channels, and the text/linguistic family, which links out to the sibling Ghost-Ink exhibit). Good moment to note that **ICMP and protocol hopping used to be on that list** and are now built — a described-only card is a backlog item, not a verdict. | `#atlas` |
 | 63–80 min | **Blind Detection Challenge**, distinct seeds per group; then compare tallies as a class. | `#challenge?seed=team-a`, `…team-b`, … |
-| 80–86 min | **Active Warden Lab** — flip one normaliser at a time and predict the verdict before revealing it. Land the three results: storage channels die cleanly, the timing channel only degrades to a residual, and two carriers are structurally out of path. Then point at the observability column: several channels are closed *while their anomaly score falls*. | `#warden` |
+| 80–86 min | **Active Warden Lab** — flip one normaliser at a time and predict the verdict before revealing it. Land the four results: storage channels die cleanly; the timing channel only degrades to a residual; the PCAW switch produces a third outcome shape, **rate-limited** — nothing is corrupted, the message still decodes perfectly, it just takes four times as long, and a bitrate cap is a budget for a patient sender rather than a barrier; and two carriers are structurally out of path. Then point at the observability column: several channels are closed *while their anomaly score falls*. | `#warden` |
 | 86–88 min | **Defensive Takeaways** — combine weak indicators, respect false positives, know your middleboxes, understand the limits. | `#defense` |
+| Optional / take-home | **Case Studies** — five publicly documented incidents mapped onto the modules that model their carriers, each naming the statistic in this lab that speaks to it and the `caveat` saying what that statistic would *not* have told you. Pairs well with the Atlas: not one of the five carriers has a pattern number, for exactly the reasons the Atlas scope callout gives — which is a useful jolt after an hour spent learning the catalog. Close on `CASE_GAPS` — timing, ordering and hopping have a large research literature and almost no incident record, which is a statement about capacity and reliability rather than about stealth. | `#cases` |
 | 88–90 min | Assign the graded reflection + the two exported notebooks. | — |
 
 **Discussion prompts**
@@ -247,6 +248,24 @@ Library Records → Shared-Resource Matrix → Carrier Atlas → Detection Chall
   How does minimisation remove *both* the covert channel and the privacy risk?
 - Shared-Resource Matrix: how does a systematic method find channels that ad-hoc inspection misses?
 - Carrier Atlas: pick one "described only" carrier and argue what a defender would monitor for it.
+- **Storage or timing? Vote before you look.** The Packet-Order Channel hides bits in the order of
+  interchangeable packets. Ask for a show of hands — storage or timing? Most rooms say storage, and
+  so did this exhibit until 1.5.0, when its Atlas card was corrected. The published catalog files
+  **P10 PDU Order under timing**: no value in any packet is altered, so there is nothing to compare
+  byte-for-byte; what varies is *when* each PDU appears. Now put `#ordering` next to `#http`, where
+  the reorderable headers sit *inside* one request and the pattern genuinely is storage (**P2
+  Sequence**). Make the class state the dividing rule in one sentence — is the thing being reordered
+  inside a PDU, or is it the PDUs? Then ask the harder question: was the exhibit's original answer
+  *unreasonable*, or just unchecked? (The distinction between a defensible reading and a cited fact
+  is the whole habit the Atlas exists to build.)
+- **Where is the DNS module's pattern?** The flagship module, the one the class has spent the most
+  time in, has **no pattern number at all** — and that is the correct answer. Have students find the
+  survey's scope sentence in the Atlas callout and work out why: bits written into what a PDU
+  *carries* are payload, and payload is outside the catalog by that sentence. Then ask what it would
+  take to make the DNS channel land *inside* the catalog. (Move the bits out of the query name and
+  into something about the messages themselves — their sizes, their order, their timing. Notice that
+  every such answer is a different, much lower-capacity channel. The scope line is not arbitrary; it
+  is tracking a real difference in what the carrier is.)
 - Protocol hopping: with the cover-traffic slider at zero the channel is obvious; at 100 flows the
   whole-host statistics look ordinary and the indicator has not moved at all. What did the detector
   do that the aggregate did not, and what does that imply about how you *store* traffic data?
@@ -280,11 +299,11 @@ where they are assessed. Section links use the hash ids from the [appendix](#app
 | Section (`#id`) | Learning outcomes | How it's assessed |
 | --- | --- | --- |
 | **Overview** (`#overview`) | State the covert-channel thesis; distinguish covert channel from encryption and tunnelling; name the six carriers previewed there (storage, timing, ordering, DNS, protocol hopping, steganography). | Exit ticket (Plan A); reflection prompt 1. |
-| **DNS Channel** (`#dns`) | Explain how DNS *query structure* — not payload — carries data; name the monitor's indicators (label length, character-frequency divergence, unique-name ratio, cadence); describe capacity-vs-observability tension. | Exported lab notebook; Detection Challenge DNS cases; quiz `dns-label-entropy`. |
+| **DNS Channel** (`#dns`) | Explain how the *names a client asks for* carry data with no stuffed data field anywhere in the packet; name the monitor's indicators (label length, character-frequency divergence, unique-name ratio, cadence); describe capacity-vs-observability tension; and place it against the published catalog, where it has **no pattern**, because the query name is what the DNS message *carries* and payload channels are outside the survey's scope. | Exported lab notebook; Detection Challenge DNS cases; quiz `dns-label-entropy`. |
 | **ICMP Echo Channel** (`#icmp`) | Explain why the echo data area is free space the protocol never inspects; contrast a loud high-capacity payload carrier with a quiet one-bit header carrier; show that payload *entropy* is the wrong statistic and predictability is the right one; name two normalisers that each close one carrier and neither of which closes both. | Orthogonal-defence experiment (flip both path switches against both carriers); exported lab notebook. |
 | **Timing Channel** (`#timing`) | Explain how identical packets carry bits in inter-arrival gaps; predict how jitter/noise/loss raise bit-error rate; recognise the entropy/regularity signature and why it fades with jitter. | Live demo prediction; Detection Challenge timing cases; quiz `timing-vs-content`, `timing-fails-internet`. |
 | **Storage Channel** (`#storage`) | Encode bits in a field value (IP-ID parity, TTL, TCP-seq low bit); explain why NAT/proxy/normaliser destroys the channel; see why a parity channel can evade a naive histogram (false-negative lesson). | Middlebox experiment; exported notebook; quiz `field-parity-storage`, `nat-breaks-storage`. |
-| **Packet-Order Channel** (`#ordering`) | Encode a bit in the order of two interchangeable events; explain why network reordering collapses it. | Reordering demo; reflection prompt on fragility. |
+| **Packet-Order Channel** (`#ordering`) | Encode a bit in the order of two interchangeable events; explain why network reordering collapses it; classify it correctly against the published catalog — order *across* PDUs is **P10 PDU Order**, a **timing** pattern, while order *within* one PDU (`#http`) is **P2 Sequence**, a storage one — and say what rule separates them. | Reordering demo; storage-or-timing vote (Plan C discussion prompt); reflection prompt on fragility. |
 | **HTTP Header Channel** (`#http`) | Compute permutation capacity ⌊log₂ n!⌋; explain why a stable client fingerprint makes header-order variety suspicious; connect the normalising-proxy defence to the storage middlebox lesson. | Capacity calculation check; normalising-proxy demo. |
 | **Protocol-Hopping Channel** (`#hopping`) | Encode bits in a state machine *over* protocols rather than inside one; explain why per-packet inspection is structurally blind to it; read a transition matrix and say why an empty diagonal is the tell; pivot from a host aggregate to a per-peer view and watch the channel reappear; explain why one lost flow corrupts everything after it even though the state machine resynchronises. | Cover-traffic dilution experiment (aggregate vs per-peer); loss-desync prediction; monitoring-rotation discussion prompt. |
 | **Image Steganography** (`#stego`) | Embed and recover a message in image LSBs; explain why lossy re-compression destroys the payload; read the chi-square steganalysis attack and its limits on small payloads. | Bit-plane / chi-square walkthrough; quiz `stego-vs-network-channel`. |
@@ -294,9 +313,10 @@ where they are assessed. Section links use the hash ids from the [appendix](#app
 | **Detection Console** (`#detection`) | Read named, cited detector metrics across channels; explain why detection is probabilistic (what fired, why, what else could cause it). | Guided reading; quiz `detection-probabilistic`. |
 | **Detection Challenge** (`#challenge`) | Make a clean/suspicious/covert call from **observables alone**; name the indicator to investigate; weigh false positives against misses. | Scored blind challenge — [Rubric 1](#rubric-1--blind-detection-challenge). |
 | **Detector Validation Lab** (`#validation`) | Read a ROC curve, AUC, and a confusion matrix for a detector; explain why a perfect AUC can coexist with a 29% false-positive rate, and what each measure actually asks; explain why an anomaly score is not a probability of a covert channel; distinguish a *structural* feature that survives distribution shift from a *correlational* one that does not. | Threshold-comparison exercise (FPR/FNR at 34 vs 67); the "should you alert on this?" prompt; reflection prompt on measurement. |
-| **Active Warden Lab** (`#warden`) | Distinguish **detection** from **disruption**; predict which channels a normaliser closes and which it only degrades; read a residual channel as Shannon capacity rather than surviving goodput; name the channels a network warden cannot reach and say why. | Predict-then-flip exercise (one switch at a time); silent-kill discussion; reflection prompt on defence-in-depth. |
+| **Active Warden Lab** (`#warden`) | Distinguish **detection** from **disruption**; predict which channels a normaliser closes, which it only degrades, and which it merely **throttles**; explain why a rate limit is a different kind of outcome from a residual and must not be scored as a close; read a residual channel as Shannon capacity rather than surviving goodput; name the channels a network warden cannot reach and say why. | Predict-then-flip exercise (one switch at a time); silent-kill discussion; reflection prompt on defence-in-depth. |
 | **Compare Channels** (`#compare`) | Compare channels by teaching value, reliability, and what a defender looks for — never by stealth. | Discussion; reflection prompt on trade-offs. |
-| **Carrier Atlas** (`#atlas`) | Map each module to a named hiding pattern; reason about carriers described only conceptually (VoIP/RTP, Wi-Fi, history channels, text/linguistic). | Deep-lab discussion prompt. |
+| **Carrier Atlas** (`#atlas`) | Map each module to a named hiding pattern **or say why it has none** — and distinguish the three reasons a carrier can have none (payload-carrying and outside the survey's scope; in scope but not one of the eleven; no network PDU at all). Reason about carriers described only conceptually (VoIP/RTP, Wi-Fi, history channels, text/linguistic). | Deep-lab discussion prompt. |
+| **Case Studies** (`#cases`) | Map a publicly documented incident to the carrier family and module that models it; name the statistic that speaks to it and the one it would have said nothing about; explain why several modules have a large research literature and no incident record. | Discussion; pairs with the Carrier Atlas scope callout. |
 | **Shared-Resource Matrix** (`#srm`) | Apply Kemmerer's method to systematically identify storage and timing channels. | Worked matrix exercise (Plan C). |
 | **What Makes a Channel Covert?** (`#concepts`) | Distinguish storage from timing, and covert channels from tunnels/encryption; explain why an encrypted tunnel is usually not covert; reason about the capacity/reliability/observability trade-off. | Reflection prompts 1–3; quiz `capacity-vs-observability`, `cover-traffic`. |
 | **Defensive Takeaways** (`#defense`) | Watch shape not payload; combine weak indicators; respect false positives; know your middleboxes; understand the limits. | Reflection prompt on defence; Detection Challenge reasoning. |
@@ -478,6 +498,46 @@ wrong.) Second: was the fit *mistaken* to weight variability so heavily? (No —
 shown, that was the better split. The failure is what optimising for an available distribution does
 when the deployed one differs.)
 
+**14. "A channel that hides bits in packet ordering is obviously a storage channel."**
+*Why it's wrong:* it is the single most reliable wrong answer in the Carrier Atlas, and this lab gave
+it too until 1.5.0 — the exhibit mapped its own Packet-Order Channel to **P2 Sequence**, a *storage*
+pattern, and that was wrong. The 2015 catalog lists **P10 PDU Order** under *Network Covert Timing
+Channels*. The reason holds up under pressure: no value anywhere in any packet is altered, so a
+byte-for-byte comparison of the packets finds nothing at all to compare. What varies is *when* each
+PDU appears relative to the others — and "the information is in when" is the definition of a timing
+channel. The intuition that trips students is real, though, and it is not simply wrong: **order
+*within* one PDU genuinely is storage.** The HTTP Header Channel permutes elements inside a single
+request, and that one is P2 Sequence. Same word, same intuition, opposite side of the line, decided
+by whether the thing being reordered is *inside* a PDU or *is* the PDUs.
+*Correction move:* ask for a show of hands on "storage or timing?" *before* opening `#atlas` — most
+of the room will say storage, which is the point. Then put `#ordering` and `#http` side by side and
+make students state the rule that separates them in one sentence. Follow with the honest bit: this
+exhibit had it wrong, the correction is written up in `CHANGELOG.md` under 1.5.0, and the taxonomy
+was what caught it. A published catalog you can check your work against is worth more than an
+intuition that felt obvious.
+
+**15. "Every module must map to one of the eleven patterns — if it doesn't, we haven't found it yet."**
+*Why it's wrong:* a blank in the Atlas is usually a **finding**, not a gap, and the survey says so
+itself. Its scope sentence reads: *"We distinguish between storage channels which apply hiding
+methods to payload (e.g. to audio streaming) - these channels are outside of our scope - and storage
+channels which alter non-payload (e.g. header elements or padding bits)."* A channel that writes its
+bits into what a PDU **carries** is out of scope by that sentence; a channel that alters the PDU
+**itself** — a header value, padding, size, order, timing — is in. That is why the **DNS Channel, the
+lab's flagship module, has no pattern at all**: the query name is what the DNS message carries. Same
+for the ICMP echo *data area*, and for image LSB. "No pattern, and here is the sentence that says so"
+is a *better* answer than a forced P-number, and a student who forces one has understood the catalog
+less well than a student who declines to. Note also that "outside the catalog" is three different
+statements, and the Atlas keeps them apart: payload-carrying (DNS, ICMP data area, image LSB); in
+scope but not one of the eleven (protocol switching, which the survey discusses separately and cites
+its own primary literature for); and no network PDU at all (air-gap, shared cache, library records).
+*Correction move:* open `#atlas`, read the scope callout aloud, then ask the room to map the DNS
+module. Let someone reach for a pattern, then have the class find the sentence that rules it out.
+Two traps are worth naming while you are there: **P6.b is called "LSB" and is a header-field
+pattern**, not image LSB steganography; and **P6.a is called "Case"** — which this lab reads, like
+every other storage pattern in the catalog, as being about non-payload elements rather than as a
+licence to map document prose onto it. Names collide across a scope line more often than tables
+admit, and the Atlas card labels that second reading as the lab's own rather than the paper's.
+
 **A note on vocabulary you should model:** never rank the channels by "stealth," and never say any
 channel is "undetectable" or "invisible." The honest framing is always the **trade-off**. The exhibit
 holds this line throughout; hold it in your language too, and correct it gently when students reach
@@ -535,6 +595,7 @@ If you find a security concern with the exhibit itself, see [SECURITY.md](SECURI
 | Analysis | Active Warden Lab | `warden` |
 | Analysis | Compare Channels | `compare` |
 | Analysis | Carrier Atlas | `atlas` |
+| Analysis | Case Studies | `cases` |
 | Analysis | Shared-Resource Matrix | `srm` |
 | Analysis | What Makes a Channel Covert? | `concepts` |
 | Analysis | Defensive Takeaways | `defense` |

@@ -12,7 +12,7 @@ import { MAX_MESSAGE_BYTES } from './utils/utf8.js';
 export { MAX_MESSAGE_BYTES };
 
 /** Displayed in the footer; keep in sync with package.json and CHANGELOG.md. */
-export const VERSION = '1.4.0';
+export const VERSION = '1.5.0';
 
 /** View modes (never labelled "attacker" — neutral, educational framing). */
 export const VIEW_MODES = { SENDER: 'sender', DEFENDER: 'defender' };

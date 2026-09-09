@@ -1,6 +1,6 @@
 {
   "name": "covert-channel-studio",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "An educational Crypto-Lab exhibit about covert channels: hidden communication in protocols, timing, and media. Fully client-side and simulated.",
   "type": "module",
   "private": true,

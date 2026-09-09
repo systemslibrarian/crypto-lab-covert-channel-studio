@@ -30,7 +30,7 @@ keywords:
   - detection
   - crypto-lab
 license: MIT
-version: 1.4.0
+version: 1.5.0
 date-released: '2026-09-08'
 references:
   - type: article
@@ -57,5 +57,23 @@ references:
         given-names: Luca
       - family-names: Mazurczyk
         given-names: Wojciech
+      - family-names: Mileva
+        given-names: Aleksandra
+      - family-names: Dittmann
+        given-names: Jana
+      - family-names: Krätzer
+        given-names: Christian
+      - family-names: Lamshöft
+        given-names: Kevin
+      - family-names: Vielhauer
+        given-names: Claus
+      - family-names: Hartmann
+        given-names: Laura
+      - family-names: Keller
+        given-names: Jörg
+      - family-names: Neubert
+        given-names: Tom
+      - family-names: Zillien
+        given-names: Sebastian
     year: 2025
     doi: 10.1145/3729165

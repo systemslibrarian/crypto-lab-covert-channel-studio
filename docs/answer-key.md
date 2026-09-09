@@ -4,13 +4,20 @@
 > Pairs with **Covert Channel Studio**, the fully-simulated, browser-based teaching lab.
 > Everything the lab does is an in-memory JavaScript object; nothing touches a real network.
 
-This key is for instructors and teaching assistants. It gives a **model answer** for every worksheet
-task, **talking points / what to listen for** on every reflection question, and a detailed walkthrough of
+This key is for instructors and teaching assistants. It gives a **model answer** for each worksheet task it
+covers, **talking points / what to listen for** on those reflection questions, and a detailed walkthrough of
 the **Detection Challenge** — including why each honest false-positive trap is benign and why some genuinely
 covert cases still only rate *suspicious* rather than *high*.
 
 Model answers are **targets, not scripts.** A student who reaches the same idea in different words has
 answered correctly. The value is in the reasoning, not the phrasing.
+
+**What this key does not yet cover.** It has sections for the modules listed below and no others. Seven
+shipped sections — **ICMP Echo**, **Protocol-Hopping**, **Air-Gap Optical**, **Shared-Cache**, **Detector
+Validation Lab**, **Active Warden Lab**, and **Case Studies** — appear in the instructor guide's
+learning-outcome map but have no model answers here yet. If you assess them, write your own against the
+guide's outcome column and the section's own Defender-view explanations. Saying so is cheaper than letting
+an instructor discover it mid-session.
 
 ---
 
@@ -73,6 +80,14 @@ hide even when the obvious payload looks innocent.
 | Data in DNS labels | **Protocol-shaped tunneling** | names/lengths/request patterns |
 | Image LSB | **Steganography** | inside *other content* |
 
+*Scope note for graders:* the **Category** column is this lab's own vocabulary, not the Wendzel et al. pattern
+catalog — "Protocol-shaped tunneling" and "Ordering" are ours and appear nowhere in that paper. ("Ordering" is
+the lab's per-channel callout term; the README's five-way table does not carry it as a separate row, which is
+itself worth noticing — our own two vocabularies do not line up perfectly either.) Keep the two vocabularies apart, and expect the Carrier Atlas to complicate two rows of this table
+later in the session: the published catalog splits "Header / packet order" into **P2 Sequence** (storage, order
+*within* one PDU) and **P10 PDU Order** (**timing**, order *across* PDUs), and it gives DNS labels no pattern at
+all, because payload channels are outside its scope. That is a good disagreement to stage rather than smooth over.
+
 **Task — Why is an ordinary HTTPS session usually *not* a covert channel?**
 *Model answer:* Because HTTPS hides **content**, not **existence or purpose**. An observer can still see that
 HTTPS is happening, to which host, roughly how much, and when. Hiding what you said is not the same as hiding
@@ -96,15 +111,21 @@ looking for "where is the data" in that row will not find it in any single flow.
 
 Reproduce: `#dns?seed=crypto-lab&mode=defender`.
 
-**Outcomes under test:** explain how DNS *structure* (not payload) carries data; name the defender's indicators;
-describe the capacity-vs-observability tension.
+**Outcomes under test:** explain how the *names a client asks for* carry data with no stuffed data field anywhere
+in the packet; name the defender's indicators; describe the capacity-vs-observability tension.
 
 ### Worksheet tasks
 
 **Task — Where does the hidden data live in a DNS channel?**
-*Model answer:* In the **structure of the requests** — long, high-entropy labels funnelled under one controlled
-parent domain at some cadence — not in a payload field. The protocol itself is entirely legitimate; it is being
-*used as a carrier*. (In this lab, names live under the reserved `.test` TLD and never resolve.)
+*Model answer:* In the **names being asked for** — long, high-entropy labels funnelled under one controlled
+parent domain at some cadence. There is no stuffed data field anywhere in the packet; the protocol itself is
+entirely legitimate and is simply being *used as a carrier*. (In this lab, names live under the reserved `.test`
+TLD and never resolve.)
+*Grading note:* accept "in the structure of the requests" — it is how this lab has long phrased it, and it is a
+fair description of what a monitor sees. But do not let it harden into "not payload," because the Carrier Atlas
+says the opposite later in the session and for a good reason: a query name is what the DNS message *carries*, so
+the 2015 survey's scope sentence puts this channel outside its eleven-pattern catalog. The tidy version of the
+distinction is that the bits are in the message's **content**, not in the packet's **plumbing**.
 
 **Task — List the indicators a monitor measures, and for each, name a benign cause.**
 *Model answer:*
@@ -246,6 +267,11 @@ the channel.
 **Task — How is a bit encoded with no special value and no timing signature?**
 *Model answer:* Purely in **order**: "A then B" = 0, "B then A" = 1. The two events are otherwise identical, so
 there is nothing in any single event to inspect — the information is in the sequence.
+*Talking point (sets up the Carrier Atlas):* "no timing signature" is how this lab describes the channel to a
+student building it, and it is true in the sense that matters here — the *gaps* carry nothing, so a jitter-based
+detector has nothing to work with. The published catalog still classifies the channel as **timing** (P10 PDU
+Order), because the thing that varies is *when* each PDU appears relative to the others. Flag the tension rather
+than resolving it early; the Atlas section below is where it pays off.
 
 **Task — Raise the reordering probability. What happens and why?**
 *Model answer:* Reliability collapses. Real networks are permitted to reorder packets; each reordering event
@@ -426,10 +452,27 @@ Reproduce: `#atlas?seed=crypto-lab`.
 
 ### Worksheet tasks
 
-**Task — Map one lab module to its named hiding pattern.**
-*Model answer (example):* The DNS module maps to a *protocol-shaped tunneling / value-modulation* pattern in the
-Wendzel et al. (2015) categorisation; the timing module maps to an *inter-packet-times* pattern. Any correct
-module→pattern pairing from the Atlas is acceptable.
+**Task — Map one lab module to its named hiding pattern, or say why it has none.**
+*Model answer (examples):*
+
+| Module | Answer | Why |
+| --- | --- | --- |
+| Timing Channel | **P8 Inter-arrival Time**, a timing pattern | Bits ride in the gap between otherwise identical events. |
+| Packet-Order Channel | **P10 PDU Order** — and it is a **timing** pattern | The surprise. No value in any packet is altered, so a byte-for-byte comparison finds nothing; what varies is *when* each PDU appears relative to the others. The 2015 survey files P10 under Network Covert Timing Channels. |
+| HTTP Header Channel | **P2 Sequence**, a storage pattern | P2 is defined over "header/PDU elements", and the permuted headers sit inside a single request. Order *within* a PDU and order *across* PDUs are two different patterns on two different sides of the storage/timing line. |
+| Storage Channel | **P5 Random Value** (IP-ID parity, ISN low bit); the TTL toggle is **P6 Value Modulation** | One module, two patterns — the catalog does not partition as cleanly as a table implies. |
+| DNS Channel | **No pattern, and that is the correct answer** | The query name is what the DNS message *carries*, so this is a payload channel, and the survey excludes payload channels by its own scope sentence. |
+| Protocol-Hopping Channel | **No pattern, for a different reason** | Protocol switching is *in* the survey's scope — it is discussed there and §6.3 covers PCAW as its countermeasure — it simply is not one of the eleven. It has its own primary literature (Wendzel & Zander 2012; Wendzel & Keller 2012, 2011). |
+
+*Marking:* "outside the catalog" **is** a correct answer, and a student who gives it with the right reason has
+done better than one who forced a P-number. Accept any module→pattern pairing the Atlas card supports, and accept
+a "no pattern" answer that names *which* of the three reasons applies: payload-carrying and excluded by the scope
+sentence, in scope but not one of the eleven, or no network PDU at all (air-gap, cache, library records).
+
+*Common wrong answer worth naming out loud:* mapping DNS to "value modulation", or the Packet-Order Channel to
+P2 Sequence. Earlier versions of this exhibit made both mistakes; the Atlas now carries the retraction on the
+relevant cards, and walking students through *why* it was wrong teaches the scope statement better than the
+correct mapping does.
 
 **Task — Pick a described-only carrier (VoIP/RTP, Wi-Fi, history channels, text/linguistic) and say what its
 fidelity card admits.**
