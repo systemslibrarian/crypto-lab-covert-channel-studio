@@ -42,15 +42,15 @@ export const REFERENCES = [
         authors: 'Steffen Wendzel, Sebastian Zander, Bernhard Fechner, Christian Herdin',
         year: 2015,
         venue: 'ACM Computing Surveys, 47(3)',
-        note: 'The community reference that organizes NETWORK covert-channel techniques into reusable hiding patterns; the basis for the Carrier Atlas, which maps each module to a named pattern.',
+        note: 'The community reference that organizes NETWORK covert-channel techniques into reusable hiding patterns; the basis for the Carrier Atlas, which maps each module either to a named pattern or to an explicit statement of why it has none. The catalog is ELEVEN patterns, numbered P1-P11, arranged hierarchically (a few carry sub-patterns) and split into storage and timing families, distilled from 109 surveyed techniques. Note the scope the survey sets itself: it covers storage channels that alter NON-payload elements such as header fields and padding bits, and explicitly places payload-modifying channels outside its scope — so not every carrier in this exhibit has a pattern in it. The link above is the published ACM version; readers without ACM access can use the authors’ preprint, arXiv:1406.2901 (https://arxiv.org/abs/1406.2901).',
         url: 'https://doi.org/10.1145/2684195'
       },
       {
         title: 'A Generic Taxonomy for Steganography Methods',
         authors: 'Steffen Wendzel, Luca Caviglione, Wojciech Mazurczyk, Aleksandra Mileva, Jana Dittmann, Christian Krätzer, Kevin Lamshöft, Claus Vielhauer, Laura Hartmann, Jörg Keller, Tom Neubert, Sebastian Zillien',
         year: 2025,
-        venue: 'ACM Computing Surveys',
-        note: 'The newer UNIFIED, cross-domain taxonomy that generalizes the 2015 network patterns to steganography/information-hiding across media, text, filesystem, and cyber-physical domains. The Atlas notes this generalization.',
+        venue: 'ACM Computing Surveys, 57(9), Article 233',
+        note: 'A later, broader taxonomy from the same group, generalizing the 2015 network patterns toward information hiding beyond the network. Listed as the natural next step for a reader who wants vocabulary that reaches past network PDUs. This lab has NOT mapped its carriers onto it, and makes no claim about which of them it covers — the Atlas says only that the network catalog stops where it stops.',
         url: 'https://doi.org/10.1145/3729165'
       }
     ]
@@ -163,6 +163,35 @@ export const REFERENCES = [
         venue: 'Proceedings of the 14th ACM Conference on Computer and Communications Security (CCS)',
         note: 'Uses corrected conditional entropy over inter-packet delays to separate covert timing traffic from legitimate traffic — the statistic implemented in the exhibit’s timing detector and measured in the Validation Lab.',
         url: 'https://doi.org/10.1145/1315245.1315284'
+      }
+    ]
+  },
+  {
+    category: 'Protocol switching (protocol hopping)',
+    items: [
+      {
+        title: 'Detecting Protocol Switching Covert Channels',
+        authors: 'Steffen Wendzel, Sebastian Zander',
+        year: 2012,
+        venue: '37th IEEE Conference on Local Computer Networks (LCN), pp. 280-283',
+        note: 'The primary source for the Protocol-Hopping module: the detection side of a channel whose bits live in WHICH protocol is spoken next rather than in anything inside any one protocol. Worth knowing where this sits in the taxonomy — protocol switching is not one of the eleven hiding patterns of the 2015 survey; that survey discusses it separately and cites this work.',
+        url: ''
+      },
+      {
+        title: 'Preventing Protocol Switching Covert Channels',
+        authors: 'Steffen Wendzel, Jörg Keller',
+        year: 2012,
+        venue: 'International Journal On Advances in Security, 5(3-4), pp. 81-93',
+        note: 'The countermeasure side, and the source of PCAW: it introduces delays on protocol switches and so limits the bitrate of a covert channel that signals through the use of particular protocols. The 2015 survey highlights that PCAW was applied not only to protocol switching over IPv4 but also to building-automation networks using BACnet — one countermeasure travelling across carriers, which is the same lesson the paired defences in the ICMP module teach.',
+        url: ''
+      },
+      {
+        title: 'Low-attention forwarding for mobile network covert channels',
+        authors: 'Steffen Wendzel, Jörg Keller',
+        year: 2011,
+        venue: 'Communications and Multimedia Security (CMS), LNCS 7025, pp. 122-133',
+        note: 'The third protocol-switching source the 2015 survey cites in that discussion. Listed to complete the trail for anyone following the hopping module back to its literature; the module does not implement anything specific from it.',
+        url: ''
       }
     ]
   },

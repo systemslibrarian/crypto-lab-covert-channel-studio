@@ -107,8 +107,8 @@ export const GLOSSARY = [
   },
   {
     term: 'Ordering channel',
-    definition: 'A covert channel that encodes information in the relative order of otherwise legitimate items, such as the sequence in which packets or requests are emitted. Natural reordering by networks and middleboxes acts as noise, limiting its reliability.',
-    seeAlso: ['Covert channel', 'Middlebox', 'Encoding']
+    definition: 'A covert channel that encodes information in the relative order of otherwise legitimate items, such as the sequence in which packets or requests are emitted. Natural reordering by networks and middleboxes acts as noise, limiting its reliability. Which hiding pattern it is depends on WHAT is reordered: permuting elements inside one PDU, as the HTTP header channel does, is Sequence (P2), a storage pattern; reordering whole PDUs on the wire is PDU Order (P10), which the 2015 survey places under its TIMING patterns — "the covert channel encodes data using a synthetic PDU order for a given number of PDUs flowing between covert sender and receiver" (Wendzel et al., 2015).',
+    seeAlso: ['Covert channel', 'Middlebox', 'Encoding', 'Hiding pattern', 'Permutation capacity']
   },
   {
     term: 'Payload',
@@ -152,13 +152,13 @@ export const GLOSSARY = [
   },
   {
     term: 'Hiding pattern',
-    definition: 'A reusable category of covert-channel technique in the network information-hiding taxonomy (Wendzel et al., 2015), such as value modulation, sequence/ordering, or inter-packet times. Learning the pattern generalises better than memorising individual tricks.',
-    seeAlso: ['Covert channel', 'Carrier']
+    definition: 'A reusable category of covert-channel technique in the network information-hiding taxonomy (Wendzel et al., 2015). The catalog is eleven patterns, numbered P1-P11 and split into storage and timing families — Size Modulation (P1), Sequence (P2), Value Modulation (P6) and Reserved/Unused (P7) among the storage ones; Inter-arrival Time (P8), Rate (P9), PDU Order (P10) and Re-Transmission (P11) on the timing side — distilled from 109 surveyed techniques. The survey scopes itself to channels that alter NON-payload elements such as header fields and padding bits; channels that hide data in the payload are explicitly outside it, so a carrier can be perfectly real and still have no pattern number here. Learning the pattern generalises better than memorising individual tricks.',
+    seeAlso: ['Covert channel', 'Carrier', 'Size modulation', 'Ordering channel']
   },
   {
     term: 'Permutation capacity',
-    definition: 'The information a permutation of n distinguishable events can carry: ⌊log₂(n!)⌋ bits. It sets the ceiling for ordering-based channels such as packet order and HTTP header order.',
-    seeAlso: ['Capacity', 'Covert storage channel']
+    definition: 'The information a permutation of n distinguishable events can carry: ⌊log₂(n!)⌋ bits. It sets the ceiling for ordering-based channels such as packet order and HTTP header order — both of them, even though the 2015 survey files those two under different families (PDU Order, P10, is a timing pattern; Sequence, P2, is a storage one).',
+    seeAlso: ['Capacity', 'Ordering channel', 'Hiding pattern']
   },
   {
     term: 'Inference channel',
@@ -212,7 +212,7 @@ export const GLOSSARY = [
   },
   {
     term: 'Protocol hopping',
-    definition: 'Also called protocol switching: a covert channel in which the payload is carried by the CHOICE of which protocol to speak next, rather than by anything inside any one protocol. If a hop must always change protocol, an agreed set of n protocols offers n-1 admissible successors and so ⌊log₂(n-1)⌋ bits per hop — a ceiling that grows only logarithmically, which is why hopping is a signalling channel rather than an exfiltration channel.',
+    definition: 'Also called protocol switching: a covert channel in which the payload is carried by the CHOICE of which protocol to speak next, rather than by anything inside any one protocol. If a hop must always change protocol, an agreed set of n protocols offers n-1 admissible successors and so ⌊log₂(n-1)⌋ bits per hop — a ceiling that grows only logarithmically, which is why hopping is a signalling channel rather than an exfiltration channel. On attribution: protocol switching is NOT one of the eleven patterns in the 2015 survey. That survey treats it separately and points to its own literature — Wendzel & Zander (2012) on detecting it, and Wendzel & Keller (2012) for the PCAW countermeasure, which delays protocol switches and so caps the bitrate of a channel that signals through the choice of protocol.',
     seeAlso: ['Covert storage channel', 'Transition matrix', 'Capacity', 'Hiding pattern']
   },
   {
@@ -227,7 +227,7 @@ export const GLOSSARY = [
   },
   {
     term: 'Size modulation',
-    definition: 'Carrying information in the SIZE of a protocol data unit rather than in its contents. It shows up clearly in ICMP, where ordinary ping holds one payload size for a whole session, so a varying or unconventional size is a choice somebody made. Note on attribution: size-based hiding is well established, but this lab does not claim that the 2015 network hiding-pattern survey names a distinct pattern for it — the term here is descriptive, not a citation.',
+    definition: 'Carrying information in the SIZE of a protocol data unit rather than in its contents. It is pattern P1 in the 2015 network hiding-pattern survey, where the illustration reads: "The covert channel uses the size of a header element or of a PDU to encode the hidden message" (Wendzel et al., 2015). No channel in this lab builds it — worth saying, because the ICMP module has a payload-SIZE statistic that is easily mistaken for one. That statistic tests conformance to the conventional ping sizes; the module\'s own size varies as a by-product of chunking, and padding the echoes out removes the variation without costing a bit. Size as a side effect is not size as a carrier.',
     seeAlso: ['Hiding pattern', 'Echo Identifier', 'Anomaly']
   },
   {

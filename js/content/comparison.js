@@ -65,14 +65,14 @@ export const COMPARISON_ROWS = [
   {
     channel: 'Packet ordering',
     carrier: 'Sequence of packets',
-    kind: 'Both/other',
+    kind: 'Timing',
     capacity: 'Low (bits per group)',
     reliability: 'Fragile',
     noise: 'High',
     breaks: 'Reordering, retransmission, load balancing',
     indicators: 'Statistically improbable ordering, reorder rates above baseline',
     difficulty: 'Advanced',
-    note: 'Information rides in the arrangement of packets rather than in any single packet value.',
+    note: 'Information rides in the arrangement of packets rather than in any single packet value — which is exactly why it is filed under TIMING and not storage, and why most students file it wrong. No value in any packet is altered, so a byte-for-byte comparison finds nothing; what varies is when each PDU appears relative to the others. The 2015 survey lists it as PDU Order (P10) under its timing patterns. Compare the HTTP Header Channel, which permutes elements INSIDE one PDU: that is Sequence (P2), genuinely storage. Same intuition, opposite side of the line.',
   },
   {
     channel: 'ICMP echo',

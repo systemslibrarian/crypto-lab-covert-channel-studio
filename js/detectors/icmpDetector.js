@@ -158,7 +158,7 @@ export function analyzeIcmp(echoes) {
   if (sizeAnomaly > 0.2) {
     observations.push(observation(
       `Data areas average ${round(focus.avgDataBytes, 1)} bytes across ${focus.distinctSizes} distinct size${focus.distinctSizes === 1 ? '' : 's'}; the conventional sizes are ${STANDARD_PAYLOAD_BYTES} (Linux) and 32 (Windows).`,
-      'Ping sends a fixed payload size for a whole session, so a varying or unusual size is a choice somebody made. Carrying data in the SIZE of a protocol data unit rather than its contents is a well-established storage technique.',
+      'Ping sends a fixed payload size for a whole session, so a varying or unusual size is a choice somebody made. This is a CONFORMANCE test, not a size-modulation test: it fires on any departure from the conventional sizes, including the constant non-standard size this module produces when it chunks a message. A channel that encoded its bits IN the size would be a different thing again — pattern P1, Size Modulation — and this module does not build one.',
       'Path-MTU discovery and diagnostic sweeps vary ping size deliberately, and some appliances health-check with their own size.',
       { weight: 0.7 },
     ));
@@ -199,10 +199,10 @@ export function analyzeIcmp(echoes) {
       interpretation: 'A structural test, not an entropy test. The conventional fill is an incrementing run of distinct bytes, so its entropy is already near maximal — entropy cannot separate it from payload, but predictability can.',
     },
     {
-      key: 'sizeModulation', name: 'Payload-size distribution',
-      citation: 'Educational indicator (payload-size distribution)',
+      key: 'sizeConformance', name: 'Payload-size conformance',
+      citation: 'Educational indicator (conventional ping payload sizes: 56 bytes on Linux, 32 on Windows)',
       value: `${round(focus.avgDataBytes, 1)} B avg, ${focus.distinctSizes} distinct`,
-      interpretation: 'Ping holds one payload size per session; varying it to carry more data per echo is a size-based storage technique. Described here rather than cited: this lab does not attribute a specific named pattern for it to the 2015 survey.',
+      interpretation: 'Measures how far the payload sizes sit from the conventional ping sizes, so it fires on an unconventional CONSTANT size as readily as on a varying one — which is what this module produces, since its size is set by how much message was chunked in rather than by anything being encoded. Do not confuse it with pattern P1, Size Modulation, whose illustration in the survey reads "the covert channel uses the size of a header element or of a PDU to encode the hidden message". That is the contrast case: this lab builds no size-encoded channel, and switching padding on removes the size tell here without costing a single bit.',
     },
     {
       key: 'payloadRepetition', name: 'Data-area repetition',
