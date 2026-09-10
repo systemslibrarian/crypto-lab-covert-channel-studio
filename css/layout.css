@@ -160,7 +160,18 @@
    is a deliberate trade, and it is the direction to err in: an un-pinned panel
    costs everyone a little convenience, while a pinned one with an unreachable
    Reset button costs some people the control entirely. Lower the number only by
-   making the tallest panel shorter. */
+   making the tallest panel shorter.
+
+   Classified by the accessibility pass and recorded here so it is not
+   re-litigated: this is an AUTHOR ASIDE, not user-facing content. Nothing the
+   reader sees mentions pinned panels — the only "sticky" text in the exhibit is
+   the protocol-hopping channel describing sticky host traffic, which is
+   unrelated — so there is nothing here that has to survive a 320px viewport or
+   400% zoom. It is a design rationale for a threshold, it belongs in the
+   stylesheet next to the threshold, and it is already there. The arithmetic was
+   re-checked when this was recorded: --header-h is 6.25rem (100px), --sp-4 is
+   1rem, .panel-left/.panel-right stick at their sum (116px), so ~816px is the
+   real requirement and 800px is it rounded down. */
 @media (max-height: 800px) {
   .panel-left, .panel-right { position: static; }
 }
