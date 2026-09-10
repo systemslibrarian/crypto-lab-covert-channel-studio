@@ -435,7 +435,6 @@
 .pill { display: inline-block; padding: 1px 8px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 650; border: 1px solid transparent; }
 .pill-covert { color: var(--covert); background: color-mix(in srgb, var(--covert) 14%, transparent); border-color: color-mix(in srgb, var(--covert) 30%, transparent); }
 .pill-normal { color: var(--text-dim); background: var(--surface-2); }
-.pill-low { color: var(--anom-low); background: color-mix(in srgb, var(--anom-low) 14%, transparent); }
 .pill-mod { color: var(--anom-mod); background: color-mix(in srgb, var(--anom-mod) 14%, transparent); }
 .pill-high { color: var(--anom-high); background: color-mix(in srgb, var(--anom-high) 14%, transparent); }
 .pill-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
@@ -578,7 +577,6 @@
 /* ---- Tradeoff triangle ---------------------------------------------------- */
 .tradeoff { display: grid; grid-template-columns: 1fr; gap: var(--sp-4); }
 .tri-meters { display: grid; gap: var(--sp-4); }
-.tri-corner { font-weight: 700; letter-spacing: 0.04em; }
 
 /* ---- Misc ----------------------------------------------------------------- */
 .empty-note { color: var(--text-faint); font-size: var(--fs-sm); font-style: italic; padding: var(--sp-4); text-align: center; }
@@ -592,4 +590,3 @@
 .stat-tile.good .st-val { color: var(--ok); }
 .stat-tile.bad .st-val { color: var(--danger); }
 
-.section-nav-foot { display: flex; justify-content: space-between; margin-top: var(--sp-7); padding-top: var(--sp-4); border-top: 1px solid var(--border-faint); gap: var(--sp-3); }
