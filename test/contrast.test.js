@@ -478,6 +478,81 @@ function colorSourceSelectors(selector) {
   return out;
 }
 
+test('contrast: text under an opacity fade still clears its threshold', async () => {
+  // The gate composites backgrounds but had no notion of `opacity`, so a fade on
+  // an ANCESTOR was invisible to it. That is how `.ctrl.is-disabled { opacity:
+  // 0.45 }` took a disabled slider's label to 2.78:1 and its help text to 2.06:1
+  // with every check green: opacity multiplies down the whole subtree and cannot
+  // be undone by a child, so the text a reader needs went with the furniture.
+  //
+  // SC 1.4.3 exempts inactive components, so this is not asserting a violation —
+  // it is asserting the decision that disabled controls here stay READABLE, and
+  // making the next blanket fade fail loudly instead of quietly.
+  installDomShim();
+  const { getState, setViewMode } = await import('../js/state.js');
+  const { computedDecls, ancestorClassIndex } = await import('./css-model.js');
+  const scopes = sectionTokenScopes();
+  const REG = await import('./view-registry.js');
+
+  const failures = [];
+  let faded = 0;
+  let sawFade = 0;
+  for (const [id, factory] of [...await REG.loadViews(), ...await REG.loadChrome()]) {
+    const vars = { ...ROOT_VARS, ...(scopes.get(id) || {}) };
+    for (const mode of ['sender', 'defender']) {
+      setViewMode(mode);
+      const { node: root } = factory(getState());
+      const ancestors = ancestorClassIndex(root);
+
+      const visit = (node, inherited) => {
+        if (!node) return;
+        if (node.nodeType === 11) { for (const c of node.childNodes || []) visit(c, inherited); return; }
+        if (node.nodeType !== 1) return;
+        // Opacity is read BEFORE pruning: an aria-hidden node is not measured, but
+        // it still proves the walk can see a fade, which is what stops this guard
+        // from passing vacuously once the only faded text is hidden from AT.
+        const decls = computedDecls(node, ancestors.get(node) || new Set());
+        const own = Number.parseFloat(decls.opacity);
+        const alpha = Number.isFinite(own) ? inherited.alpha * own : inherited.alpha;
+        if (Number.isFinite(own) && own < 1) sawFade += 1;
+        if (prunedFromWalk(node)) return;
+        const colour = (decls.color && !/^(inherit|currentColor)$/i.test(decls.color))
+          ? decls.color : inherited.colour;
+        const bgValue = decls.background ?? decls['background-color'];
+        let bg = inherited.bg;
+        if (bgValue && !/^(none|transparent|inherit)$/i.test(bgValue.trim())) {
+          const { colors } = backgroundColors(bgValue, vars);
+          if (colors.length) bg = colors[0].a >= 1 ? colors[0] : over(colors[0], inherited.bg);
+        }
+
+        if (alpha < 1 && paintsText(node)) {
+          faded += 1;
+          const fg = resolveColor(colour, vars);
+          if (fg) {
+            // The fade is applied to the glyph; the backdrop behind it is unfaded.
+            const ratio = contrastRatio(over({ ...fg, a: alpha }, bg), bg);
+            const need = thresholdFor(decls, vars);
+            if (ratio + 0.005 < need) {
+              const cls = (node.className || '').split(' ').filter(Boolean).join('.');
+              failures.push(`#sec-${id} ${node.tagName.toLowerCase()}${cls ? '.' + cls : ''} — `
+                + `${colour} faded to ${alpha.toFixed(2)} is ${ratio.toFixed(2)}:1 on `
+                + `${fmtColor(bg)} (needs ${need}:1). Text: "${(node._text || '').trim().slice(0, 44)}"`);
+            }
+          }
+        }
+        for (const c of node.childNodes || []) visit(c, { alpha, colour, bg });
+      };
+      visit(root, { alpha: 1, colour: 'var(--text)', bg: resolveColor('var(--bg)', vars) });
+    }
+  }
+
+  assert.ok(sawFade > 0,
+    'no element anywhere carries opacity < 1 — this guard is measuring nothing, '
+    + 'so a blanket fade could be reintroduced without it noticing');
+  assert.deepEqual(failures, [],
+    `text dimmed below its threshold by an opacity fade:\n  ${failures.join('\n  ')}`);
+});
+
 test('contrast: surface-3 is control chrome only, and what sits on it is legible', () => {
   const failures = [];
   const measured = [];

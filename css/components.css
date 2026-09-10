@@ -92,16 +92,18 @@
 .control-group { display: flex; flex-direction: column; gap: var(--sp-4); }
 .control-group-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); }
 .ctrl { display: flex; flex-direction: column; gap: var(--sp-2); }
-/* NOT a 1.4.3 item — the SC exempts "text that is part of an inactive user
-   interface component" — but recorded so the next audit does not re-litigate it:
-   at 0.45 a disabled slider's label composites to 2.78:1 and its `.ctrl-help` to
-   2.06:1, and in icmpView that help text is the sentence explaining what the
-   Clamp size control does and why it is worth switching on. Opacity cannot be
-   undone by a child, so the only levers are this number and where the help
-   paragraph lives. Left as-is deliberately: the fade is also the ONLY visual
-   signal that the control is inactive. If it is ever raised (~0.65 makes the
-   help legible), give the disabled state a second cue at the same time. */
-.ctrl.is-disabled { opacity: 0.45; }
+/* Was `opacity: 0.45` on the whole control. Opacity composites the entire
+   subtree, so it took the LABEL to 2.78:1 and the help text to 2.06:1 against the
+   card — and on a disabled control here the help text is the only thing that says
+   WHY it is disabled ("Only applies to the data-area channel..."). SC 1.4.3
+   exempts inactive components, so this was not a violation; it was still text the
+   reader needs, rendered unreadable. The dimming moves to the furniture, which
+   carries no text: the track and the aria-hidden value read-out. Label and help
+   keep their normal tokens, 8.62:1 and 5.15:1. The disabled state stays visible
+   through the dimmed track and is announced from the input's own `disabled`. */
+.ctrl.is-disabled .ctrl-range,
+.ctrl.is-disabled .ctrl-value { opacity: 0.45; }
+.ctrl.is-disabled label { cursor: not-allowed; }
 .ctrl-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
 .ctrl label { font-size: var(--fs-sm); color: var(--text-dim); font-weight: 500; }
 .ctrl-value { font-size: var(--fs-sm); color: var(--accent); font-weight: 600; }
