@@ -257,9 +257,9 @@
 .atlas-group-title { font-size: var(--fs-lg); margin: var(--sp-6) 0 var(--sp-3); }
 .atlas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: var(--sp-4); }
 .atlas-card.concept { border-style: dashed; }
-.atlas-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.atlas-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .atlas-card-title { font-size: var(--fs-md); }
-.atlas-badges { display: flex; gap: 4px; flex-wrap: wrap; flex: none; }
+.atlas-badges { display: flex; gap: 4px; flex-wrap: wrap; flex: 0 1 auto; min-width: 0; }
 .atlas-kv { display: flex; gap: var(--sp-2); font-size: var(--fs-xs); margin-top: var(--sp-2); }
 .atlas-kv-label { color: var(--text-faint); font-weight: 650; flex: none; min-width: 8.5em; text-transform: uppercase; letter-spacing: 0.04em; }
 .atlas-kv-value { color: var(--text-dim); }
