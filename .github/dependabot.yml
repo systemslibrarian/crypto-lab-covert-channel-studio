@@ -8,7 +8,7 @@
 # this exists to prevent. github-actions majors ARE grouped, per the fleet-wide
 # verification of the checkout/setup-node/Pages jumps.
 #
-# A NOTE SPECIFIC TO THIS LAB: it has no dependencies and no lockfile. It is a
+# A NOTE SPECIFIC TO THIS LAB: it has no dependencies; its lock records that state. It is a
 # static, no-build, dependency-free ES-module site, and `npm test` is
 # `node --test` with nothing installed. The npm block below is therefore expected
 # to stay quiet — it is kept because the group name is part of the fleet contract
