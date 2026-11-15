@@ -201,7 +201,7 @@ export const QUIZ = [
     ],
     answerIndex: 1,
     explanation:
-      'The two carriers were paired precisely to make this point. Scrubbing the data area destroys the payload channel and does nothing at all to a bit hidden in a header field. The defence that closes the identifier channel is a different one — a NAT rewriting the Echo Identifier, which RFC 5508 requires so replies can be demultiplexed — and that in turn leaves the data area alone. No single normaliser closes ICMP, which is the general lesson: defences are carrier-specific, and enumerating the carriers has to come before choosing the control.'
+      'The two carriers were paired precisely to make this point. Scrubbing the data area destroys the payload channel and does nothing at all to a bit hidden in a header field. The defence that closes the identifier channel is a different one — a NAPT rewriting the Echo Identifier, which it does so replies can be demultiplexed (RFC 5508 §3.1) — and that in turn leaves the data area alone. No single normaliser closes ICMP, which is the general lesson: defences are carrier-specific, and enumerating the carriers has to come before choosing the control.'
   },
   {
     id: 'warden-disruption-not-detection',

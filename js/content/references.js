@@ -95,7 +95,7 @@ export const REFERENCES = [
         authors: 'Donald Eastlake 3rd, Aliza Panitz',
         year: 1999,
         venue: 'IETF RFC 2606 (BCP 32)',
-        note: 'Reserves the .test TLD used throughout this exhibit, which is why the simulated domains can never resolve on the real Internet.',
+        note: 'Reserves the .test TLD used throughout this exhibit, which is why the simulated domains can never resolve on the real Internet. Note which name does which job: the RFC recommends .test "for use in testing of current or new DNS related code" and .example "for use in documentation or as examples" — so .test is the testing TLD, not the documentation one.',
         url: 'https://www.rfc-editor.org/rfc/rfc2606'
       },
       {
@@ -103,7 +103,7 @@ export const REFERENCES = [
         authors: 'Pyda Srisuresh, Bryan Ford, Senthil Sivakumar, Saikat Guha',
         year: 2009,
         venue: 'IETF RFC 5508 (BCP 148)',
-        note: 'Requires a NAT to rewrite the ICMP Query Identifier so it can match replies back to the session that sent them. That routine behavior destroys an identifier-based covert channel for free, and is the source of the paired-defence lesson in the ICMP module: this closes one carrier and leaves the other untouched.',
+        note: 'Requires a NAT to PERMIT ICMP queries and their replies (§3.1), and describes a NAPT translating the ICMP Query Identifier — and its checksum — so it can match replies back to the session that sent them, with a mapping that SHOULD be external-host independent. Read the requirement as written: a one-to-one NAT translates only the IP header, so nothing here obliges every NAT to rewrite the identifier. That routine NAPT behavior destroys an identifier-based covert channel for free, and is the source of the paired-defence lesson in the ICMP module: this closes one carrier and leaves the other untouched.',
         url: 'https://www.rfc-editor.org/rfc/rfc5508'
       },
       {

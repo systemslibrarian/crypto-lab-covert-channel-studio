@@ -21,8 +21,8 @@
  *
  * They also die to different defences, which is the point of pairing them: a
  * size clamp erases the payload channel and leaves the identifier channel
- * untouched, while a NAT rewriting the Echo Identifier (RFC 5508 requires
- * exactly this, so the NAT can demultiplex replies) erases the identifier
+ * untouched, while a NAPT rewriting the Echo Identifier (RFC 5508 §3.1 has a
+ * NAPT translate the Query Id so it can demultiplex replies) erases the identifier
  * channel and leaves the payload untouched. No single normaliser closes ICMP.
  *
  * Addresses are from the RFC 5737 documentation ranges, which are reserved for
@@ -60,7 +60,7 @@ export const FIELDS = {
     label: 'Echo Identifier (low bit)',
     bitsPerEcho: 1,
     idea: 'Flip the low bit of the 16-bit Echo Identifier; leave everything else exactly as a real ping would send it.',
-    breaks: 'Any NAT on the path — RFC 5508 requires the Echo Identifier to be rewritten so replies can be demultiplexed.',
+    breaks: 'Any NAPT on the path — it translates the Echo Identifier so replies can be demultiplexed (RFC 5508 §3.1). A one-to-one NAT translates only the IP header and leaves the field alone.',
     tell: 'Almost nothing. One session normally keeps one identifier, so a balanced low bit is mildly odd and nothing more.',
   },
 };

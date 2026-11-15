@@ -29,7 +29,7 @@ export function renderAtlasView(state) {
 
 function taxonomyCard() {
   return el('div', { class: 'card' },
-    el('h3', { class: 'card-title', text: 'The hiding-pattern taxonomy — eleven patterns, four with sub-patterns' }),
+    el('h3', { class: 'card-title', text: 'The hiding-pattern taxonomy — eleven patterns, two of them with sub-patterns' }),
     para(TAXONOMY.intro, 'subtle'),
     scopeNote(),
     TAXONOMY.since ? para(TAXONOMY.since, 'block-note') : null,

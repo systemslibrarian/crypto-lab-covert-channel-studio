@@ -222,7 +222,7 @@ export const GLOSSARY = [
   },
   {
     term: 'Echo Identifier',
-    definition: 'A 16-bit field in an ICMP echo request that lets a sender match replies to the session that asked for them; one ping session normally holds one value for its whole run. Its low bit will carry a covert bit, and almost nothing detects that — but a NAT rewrites the field as a matter of course (RFC 5508), so the channel dies for free on any translated path.',
+    definition: 'A 16-bit field in an ICMP echo request that lets a sender match replies to the session that asked for them; one ping session normally holds one value for its whole run. Its low bit will carry a covert bit, and almost nothing detects that — but a NAPT rewrites the field as a matter of course — RFC 5508 §3.1 has it translate the Query Identifier so replies can be demultiplexed — so the channel dies for free on any port-translated path.',
     seeAlso: ['NAT', 'Covert storage channel', 'Size modulation', 'Middlebox']
   },
   {

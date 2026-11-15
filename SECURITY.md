@@ -12,7 +12,7 @@ scope, its own security posture, responsible-use expectations, and how to report
 Every packet, DNS query, resolver, server, receiver, and timing event in this exhibit is a
 plain JavaScript object rendered in the browser. **The site generates no real network
 traffic of any kind** beyond loading its own static assets. Simulated domains use the
-reserved documentation TLD `.test` (e.g. `example.test`).
+reserved testing TLD `.test` (e.g. `example.test`) — RFC 2606 reserves `.test` for testing, and `.example` for documentation.
 
 The exhibit **must not** be, and must never be described as:
 

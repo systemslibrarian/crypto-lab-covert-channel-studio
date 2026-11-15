@@ -72,7 +72,7 @@ test("encodeMessageToQueries('HELLO') then decode round-trips to 'HELLO'", () =>
     assert.ok(label.length > 0 && label.length <= labelLength, `label '${label}' length <= ${labelLength}`);
   }
 
-  // Queries use the documentation parent 'example.test'.
+  // Queries use the parent 'example.test', under RFC 2606's testing TLD.
   assert.equal(PARENT_DOMAIN, 'example.test');
   for (const q of queries) {
     assert.equal(q.parent, 'example.test');

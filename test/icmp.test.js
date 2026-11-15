@@ -26,6 +26,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   FIELDS,
@@ -115,9 +116,9 @@ test('a payload size clamp closes the data-area channel and spares the identifie
   assert.equal(survives('id-lowbits', { clampBytes: BITING_CLAMP }), true);
 });
 
-test('a NAT rewriting the Echo Identifier closes that channel and spares the payload', () => {
-  // RFC 5508 requires a NAT to rewrite the Query Identifier so it can
-  // demultiplex replies — the defence comes free with address translation.
+test('a NAPT rewriting the Echo Identifier closes that channel and spares the payload', () => {
+  // RFC 5508 §3.1 has a NAPT translate the Query Identifier so it can
+  // demultiplex replies — the defence comes free with port translation.
   assert.equal(survives('id-lowbits', { rewriteId: true }), false);
   assert.equal(survives('payload', { rewriteId: true }), true);
 });
@@ -329,4 +330,34 @@ test('detector: an empty stream does not throw', () => {
   const det = analyzeIcmp([]);
   assert.equal(det.metrics.echoCount, 0);
   assert.ok(Number.isFinite(det.score));
+});
+
+/**
+ * RFC 5508 says what it says. §3.1 requires a NAT to PERMIT ICMP queries and
+ * their replies, and describes a NAPT translating the Query Id and its checksum
+ * so replies can be demultiplexed, with a mapping that SHOULD be external-host
+ * independent. It does NOT require every NAT to rewrite the identifier — a
+ * one-to-one NAT translates only the IP header. Six copies of this lab's ICMP
+ * copy once said it did, so the claim is gated at its source.
+ */
+test('no ICMP copy claims RFC 5508 requires the identifier to be rewritten', () => {
+  const sources = [
+    'js/channels/icmp.js',
+    'js/detectors/icmpDetector.js',
+    'js/views/icmpView.js',
+    'js/content/atlas.js',
+    'js/content/glossary.js',
+    'js/content/quiz.js',
+    'js/content/references.js',
+  ];
+  for (const rel of sources) {
+    const text = readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, /RFC 5508 requires (this|the Echo Identifier|a NAT to rewrite)/,
+      `${rel}: RFC 5508 requires queries to be PERMITTED; the rewrite is what a NAPT does`);
+    assert.doesNotMatch(text, /[Aa]ny NAT on the path/,
+      `${rel}: a one-to-one NAT leaves the identifier alone — say NAPT`);
+  }
+  // And the field card still names the defence that does close the channel.
+  assert.match(FIELDS['id-lowbits'].breaks, /NAPT/);
+  assert.match(FIELDS['id-lowbits'].breaks, /RFC 5508 §3\.1/);
 });

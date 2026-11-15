@@ -154,7 +154,7 @@ function leftPanel(state, refs = {}) {
         toggle({
           label: 'NAT rewrites the Echo Identifier',
           checked: p.rewriteId,
-          help: 'RFC 5508 requires this so the NAT can match replies back to a session.',
+          help: 'A NAPT translates this field so it can match replies back to a session (RFC 5508 §3.1). RFC 5508 does not require every NAT to rewrite it.',
           onChange: (v) => setChannelParam('icmp', 'rewriteId', v),
         }),
         slider({

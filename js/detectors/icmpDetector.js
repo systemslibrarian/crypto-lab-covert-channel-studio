@@ -212,9 +212,9 @@ export function analyzeIcmp(echoes) {
     },
     {
       key: 'identifierStability', name: 'Echo Identifier stability',
-      citation: 'RFC 792 (identifier/sequence semantics); RFC 5508 (NAT rewrites the identifier)',
+      citation: 'RFC 792 (identifier/sequence semantics); RFC 5508 §3.1 (a NAPT translates the identifier)',
       value: `${focus.distinctIdentifiers} identifier${focus.distinctIdentifiers === 1 ? '' : 's'}, low-bit balance ${round(focus.idLowBitBalance, 2)}`,
-      interpretation: 'Weak by construction. A one-bit identifier channel is the ICMP twin of IP-ID parity — near-undetectable by any simple statistic, and destroyed for free by any NAT on the path.',
+      interpretation: 'Weak by construction. A one-bit identifier channel is the ICMP twin of IP-ID parity — near-undetectable by any simple statistic, and destroyed for free by any NAPT on the path.',
     },
   ];
 

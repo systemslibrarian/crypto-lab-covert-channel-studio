@@ -1,7 +1,7 @@
 /**
  * channels/http.js — SIMULATED application-layer covert channel in HTTP header
  * ORDER. No requests are sent; every "request" is a plain JavaScript object and
- * the host is the reserved documentation domain example.test.
+ * the host is example.test, under the TLD RFC 2606 reserves for testing.
  *
  * A real client library emits its request headers in a stable, recognisable
  * order. Data can be hidden by permuting a set of reorderable headers: k headers

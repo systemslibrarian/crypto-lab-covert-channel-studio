@@ -3,6 +3,29 @@
 All notable changes to Covert Channel Studio. The format is loosely based on
 [Keep a Changelog](https://keepachangelog.com/), and the project uses semantic-ish versioning.
 
+## [Unreleased] — 2026-11-15 — Three claims read back against their sources
+
+### Fixed
+- **RFC 5508 does not require every NAT to rewrite the Echo Identifier.** Six places said it did.
+  What §3.1 requires is that a NAT PERMIT ICMP queries and their replies; what it then describes is
+  a NAPT translating the Query Id and its checksum so replies can be demultiplexed, with a mapping
+  that SHOULD be external-host independent. A one-to-one NAT translates only the IP header and leaves
+  the field alone. The identifier channel still dies for free on a port-translated path — the
+  paired-defence lesson is unchanged — but it dies to a NAPT, not to "any NAT". Reworded in
+  `js/channels/icmp.js`, `js/detectors/icmpDetector.js`, `js/views/icmpView.js`, the Atlas carrier
+  card, the glossary entry, the quiz explanation and the reference note, and gated in
+  `test/icmp.test.js`.
+- **The taxonomy card miscounted its own parents.** The intro read "four of the eleven carry named
+  sub-patterns" when the four sub-patterns (P2.a, P2.b, P6.a, P6.b) sit under exactly TWO of them —
+  P2 Sequence and P6 Value Modulation. Fifteen rows for eleven patterns was right all along; the
+  heading on the card said "four with sub-patterns" too. Both now derive-and-match, with the
+  arithmetic gated from the catalog data in the new `test/atlas.test.js`.
+- **`.test` is the TESTING TLD, not the documentation one.** RFC 2606 recommends `.test` "for use in
+  testing of current or new DNS related code" and `.example` "for use in documentation or as
+  examples". The exhibit's domains are unchanged and still cannot resolve; only the description of
+  WHY was wrong, in the README, SECURITY.md, the DNS and HTTP channel comments, a DNS test comment
+  and the RFC 2606 reference note.
+
 ## [1.5.1] — 2026-09-09 — Accessibility: the slider you could not hit, and the header you could not read
 
 Audited against WCAG 2.1 AA and small-screen reflow. The layout was already
@@ -316,8 +339,8 @@ whatever else ships beside it.
   low bit of the 16-bit Echo Identifier (quiet, one bit per echo). Backed by `js/channels/icmp.js`,
   `js/detectors/icmpDetector.js`, `js/views/icmpView.js`.
   - **They die to orthogonal defences.** A size clamp or payload scrub erases the data-area channel
-    and leaves the identifier untouched; a NAT rewriting the Echo Identifier — which RFC 5508 requires
-    so replies can be demultiplexed — erases the identifier channel and leaves the payload untouched.
+    and leaves the identifier untouched; a NAPT rewriting the Echo Identifier — which RFC 5508 §3.1 has
+    it do so replies can be demultiplexed — erases the identifier channel and leaves the payload untouched.
     **No single normaliser closes ICMP**, and the module is built so a student can verify that by
     flipping two switches.
   - **Payload entropy is the wrong statistic.** The conventional ping fill is an incrementing run of

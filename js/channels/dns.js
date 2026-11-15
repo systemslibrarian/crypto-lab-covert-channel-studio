@@ -99,7 +99,7 @@ function chunk(str, size) {
  *   intervalMs?: number,    // nominal gap between queries (request cadence)
  *   jitterMs?: number,      // random timing jitter added to the cadence
  *   client?: string,        // simulated source IP
- *   parent?: string,        // parent domain (documentation ".test")
+ *   parent?: string,        // parent domain (the testing TLD ".test")
  *   queryType?: string,     // 'A' | 'AAAA' | 'TXT' | 'NULL' (label only)
  *   startTimeMs?: number,
  *   seed?: string|number,

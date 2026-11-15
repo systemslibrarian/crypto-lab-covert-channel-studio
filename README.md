@@ -165,7 +165,7 @@ The key distinction the lab hammers on: **hiding content is not the same as hidi
 This is a controlled, entirely client-side simulation built for understanding and detection, not operation:
 
 - Every "packet," "query," "resolver," "server," and "timing event" is a plain JavaScript object rendered in the browser.
-- Simulated domains use the reserved documentation TLD `.test` (e.g., `example.test`), which cannot resolve on the public Internet.
+- Simulated domains use the reserved testing TLD `.test` (e.g., `example.test`), which cannot resolve on the public Internet. RFC 2606 reserves `.test` for testing and `.example` for documentation; the second-level name here is the reserved `example` label under it.
 - The site makes **no network requests at all** beyond loading its own static files, enforced by a strict Content-Security-Policy.
 - Messages are toy-sized (max 24 UTF-8 bytes) and exist only in browser memory.
 - The lab never claims any channel is "undetectable" or "invisible" — a core teaching point is that every channel has an observable footprint, and comparisons are ranked by educational value, never by stealth.
