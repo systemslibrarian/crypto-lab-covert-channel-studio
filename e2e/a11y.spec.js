@@ -187,3 +187,319 @@ test('a shared URL restores the section, seed and view mode it encodes', async (
 
   expect(trouble).toEqual([]);
 });
+
+/* ---- where a control's accessible name actually comes from ------------------
+ *
+ * axe-core's `label` rule is satisfied by a non-empty `placeholder`. That is
+ * faithful to the HTML accessible name computation — the placeholder really is
+ * a last-resort step for a text input — but it is not a name anything should
+ * ship on: the placeholder vanishes the moment the field has content, so the
+ * name disappears exactly when a user needs to check what they are editing, and
+ * it is drawn at hint-text weight and colour.
+ *
+ * The consequence for THIS gate is sharper than a style objection. Delete the
+ * `<label>` from a field that also carries a placeholder and the axe scan above
+ * stays green — the control still has *a* name, so `label` does not fire.
+ * Nothing in the browser gate would notice the label had gone.
+ *
+ * So the rule below is deliberately STRICTER than axe. It does not ask "does
+ * this control have a name?" — axe already asks that, and is kept for it. It
+ * asks "does the name come from a mechanism that stays exposed once the field
+ * is in use?", and accepts exactly four:
+ *
+ *     label[for="id"]     a <label> anywhere in the document pointing at it
+ *     a wrapping <label>  the control nested inside its own <label>
+ *     aria-label          an explicit name on the control
+ *     aria-labelledby     an explicit name by reference, with real text behind it
+ *
+ * A `placeholder` alone FAILS. A `title` alone FAILS. Both are hints. A control
+ * with a real label AND a placeholder PASSES — a hint beside a label is fine,
+ * and the glossary filter is exactly that shape, asserted by name below.
+ */
+
+/**
+ * What counts as a form control here.
+ *
+ * Four input types are excluded, and the exclusions are about what a name could
+ * even mean for them:
+ *
+ *   [type="hidden"] — never rendered and never in the accessibility tree, so
+ *                     there is nothing to name and nothing to announce.
+ *   [type="submit"] — named by its `value`, and by a user-agent default
+ *                     ("Submit") when `value` is absent, so it is never nameless.
+ *   [type="button"] — named by its `value`, for the same reason.
+ *   [type="image"]  — named by its `alt`, which IS a real labelling mechanism,
+ *                     just not one of the four this rule lists.
+ *
+ * None of the four accepts a `placeholder` at all, which is the blind spot this
+ * rule exists to close — so including them would only add noise. `reset` is the
+ * one other button-shaped type; this exhibit has none, and if one is ever added
+ * it belongs on this list for the same `value` reason.
+ *
+ * An <input> with no `type` attribute defaults to text and IS in scope: the
+ * :not() chain matches it, because an absent attribute matches no [type=...].
+ */
+const NAME_SCOPE_SELECTOR = [
+  'input:not([type="hidden" i]):not([type="submit" i]):not([type="button" i]):not([type="image" i])',
+  'select',
+  'textarea',
+  '[role="searchbox"]',
+  '[role="combobox"]',
+  '[role="textbox"]',
+].join(', ');
+
+/**
+ * Runs IN THE PAGE. Reports, per control, every real labelling mechanism that
+ * produced text for it — and, separately, the placeholder and title it has, so
+ * a failure can say what the control was relying on instead.
+ *
+ * Self-contained on purpose: Playwright serialises this function into the page,
+ * so it can close over nothing from this module.
+ *
+ * @param {{selector: string, rootSelector?: string}} opts
+ */
+function auditNameSources({ selector, rootSelector }) {
+  const root = rootSelector ? document.querySelector(rootSelector) : document;
+  if (!root) throw new Error(`audit root ${rootSelector} was not found in the page`);
+
+  /**
+   * The text a labelling element actually contributes to an accessible name.
+   * `aria-hidden="true"` and `hidden` subtrees contribute nothing — the switch
+   * and segmented controls wrap a decorative track and an icon inside their own
+   * <label>, and counting those as the label text would let a label made only
+   * of decoration pass. `skip` drops the control itself out of its wrapping
+   * label, so a <select>'s option text can never masquerade as its label.
+   */
+  const nameText = (node, skip) => {
+    if (!node) return '';
+    let out = '';
+    const visit = (n) => {
+      if (n === skip) return;
+      if (n.nodeType === Node.TEXT_NODE) { out += n.nodeValue; return; }
+      if (n.nodeType !== Node.ELEMENT_NODE) return;
+      if (n.getAttribute('aria-hidden') === 'true' || n.hasAttribute('hidden')) return;
+      for (const child of n.childNodes) visit(child);
+    };
+    for (const child of node.childNodes) visit(child);
+    return out.replace(/\s+/g, ' ').trim();
+  };
+
+  /** Enough to find the control again by hand. */
+  const describe = (elm) => {
+    const home = elm.closest('.section, header, nav, footer');
+    const where = home ? (home.id || home.tagName.toLowerCase()) : 'document';
+    const type = elm.getAttribute('type');
+    const role = elm.getAttribute('role');
+    const classes = String(elm.className || '').trim().split(/\s+/).filter(Boolean)
+      .map((c) => `.${c}`).join('');
+    return `${where} > ${elm.tagName.toLowerCase()}`
+      + (type ? `[type="${type}"]` : '')
+      + (role ? `[role="${role}"]` : '')
+      + (elm.id ? `#${elm.id}` : '')
+      + classes;
+  };
+
+  return [...root.querySelectorAll(selector)].map((elm) => {
+    const sources = [];
+
+    const id = elm.getAttribute('id');
+    if (id) {
+      // Document-wide, not within `root`: a label[for] does not have to be a
+      // sibling, or even nearby.
+      const texts = [...document.querySelectorAll(`label[for="${CSS.escape(id)}"]`)]
+        .map((l) => nameText(l, elm)).filter(Boolean);
+      if (texts.length) sources.push(`label[for="${id}"] -> "${texts[0]}"`);
+    }
+
+    const wrapping = elm.closest('label');
+    if (wrapping) {
+      const text = nameText(wrapping, elm);
+      if (text) sources.push(`wrapping <label> -> "${text}"`);
+    }
+
+    const ariaLabel = String(elm.getAttribute('aria-label') || '').trim();
+    if (ariaLabel) sources.push(`aria-label -> "${ariaLabel}"`);
+
+    const labelledby = String(elm.getAttribute('aria-labelledby') || '').trim();
+    if (labelledby) {
+      const text = labelledby.split(/\s+/).filter(Boolean)
+        .map((ref) => document.getElementById(ref))
+        .filter(Boolean)
+        .map((target) => nameText(target) || String(target.getAttribute('aria-label') || '').trim())
+        .filter(Boolean)
+        .join(' ');
+      if (text) sources.push(`aria-labelledby="${labelledby}" -> "${text}"`);
+    }
+
+    return {
+      where: describe(elm),
+      sources,
+      placeholder: String(elm.getAttribute('placeholder') || '').trim(),
+      title: String(elm.getAttribute('title') || '').trim(),
+    };
+  });
+}
+
+/** Both halves of the Sender/Defender switch: eleven channel views rebuild on it. */
+const VIEW_MODES = ['sender', 'defender'];
+
+test('every form control is named by a label, aria-label or aria-labelledby — never by a placeholder', async ({ page }) => {
+  const trouble = watchForTrouble(page);
+  await page.goto('/');
+  await expect(page.locator('#main #sec-overview')).toBeVisible();
+
+  const failures = new Set();
+  const distinct = new Set();
+  let sightings = 0;
+  let withPlaceholder = 0;
+  let labelledAndPlaceholdered = 0;
+
+  for (const mode of VIEW_MODES) {
+    // Clicked, not poked into the store: the switch rebuilds eleven of the
+    // channel views, so a control that exists in only one mode is on the page
+    // only after this. The radio itself is 0x0 and opacity:0 (css/components.css
+    // `.seg-input`), so the click goes to its `.seg-btn` label, the way a
+    // visitor clicks it.
+    await page.locator(`#header-controls input[name="viewmode"][value="${mode}"] + .seg-btn`).click();
+    await expect(page.locator(`#header-controls input[name="viewmode"][value="${mode}"]`)).toBeChecked();
+
+    for (const id of SECTION_IDS) {
+      await page.locator(`#nav .nav-link[data-section="${id}"]`).click();
+      await expect(page.locator(`#main #sec-${id}`)).toBeVisible();
+
+      // The whole document, not just #main: the header's three global controls
+      // and the sidebar are on every one of these surfaces too, and a label
+      // deleted there would show on all 24.
+      const records = await page.evaluate(auditNameSources, { selector: NAME_SCOPE_SELECTOR });
+      expect(
+        records.length,
+        `${mode}/${id}: the audit found no form controls at all — NAME_SCOPE_SELECTOR has gone stale, `
+        + 'or the section did not render',
+      ).toBeGreaterThan(0);
+
+      for (const record of records) {
+        sightings += 1;
+        distinct.add(record.where);
+        if (record.placeholder) withPlaceholder += 1;
+        if (record.placeholder && record.sources.length) labelledAndPlaceholdered += 1;
+        if (record.sources.length) continue;
+
+        const relying = record.placeholder
+          ? `its only name would be placeholder="${record.placeholder}", which axe's \`label\` rule `
+            + 'accepts as a last resort and this rule does not'
+          : record.title
+            ? `its only name would be title="${record.title}", which is a hint, not a label`
+            : 'and it has no placeholder or title either, so it is simply nameless';
+        failures.add(
+          `[${mode}] ${record.where}: no accessible name from label[for], a wrapping <label>, `
+          + `aria-label or aria-labelledby — ${relying}`,
+        );
+      }
+    }
+  }
+
+  // Counts in the log, so a run that silently audited nothing cannot read as a
+  // pass.
+  console.log(
+    `[accessible-name-source] ${sightings} control sightings over ${SECTION_IDS.length} sections x `
+    + `${VIEW_MODES.length} view modes; ${distinct.size} distinct controls; ${withPlaceholder} sightings `
+    + `carried a placeholder, ${labelledAndPlaceholdered} of those also had a real label; `
+    + `${failures.size} named by a placeholder or a title alone.`,
+  );
+
+  // The rule itself FIRST, so that when it bites, the message that stops the
+  // run is the one naming the control and what it was relying on — not one of
+  // the two coverage guards below, which would stop the run earlier with a bare
+  // count and send the reader looking in the wrong place.
+  expect([...failures].join('\n'), 'form controls named only by a placeholder or a title').toBe('');
+
+  // Then the guards: a walk that collapsed, or an exhibit that no longer has
+  // the label-plus-placeholder case in it, would otherwise pass vacuously. The
+  // floors are well under the real figures (188 controls, 2 placeholder
+  // sightings) and exist to catch a collapse, not to be kept in step.
+  expect(distinct.size, 'the audit must actually reach the exhibit controls').toBeGreaterThan(20);
+  expect(
+    labelledAndPlaceholdered,
+    'at least one control must carry a real label AND a placeholder, or the pass case is untested',
+  ).toBeGreaterThan(0);
+
+  expect(trouble, 'auditing both view modes must not log an error').toEqual([]);
+});
+
+test('the name-source rule passes a label beside a placeholder and fails a placeholder or title alone', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#main #sec-overview')).toBeVisible();
+
+  // 1. The production case, first, because it is the one that has to keep
+  //    working. The glossary filter carries BOTH aria-label and placeholder
+  //    (js/views/glossaryView.js) and must pass.
+  await page.locator('#nav .nav-link[data-section="glossary"]').click();
+  await expect(page.locator('#main #sec-glossary')).toBeVisible();
+  const [glossary] = await page.evaluate(auditNameSources, { selector: '.glossary-search' });
+  expect(glossary.placeholder, 'the glossary filter is this exhibit label-plus-placeholder case')
+    .toBe('Filter terms…');
+  expect(glossary.sources.join(' | '), 'a real label beside a placeholder must still pass')
+    .toContain('aria-label -> "Filter glossary terms"');
+
+  // 2. The rejections. These cannot be shown on production markup without
+  //    breaking it, so three throwaway probes are built in the page, audited by
+  //    the same function, and removed. No inline `style` attribute is set on
+  //    them: this page's CSP is `style-src 'self'`, which refuses one.
+  await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.id = 'name-source-probe';
+
+    const placeholderOnly = document.createElement('input');
+    placeholderOnly.type = 'text';
+    placeholderOnly.id = 'probe-placeholder-only';
+    placeholderOnly.setAttribute('placeholder', 'Filter terms…');
+
+    const titleOnly = document.createElement('input');
+    titleOnly.type = 'text';
+    titleOnly.id = 'probe-title-only';
+    titleOnly.setAttribute('title', 'Filter terms');
+
+    const labelAndPlaceholder = document.createElement('input');
+    labelAndPlaceholder.type = 'text';
+    labelAndPlaceholder.id = 'probe-label-and-placeholder';
+    labelAndPlaceholder.setAttribute('placeholder', 'Filter terms…');
+    const realLabel = document.createElement('label');
+    realLabel.setAttribute('for', 'probe-label-and-placeholder');
+    realLabel.textContent = 'Filter glossary terms';
+
+    host.append(placeholderOnly, titleOnly, realLabel, labelAndPlaceholder);
+    document.body.appendChild(host);
+  });
+
+  const probes = await page.evaluate(auditNameSources, {
+    selector: NAME_SCOPE_SELECTOR, rootSelector: '#name-source-probe',
+  });
+  const byId = Object.fromEntries(probes.map((p) => [p.where.split('#')[1], p]));
+
+  expect(Object.keys(byId).sort(), 'all three probes must be in scope').toEqual([
+    'probe-label-and-placeholder', 'probe-placeholder-only', 'probe-title-only',
+  ]);
+  expect(byId['probe-placeholder-only'].sources, 'a placeholder alone is not a label').toEqual([]);
+  expect(byId['probe-title-only'].sources, 'a title alone is not a label').toEqual([]);
+  expect(byId['probe-label-and-placeholder'].sources, 'a label beside a placeholder is a label')
+    .toEqual(['label[for="probe-label-and-placeholder"] -> "Filter glossary terms"']);
+
+  // 3. And the reason this rule exists: axe, scanning the same three probes
+  //    with its own `label` rule, finds nothing wrong with any of them. If this
+  //    ever fails, axe has stopped accepting a placeholder-only or title-only
+  //    name and the gap above may have closed upstream — re-read the rule
+  //    before deleting anything.
+  const axeOnProbes = await new AxeBuilder({ page })
+    .include('#name-source-probe').withRules(['label']).analyze();
+  expect(
+    axeOnProbes.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
+    'axe label rule on a placeholder-only and a title-only control: the gap this rule covers',
+  ).toEqual([]);
+  console.log(
+    `[accessible-name-source] probes: ${probes.length} audited; `
+    + `axe \`label\` violations on the same three: ${axeOnProbes.violations.length}; `
+    + `rule rejections: ${probes.filter((p) => !p.sources.length).length}.`,
+  );
+
+  await page.evaluate(() => document.getElementById('name-source-probe')?.remove());
+});
