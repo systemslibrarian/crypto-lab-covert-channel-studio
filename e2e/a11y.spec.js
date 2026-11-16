@@ -399,21 +399,30 @@ test('every form control is named by a label, aria-label or aria-labelledby — 
   }
 
   // Counts in the log, so a run that silently audited nothing cannot read as a
-  // pass. The floor is well under the real figure and exists only to catch a
-  // walk that collapsed, not to be kept in step with the exhibit.
+  // pass.
   console.log(
     `[accessible-name-source] ${sightings} control sightings over ${SECTION_IDS.length} sections x `
     + `${VIEW_MODES.length} view modes; ${distinct.size} distinct controls; ${withPlaceholder} sightings `
     + `carried a placeholder, ${labelledAndPlaceholdered} of those also had a real label; `
     + `${failures.size} named by a placeholder or a title alone.`,
   );
+
+  // The rule itself FIRST, so that when it bites, the message that stops the
+  // run is the one naming the control and what it was relying on — not one of
+  // the two coverage guards below, which would stop the run earlier with a bare
+  // count and send the reader looking in the wrong place.
+  expect([...failures].join('\n'), 'form controls named only by a placeholder or a title').toBe('');
+
+  // Then the guards: a walk that collapsed, or an exhibit that no longer has
+  // the label-plus-placeholder case in it, would otherwise pass vacuously. The
+  // floors are well under the real figures (188 controls, 2 placeholder
+  // sightings) and exist to catch a collapse, not to be kept in step.
   expect(distinct.size, 'the audit must actually reach the exhibit controls').toBeGreaterThan(20);
   expect(
     labelledAndPlaceholdered,
     'at least one control must carry a real label AND a placeholder, or the pass case is untested',
   ).toBeGreaterThan(0);
 
-  expect([...failures].join('\n'), 'form controls named only by a placeholder or a title').toBe('');
   expect(trouble, 'auditing both view modes must not log an error').toEqual([]);
 });
 
