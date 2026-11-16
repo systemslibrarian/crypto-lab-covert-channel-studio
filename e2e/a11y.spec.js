@@ -65,13 +65,22 @@ function describeViolations(label, violations) {
  *
  * `.nav-link` transitions its background over --dur-fast, so for ~120ms after
  * a route change the link that was current still carries its 14%-accent fill
- * while its `.nav-index` has already snapped back to --text-faint. That pairing
- * measures 4.45:1 at the top of the fade — just under the 4.5:1 minimum — and
- * axe catches it or misses it depending on how fast the machine is. The state
- * is real but transient and belongs to no settled view, so waiting it out is
- * the difference between a gate and a coin toss. Only the sidebar's own
- * animations are awaited: the exhibit has long decorative ones (.sr-dot runs
- * 2.4s x3) that would otherwise dominate the run.
+ * while its `.nav-index` has already snapped back to --text-faint. At the top
+ * of the fade that pairing measures 4.2925:1 against the pixel actually painted
+ * behind it — under the 4.5:1 minimum — and axe catches it or misses it
+ * depending on how fast the machine is. The state is real but transient and
+ * belongs to no settled view, so waiting it out is the difference between a
+ * gate and a coin toss. Only the sidebar's own animations are awaited: the
+ * exhibit has long decorative ones (.sr-dot runs 2.4s x3) that would otherwise
+ * dominate the run.
+ *
+ * This comment said 4.45:1 until the finding was re-measured on 2026-11-16.
+ * That figure composites the fill over the bare --bg token; the painted
+ * backdrop also carries body::before's two radial gradients, which take the
+ * real ratio down to 4.2925:1 — below 4.5:1 for the first ~6ms of the 120ms
+ * transition, which is one painted frame. ACCESSIBILITY.md records the
+ * measurement, how it was sampled, and why the frame is being carried rather
+ * than designed out.
  */
 async function navTransitionsSettled(page) {
   await page.waitForFunction(() => [...document.querySelectorAll('#nav .nav-link')]
