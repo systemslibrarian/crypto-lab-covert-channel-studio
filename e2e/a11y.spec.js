@@ -209,6 +209,56 @@ test('the skip link is first in the focus order and lands focus on main', async 
   expect(trouble).toEqual([]);
 });
 
+test('the skip link moves focus into main WITHOUT navigating away from the section', async ({ page }) => {
+  const trouble = watchForTrouble(page);
+
+  // The third half of SC 2.4.1, and the one the test above cannot see: landing
+  // focus on #main is worth nothing if the content under it has been swapped
+  // out on the way. `href="#main"` makes the browser write `location.hash`,
+  // which fires the `hashchange` listener in js/app.js; `#main` is not a
+  // registered section, so parseHash() falls back to 'overview' and applyHash()
+  // routes there. A reader three sections deep pressed "Skip to main content"
+  // and was returned to the Overview — which is worse than having no skip link
+  // at all, because the one above passes either way.
+  //
+  // Deep-linked WITH a seed on purpose: the reroute also rewrites the URL, so
+  // this pins the seed surviving it as well as the section.
+  await page.goto('/#dns?seed=probe-seed');
+  await expect(page.locator('#main #sec-dns')).toBeVisible();
+  await expect(page.locator('#header-controls #seed-input')).toHaveValue('probe-seed');
+
+  await page.locator('a.skip-link').focus();
+  await expect(page.locator('a.skip-link')).toBeFocused();
+  await page.keyboard.press('Enter');
+
+  // 1. Focus still has to land on main. This is the part that already worked,
+  //    asserted first so a regression here is never mistaken for the reroute.
+  await expect(page.locator('#main')).toBeFocused();
+
+  // Proving an ABSENCE needs a settling window: the reroute is synchronous
+  // inside the hashchange handler, but asserting one frame after Enter would
+  // pass against the broken code too. 500ms is four times the 120ms route
+  // transition, so anything that was going to move has moved.
+  await page.waitForTimeout(500);
+
+  // 2. The URL must not have moved. Not `#overview?seed=probe-seed`, and not
+  //    `#main` either — the skip link is not a route.
+  expect(new URL(page.url()).hash, 'the skip link must not rewrite the route')
+    .toBe('#dns?seed=probe-seed');
+
+  // 3. The section the reader was on must still be the one rendered, and still
+  //    the one the sidebar says is current.
+  await expect(page.locator('#main .section')).toHaveCount(1);
+  await expect(page.locator('#main #sec-dns')).toBeVisible();
+  await expect(page.locator('#nav .nav-link[data-section="dns"]')).toHaveAttribute('aria-current', 'page');
+
+  // 4. And the seed is untouched, in the field and in the store.
+  await expect(page.locator('#header-controls #seed-input')).toHaveValue('probe-seed');
+  expect(await page.evaluate(async () => (await import('/js/state.js')).getState().seed)).toBe('probe-seed');
+
+  expect(trouble, 'activating the skip link must not log an error').toEqual([]);
+});
+
 test('a shared URL restores the section, seed and view mode it encodes', async ({ page }) => {
   const trouble = watchForTrouble(page);
 

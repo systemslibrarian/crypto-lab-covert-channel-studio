@@ -101,6 +101,45 @@ function buildFooter() {
   append(footerEl, footerContent(VERSION));
 }
 
+/**
+ * Make "Skip to main content" skip to the main content, and nothing else.
+ *
+ * `index.html` declares the skip link as `<a href="#main">`, and letting the
+ * browser follow that href is what broke it: following a fragment WRITES
+ * `location.hash`, which fires the `hashchange` listener below, and `main` is
+ * not a registered section — so parseHash() falls back to 'overview' and
+ * applyHash() routes there. A reader three sections deep pressed the skip link
+ * and was returned to the Overview. Focus still landed on #main, which is why
+ * the gate's SC 2.4.1 test passed throughout; the content under the focus had
+ * simply been replaced.
+ *
+ * So the href stays (it is what makes the link a link, keyboard-operable and
+ * announced as one, and it is the correct target if scripting never runs), and
+ * the default action is replaced:
+ *
+ *   - preventDefault(), so no hash is written and the router is never woken.
+ *     The router's handling of an unknown hash is deliberately left alone: it
+ *     is correct for an unknown hash, and the skip link has no business
+ *     producing one.
+ *   - focus() on #main, which carries tabindex="-1" in index.html, with
+ *     preventScroll so the browser's own scroll-into-view does not race the
+ *     deliberate one below.
+ *   - scrollIntoView(), which honours the `scroll-padding-top` of
+ *     `--header-h + --sp-2` set on `html` in css/base.css, so #main lands below
+ *     the sticky header instead of behind it (SC 2.4.11), and inherits that
+ *     element's `scroll-behavior` — smooth normally, instantly under
+ *     prefers-reduced-motion.
+ */
+function wireSkipLink() {
+  const skipLink = document.querySelector('a.skip-link');
+  if (!skipLink) return;
+  skipLink.addEventListener('click', (event) => {
+    event.preventDefault();
+    mainEl.focus({ preventScroll: true });
+    mainEl.scrollIntoView();
+  });
+}
+
 function updateNav(activeId) {
   for (const link of navEl.querySelectorAll('.nav-link')) {
     if (link.dataset.section === activeId) link.setAttribute('aria-current', 'page');
@@ -215,6 +254,7 @@ function boot() {
   buildHeader();
   buildNav();
   buildFooter();
+  wireSkipLink();
   subscribe(onStateChange);
   window.addEventListener('hashchange', applyHash);
 
