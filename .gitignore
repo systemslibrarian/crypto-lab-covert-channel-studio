@@ -1,4 +1,6 @@
-# Dependencies (none — this project vendors everything and uses no build step)
+# Dependencies. The exhibit itself still vendors everything and has no build
+# step: the only packages here are the browser gate's (Playwright + axe-core),
+# which is why `npm test` continues to run with nothing installed.
 node_modules/
 
 # Editor / OS cruft
@@ -10,5 +12,8 @@ node_modules/
 
 # Test / coverage output
 coverage/
+test-results/
+playwright-report/
+.playwright/
 *.log
 chat.md
