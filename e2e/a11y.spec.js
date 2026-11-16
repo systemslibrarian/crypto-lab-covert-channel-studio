@@ -122,6 +122,40 @@ test('the exhibit boots in a real browser under its own Content-Security-Policy'
 });
 
 test('every section passes axe-core WCAG 2.0/2.1 A+AA as the sidebar renders it', async ({ page }) => {
+  /**
+   * This one test, not the config, and not the other six.
+   *
+   * It clicks through 24 sections and runs a full axe-core scan on each, which
+   * is far and away the longest thing in this file — the other six finish in
+   * 0.2s to 3s. Against Playwright's 30s default that left single-figure
+   * seconds of headroom, and a timeout here reads as "the exhibit has an
+   * accessibility violation" when it means "the runner was busy".
+   *
+   * Sized from CI, because CI is the quiet runner. Every green `main` run that
+   * contains this test, newest first, with the duration the `list` reporter
+   * printed for it:
+   *
+   *     17.0s   run 43858440828   39b6e19
+   *     18.8s   run 43857519473   04c0d93
+   *     19.4s   run 43854394081   923a98e
+   *     21.3s   run 43848372208   927f1ef   <-- governs
+   *
+   * Four runs, not five: the test was added in 170dcc0 and merged as 927f1ef,
+   * so that is every green main run there has ever been for it. CI max 21.3s,
+   * from run 43848372208. 2 x 21.3s = 42.6s, rounded up to the next 500ms:
+   *
+   *     43000ms, a 2.02x margin on the slowest run CI has recorded.
+   *
+   * Two caveats, because the figures should not be read as tighter than they
+   * are. The reporter prints 0.1s resolution at this scale (`21.3s`; it only
+   * prints whole milliseconds under 1s, as in `261ms`), so the max is 21.3s
+   * +/- 0.05s, not a millisecond figure. And `pull_request` runs of the same
+   * commits have gone as high as 23.6s on the same hardware — they are not
+   * `main` runs so they do not enter the calculation, but 43000ms is still
+   * 1.82x that figure, so the margin holds either way.
+   */
+  test.setTimeout(43_000);
+
   const trouble = watchForTrouble(page);
   await page.goto('/');
   await expect(page.locator('#main #sec-overview')).toBeVisible();
