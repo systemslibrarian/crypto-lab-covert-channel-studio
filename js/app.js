@@ -141,11 +141,31 @@ function syncUrl() {
 
 function applyHash() {
   const { section, seed, mode } = parseHash();
-  if (seed != null && seed !== getState().seed) setSeed(seed);
+  let headerIsStale = false;
+  if (seed != null && seed !== getState().seed) { setSeed(seed); headerIsStale = true; }
   const wantDefender = mode === 'defender';
   if (mode != null && wantDefender !== (getState().viewMode === VIEW_MODES.DEFENDER)) {
     setViewMode(wantDefender ? VIEW_MODES.DEFENDER : VIEW_MODES.SENDER);
+    headerIsStale = true;
   }
+  // boot() reads the hash and THEN builds the header, so a fresh load always
+  // shows the seed and mode it is actually running. A hash change on an open
+  // page had no equivalent: `reason: 'seed'` falls through onStateChange() to
+  // `current.refresh(state)`, which re-renders the section's output panels, and
+  // `reason: 'viewMode'` re-renders the SECTION — neither touches the header.
+  // The result was a Seed field reading `crypto-lab` while every simulation on
+  // the page ran on the seed from the URL, and Sender/Defender radios showing
+  // the wrong half in the wrong mode.
+  //
+  // Rebuilt HERE rather than in onStateChange on purpose. The store fires
+  // `reason: 'seed'` on every keystroke in the seed field, so rebuilding there
+  // would replace the input the visitor is typing into and take the caret with
+  // it — which is the whole reason the header is built once and left alone. A
+  // hash change is a navigation, not a keystroke: `history.replaceState()` in
+  // syncUrl() raises no `hashchange`, so typing, clicking a nav link and
+  // flipping the mode switch never reach this line. Only the back/forward
+  // button, a followed link and an explicit `location.hash = …` do.
+  if (headerIsStale) buildHeader();
   if (section !== current.id) setSection(section);
 }
 

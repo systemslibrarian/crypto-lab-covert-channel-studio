@@ -56,8 +56,17 @@ function seedField(seed, onSeed) {
     el('input', {
       type: 'text', id, class: 'mono', value: seed,
       attrs: { autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Deterministic simulation seed' },
-      // Store the raw value so the field never disagrees with the seed in use;
-      // an empty seed is still a perfectly valid deterministic key.
+      // Store the raw value: no trimming, no validation, so TYPING can never
+      // make the field disagree with the seed in use. An empty seed is still a
+      // perfectly valid deterministic key.
+      //
+      // That is only half of the agreement, and the other half does not live
+      // here. This field is built once, from the seed as it stands at build
+      // time, and the store's `reason: 'seed'` does not rebuild the header — so
+      // a seed arriving from a hash change on an already-open page used to move
+      // the simulation and leave the field behind. js/app.js applyHash() now
+      // rebuilds the header when the URL moves the seed or the view mode, which
+      // closes the other direction.
       on: { input: (e) => onSeed && onSeed(e.target.value) },
     }));
 }
