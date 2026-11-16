@@ -1,7 +1,9 @@
 name: Deploy to GitHub Pages
 
 # This project is a static site with no build step, so the whole repository is
-# published as-is. The deterministic test suite gates every publish.
+# published as-is. Two gates stand in front of every publish: the deterministic
+# Node suite, which still needs nothing installed, and the browser gate, which
+# boots the real page in Chromium and scans it with axe-core.
 
 on:
   push:
@@ -52,6 +54,42 @@ jobs:
       - name: Run the simulation test suite
         run: npm test
 
+  # The browser gate. Separate from `test` on purpose: the simulation suite
+  # above is dependency-free and stays that way, so a broken or unreachable
+  # registry cannot stop this lab proving its own maths. The browser gate does
+  # need packages -- Playwright and axe-core -- so it gets its own job, its own
+  # `npm ci` and its own Node, matching the fleet's build job in
+  # crypto-lab-world-hashes and crypto-lab-spake-gate.
+  #
+  # What it is here to catch, which nothing else could: index.html allows its
+  # one inline script by sha256 hash, and a one-byte edit anywhere in the policy
+  # or the script means a browser silently refuses to run it -- or, worse,
+  # refuses js/app.js and serves a blank exhibit. Every Node test would still
+  # pass. See e2e/a11y.spec.js.
+  browser-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      # Playwright starts the web server itself: `python3 -m http.server` on
+      # the repository root (see playwright.config.js). There is no build output
+      # to serve here, and serving the repo as-is is exactly what the deploy
+      # job below publishes -- which matters, because the CSP hash is computed
+      # over the bytes that are served.
+      #
+      # The reporter is `list`, not `html`: the run log is the evidence, so the
+      # test names and the pass/fail count have to be legible in this job's
+      # output rather than zipped into an artifact nobody opens.
+      - name: Accessibility gate (axe-core, WCAG A/AA, all 24 sections)
+        run: npm run test:a11y
+
   deploy:
     timeout-minutes: 15
     # A pull request is tested, never published. NOT `== 'push'` — that would
@@ -59,7 +97,7 @@ jobs:
     # deploy depends on: the dispatched run would build, pass the gate, and skip
     # this job, so the site would still never update.
     if: github.event_name != 'pull_request'
-    needs: test
+    needs: [test, browser-gate]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -78,12 +116,14 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-  # Dependabot only. `needs: test` is the whole safety argument — the gate
-  # decides, not the version number. A bump that breaks this lab fails the gate
-  # and the PR stays open for a human.
+  # Dependabot only. `needs: [test, browser-gate]` is the whole safety argument
+  # — the gates decide, not the version number. A bump that breaks this lab
+  # fails a gate and the PR stays open for a human. The browser gate is in that
+  # list because the packages Dependabot bumps here ARE the browser gate's, so
+  # a bump that breaks it must not be able to merge itself.
   dependabot-auto-merge:
     timeout-minutes: 15
-    needs: test
+    needs: [test, browser-gate]
     if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
