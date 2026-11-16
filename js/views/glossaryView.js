@@ -20,7 +20,7 @@ export function renderGlossaryView(state) {
 
   const search = el('input', {
     type: 'search', class: 'msg-input mono glossary-search', placeholder: 'Filter terms…',
-    attrs: { 'aria-label': 'Filter glossary terms', autocomplete: 'off', spellcheck: 'false' },
+    attrs: { autocomplete: 'off', spellcheck: 'false' },
     on: { input: (e) => { query = e.target.value.toLowerCase(); renderGrid(); } },
   });
 
