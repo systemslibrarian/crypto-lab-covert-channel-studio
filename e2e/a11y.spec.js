@@ -197,6 +197,59 @@ test('a shared URL restores the section, seed and view mode it encodes', async (
   expect(trouble).toEqual([]);
 });
 
+test('a hash change on an ALREADY-OPEN page moves the header controls too, not just the state', async ({ page }) => {
+  const trouble = watchForTrouble(page);
+
+  // The sibling test above deliberately uses a fresh `goto`, because boot()
+  // reads the hash BEFORE buildHeader() and that ordering only exists at load
+  // time. This is the other half, and nothing in this repository covered it:
+  // changing `location.hash` on a page that is already up. That is the back
+  // button, a pasted link followed while the exhibit is open, and every in-page
+  // `location.hash = …`. It goes through the `hashchange` listener, which the
+  // DOM shim in test/dom-shim.js stubs to a no-op, so no Node gate can fire it.
+  await page.goto('/#dns');
+  await expect(page.locator('#main #sec-dns')).toBeVisible();
+  await expect(page.locator('#header-controls #seed-input')).toHaveValue('crypto-lab');
+  await expect(page.locator('#header-controls input[name="viewmode"][value="sender"]')).toBeChecked();
+
+  await page.evaluate(() => { window.location.hash = '#dns?seed=hashchange-probe&mode=defender'; });
+
+  // The new seed and mode are in use the moment the hash lands: state.js
+  // channelRunParams() reads state.seed on every run, so every DNS simulation
+  // from here on is seeded 'hashchange-probe:dns'. Read from the page's own
+  // module instance — js/app.js already imported this exact URL, so the dynamic
+  // import resolves to the same instance rather than a second copy of the store.
+  await expect.poll(() => page.evaluate(async () => {
+    const store = await import('/js/state.js');
+    return `${store.getState().seed}|${store.channelRunParams('dns').seed}|${store.getState().viewMode}`;
+  })).toBe('hashchange-probe|hashchange-probe:dns|defender');
+
+  // …and this is the half that was broken. buildHeader() had exactly one call
+  // site, inside boot(), and `reason: 'seed'` falls through onStateChange() to
+  // `current.refresh(state)`, which re-renders the section's OUTPUT panels and
+  // never touches the header. So the Seed field went on showing 'crypto-lab'
+  // while every simulation on the page ran on 'hashchange-probe', and the
+  // Sender/Defender radios went on showing Sender in Defender mode.
+  await expect(page.locator('#header-controls #seed-input')).toHaveValue('hashchange-probe');
+  await expect(page.locator('#header-controls input[name="viewmode"][value="defender"]')).toBeChecked();
+  await expect(page.locator('#header-controls input[name="viewmode"][value="sender"]')).not.toBeChecked();
+
+  // The hidden-message input is the third control in the header and the third
+  // casualty of that single call site. A hash never carries a message, so a
+  // hashchange cannot make it stale — but it is rebuilt along with the other
+  // two, so assert it still agrees with the store afterwards, byte counter
+  // included, rather than being silently reset to the default.
+  const message = await page.evaluate(async () => (await import('/js/state.js')).getState().message);
+  await expect(page.locator('#header-controls .msg-field .msg-input')).toHaveValue(message);
+  await expect(page.locator('#header-controls .msg-counter')).toHaveText(`${message.length}/24 B`);
+
+  // The view-mode change has to have reached the section as well as the header.
+  await expect(page.locator('#main #sec-dns')).toBeVisible();
+  expect(new URL(page.url()).hash).toBe('#dns?seed=hashchange-probe&mode=defender');
+
+  expect(trouble, 'a hash change must not log an error').toEqual([]);
+});
+
 /* ---- where a control's accessible name actually comes from ------------------
  *
  * axe-core's `label` rule is satisfied by a non-empty `placeholder`. That is
