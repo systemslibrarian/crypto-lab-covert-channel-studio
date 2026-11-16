@@ -243,6 +243,7 @@ Tests use the Node.js built-in test runner (`node --test`). They cover the utili
 - Sender/receiver and defender view modes are reachable and operable without a pointer.
 - Meaning is never carried by colour alone (bits, anomaly levels, and status all pair colour with a glyph or label).
 - An **automated accessibility gate** (`test/a11y.test.js`) renders every view in both modes and fails the build if any control lacks an accessible name or any scrollable region is not a focusable, labelled region.
+- [ACCESSIBILITY.md](ACCESSIBILITY.md) lists what each gate holds, and records the one measured WCAG 1.4.3 shortfall the exhibit is carrying — a single frame of the sidebar's route-change transition — with the measurement, the sampling method, and the reason it was not changed.
 
 ## Browser support
 
