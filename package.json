@@ -7,7 +7,7 @@
   "scripts": {
     "test": "node --test --test-timeout=60000",
     "test:a11y": "playwright test",
-    "serve": "python3 -m http.server 8080"
+    "serve": "python3 -m http.server 4173"
   },
   "keywords": [
     "security-education",
