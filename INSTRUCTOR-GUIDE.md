@@ -320,8 +320,8 @@ where they are assessed. Section links use the hash ids from the [appendix](#app
 | **Shared-Resource Matrix** (`#srm`) | Apply Kemmerer's method to systematically identify storage and timing channels. | Worked matrix exercise (Plan C). |
 | **What Makes a Channel Covert?** (`#concepts`) | Distinguish storage from timing, and covert channels from tunnels/encryption; explain why an encrypted tunnel is usually not covert; reason about the capacity/reliability/observability trade-off. | Reflection prompts 1–3; quiz `capacity-vs-observability`, `cover-traffic`. |
 | **Defensive Takeaways** (`#defense`) | Watch shape not payload; combine weak indicators; respect false positives; know your middleboxes; understand the limits. | Reflection prompt on defence; Detection Challenge reasoning. |
-| **Glossary** (`#glossary`) | Use the field's vocabulary precisely (51 cited terms). | Referenced throughout; optional term-match check. |
-| **Knowledge Check** (`#quiz`) | Self-assess the core distinctions across 18 items. | Formative self-check; can be collected. |
+| **Glossary** (`#glossary`) | Use the field's vocabulary precisely (51 cross-referenced terms). | Referenced throughout; optional term-match check. |
+| **Knowledge Check** (`#quiz`) | Self-assess the core distinctions across 21 questions. | Formative self-check; can be collected. |
 
 ---
 
