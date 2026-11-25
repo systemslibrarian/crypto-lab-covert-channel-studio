@@ -130,13 +130,10 @@ export function predictProb(model, x) {
 }
 
 /**
- * Score an inter-arrival series 0..100, so the learned model is directly
- * comparable with the classical detectors on the same axis.
+ * Score an inter-arrival series 0..100, as a percentage probability estimate.
  *
- * NOTE the difference in meaning, which the UI has to keep saying out loud: a
- * classical detector's score is a weighted indicator with no probabilistic
- * claim, while this one IS a calibrated-ish probability — on the training
- * distribution, and nowhere else.
+ * AUC tests ranking. Calibration requires comparing estimated probabilities
+ * with observed frequencies on representative cases.
  * @param {Object} model
  * @param {number[]} gaps
  */

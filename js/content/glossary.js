@@ -252,12 +252,12 @@ export const GLOSSARY = [
   },
   {
     term: 'Distribution shift',
-    definition: 'When deployed traffic is drawn from a different generative process than the one a detector was fitted to — a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. A fitted model can degrade sharply here while a hand-built statistic, never fitted to anything, has nothing to shift away from. It is why in-distribution accuracy is a weak promise about deployment.',
+    definition: 'When deployed traffic is drawn from a different generative process than the one a detector was fitted to — a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. Both fitted and hand-built detectors can lose accuracy when the data changes. It is why in-distribution accuracy is a weak promise about deployment.',
     seeAlso: ['Overfitting', 'Learned detector', 'Baseline', 'Anomaly']
   },
   {
     term: 'Learned detector',
-    definition: 'A detector whose weighting of features is fitted from labelled examples rather than chosen by a person. In this exhibit it is a two-feature logistic regression over the SAME statistics the hand-built timing detector uses, so any difference in behaviour comes from fitting alone. Note that its score means something different: it is a probability calibrated on its training distribution and nowhere else, whereas a classical anomaly score never claimed to be a probability at all.',
+    definition: 'A detector whose weighting of features is fitted from labelled examples rather than chosen by a person. In this exhibit it is a two-feature logistic regression over the SAME statistics the hand-built timing detector uses, so any difference in behaviour comes from fitting alone. Its output estimates a probability. Measuring calibration requires comparing those estimates with observed frequencies on representative cases. This exhibit measures ranking with AUC.',
     seeAlso: ['Overfitting', 'Distribution shift', 'Corrected conditional entropy', 'Anomaly']
   },
 ];

@@ -289,15 +289,14 @@ ability to memorise. The **test → shift** drop is distribution shift, which mo
 same distribution does not fix.
 
 The classical CCE + Cabuk detector (§1, §2) is scored on **the same three sets**. That is the fair
-comparison: it was never fitted to anything, so it has nothing to shift away from — but it is also
-stuck with whatever weighting a person guessed.
+comparison: its weights are fixed, and its error rate can change when the data distribution changes.
 
 ### Why AUC is comparable across the two but raw scores are not
 
-A learned score and a classical score do not mean the same thing even though both are 0–100. This
-model emits a probability that is calibrated on its training distribution **and nowhere else**; the
-classical score never claimed to be a probability at all (§6). Comparing them by **AUC is fair**,
-because AUC uses only the *ranking* of cases and is invariant to any monotone rescaling of either
+A learned score and a classical score do not mean the same thing even though both are 0–100. The fitted
+model estimates a probability. Measuring calibration requires comparing the estimates with observed
+frequencies on representative cases. The classical score is an anomaly indicator (§6). Comparing them by **AUC is fair**,
+because AUC uses only the *ranking* of cases and is invariant to any strictly increasing rescaling of either
 score. Comparing them by their raw numbers, or by a shared threshold, would not be — and the UI says
 so rather than putting the two scores on one axis.
 

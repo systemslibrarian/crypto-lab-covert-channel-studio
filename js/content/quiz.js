@@ -257,7 +257,7 @@ export const QUIZ = [
     ],
     answerIndex: 1,
     explanation:
-      'A score on the data a model was fitted to measures memorisation as much as generalisation, and two parameters over twelve cases are already enough to produce a gap between the fit score and a held-out score. The harder test is distribution shift: traffic from a generative process the model never saw, such as a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. The exhibit scores the hand-built detector on identical sets for the fair comparison — it was never fitted to anything, so it has nothing to shift away from, but it is also stuck with whatever weighting a person guessed.'
+      'A score on the data a model was fitted to measures memorisation as much as generalisation, and two parameters over twelve cases are already enough to produce a gap between the fit score and a held-out score. The harder test is distribution shift: traffic from a generative process the model never saw, such as a scheduled poller that is clean but metronomic, or a channel with a narrower separation than any training case. The exhibit scores the hand-built detector on identical sets for the fair comparison — its weights are fixed, but a change in the data can change its error rate too.'
   },
   {
     id: 'side-vs-covert',
